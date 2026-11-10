@@ -190,7 +190,7 @@ export function ComplaintForm() {
           id="complaint-article"
           value={articleSlug}
           onChange={(event) => setArticleSlug(event.target.value)}
-          placeholder="slug-artikel — kosongkan bila tidak terkait artikel tertentu"
+          placeholder="slug-artikel (kosongkan jika tidak terkait artikel tertentu)"
           className="h-11"
           autoComplete="off"
         />

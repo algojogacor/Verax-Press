@@ -1,4 +1,4 @@
-// Hash password dengan scrypt (node:crypto) — tanpa dependensi eksternal.
+// Hash password dengan scrypt (node:crypto), tanpa dependensi eksternal.
 // Format tersimpan: scrypt$N$r$p$saltHex$hashHex
 
 import { randomBytes, scryptSync, timingSafeEqual } from "node:crypto";

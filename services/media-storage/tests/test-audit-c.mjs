@@ -74,7 +74,7 @@ async function run() {
 
   // C.4 & C.5: Check Cache-Control headers on Private vs Public downloads
   if (privRow) {
-    const authPriv = generateUploadAuth({ action: 'download', visibility: 'private', secret: 'vx_media_prod_sec_2026_d3f9e2a1b7c8e4f501a2b3c4d5e6f7a8' });
+    const authPriv = generateUploadAuth({ action: 'download', visibility: 'private', secret: process.env.VERAX_MEDIA_SECRET || 'dev_secret' });
     const authRes = await req(`/api/v1/media/${privRow.id}/file`, 'GET', {
       'X-Media-Auth-Signature': authPriv.signature,
       'X-Media-Auth-Payload': authPriv.payload,

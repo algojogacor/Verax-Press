@@ -60,7 +60,7 @@ function StudioNav({ onNavigate }: { onNavigate?: () => void }) {
       ? [{ href: "/studio/complaints", label: "Keluhan", icon: ClipboardList }]
       : []),
     ...(isChief ? [{ href: "/studio/audit", label: "Audit", icon: ScrollText }] : []),
-    ...(isChief ? [{ href: "/studio/api-clients", label: "API Clients", icon: KeyRound }] : []),
+    ...(isChief ? [{ href: "/studio/api-clients", label: "Klien API", icon: KeyRound }] : []),
   ];
 
   return (
@@ -96,7 +96,7 @@ function UserFooter({ onNavigate }: { onNavigate?: () => void }) {
 
   return (
     <div className="border-t border-verity-rule p-4">
-      <p className="truncate text-sm font-medium text-verity-ink">{user?.name ?? "—"}</p>
+      <p className="truncate text-sm font-medium text-verity-ink">{user?.name ?? ""}</p>
       <p className="mt-0.5 font-mono text-[11px] uppercase tracking-[0.12em] text-verity-ink-faint">
         {user ? ROLE_LABELS[user.role] : ""}
       </p>

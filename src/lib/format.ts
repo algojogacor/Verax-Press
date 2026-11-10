@@ -4,7 +4,7 @@ import type { ArticleStatus, VerificationStatus } from "@/types/verity";
 const TZ = "Asia/Jakarta";
 
 export function formatDate(date: Date | string | null | undefined): string {
-  if (!date) return "—";
+  if (!date) return "-";
   const d = typeof date === "string" ? new Date(date) : date;
   return new Intl.DateTimeFormat("id-ID", {
     day: "numeric",
@@ -15,7 +15,7 @@ export function formatDate(date: Date | string | null | undefined): string {
 }
 
 export function formatDateTime(date: Date | string | null | undefined): string {
-  if (!date) return "—";
+  if (!date) return "-";
   const d = typeof date === "string" ? new Date(date) : date;
   return new Intl.DateTimeFormat("id-ID", {
     day: "numeric",
@@ -28,7 +28,7 @@ export function formatDateTime(date: Date | string | null | undefined): string {
 }
 
 export function formatShortDate(date: Date | string | null | undefined): string {
-  if (!date) return "—";
+  if (!date) return "-";
   const d = typeof date === "string" ? new Date(date) : date;
   return new Intl.DateTimeFormat("id-ID", {
     day: "2-digit",
@@ -49,9 +49,9 @@ export function formatMastheadDate(date: Date = new Date()): string {
   }).format(date);
 }
 
-/** Stempel relatif untuk rail "Terbaru" — identitas ticker: hari ini/kemarin + jam. */
+/** Stempel relatif untuk rail "Terbaru" (identitas pembaruan: hari ini atau kemarin beserta jam). */
 export function formatRailTimestamp(date: Date | string | null | undefined, now: Date = new Date()): string {
-  if (!date) return "—";
+  if (!date) return "-";
   const d = typeof date === "string" ? new Date(date) : date;
   const time = new Intl.DateTimeFormat("id-ID", {
     hour: "2-digit",

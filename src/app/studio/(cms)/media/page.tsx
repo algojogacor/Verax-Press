@@ -27,7 +27,7 @@ export default async function MediaPage() {
         <p className="mt-1 max-w-2xl font-serif text-[13px] leading-relaxed text-verity-ink-soft">
           Setiap aset mencatat pembuat, keterangan, dan izin penggunaan (kebijakan atribusi
           redaksi). Gambar buatan AI ditandai dan tidak disajikan sebagai dokumentasi
-          fotografis. Format yang diizinkan: JPEG, PNG, WebP, GIF, SVG (maks 5 MB).
+          fotografis. Format yang diizinkan: JPEG, PNG, WebP (maks 5 MB).
         </p>
       </header>
 

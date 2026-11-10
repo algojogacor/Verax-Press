@@ -3,7 +3,7 @@
 import { db } from "@/lib/db";
 import { requireSession, ok, jsonError, ApiError } from "@/lib/api";
 import { writeAudit } from "@/lib/domain/audit";
-import { uploadToMediaStorage } from "@/lib/media-client";
+import { uploadToMediaStorage, deleteFromMediaStorage } from "@/lib/media-client";
 import crypto from "node:crypto";
 import { writeFile, mkdir } from "node:fs/promises";
 import { existsSync } from "node:fs";
@@ -16,8 +16,6 @@ const MIME_TO_EXT: Record<string, string> = {
   "image/jpeg": "jpg",
   "image/png": "png",
   "image/webp": "webp",
-  "image/gif": "gif",
-  "image/svg+xml": "svg",
 };
 const ALLOWED_MIME = Object.keys(MIME_TO_EXT);
 const MAX_SIZE = 5 * 1024 * 1024; // 5 MB
@@ -29,17 +27,12 @@ function detectImageMime(buf: Buffer): string | null {
   if (buf[0] === 0xff && buf[1] === 0xd8 && buf[2] === 0xff) return "image/jpeg";
   // PNG: 89 50 4E 47
   if (buf[0] === 0x89 && buf[1] === 0x50 && buf[2] === 0x4e && buf[3] === 0x47) return "image/png";
-  // GIF: 47 49 46 38
-  if (buf[0] === 0x47 && buf[1] === 0x49 && buf[2] === 0x46 && buf[3] === 0x38) return "image/gif";
   // WebP: RIFF....WEBP
   if (
     buf.length >= 12 &&
     buf[0] === 0x52 && buf[1] === 0x49 && buf[2] === 0x46 && buf[3] === 0x46 &&
     buf[8] === 0x57 && buf[9] === 0x45 && buf[10] === 0x42 && buf[11] === 0x50
   ) return "image/webp";
-  // SVG: starts with '<' (text-based, no magic bytes; check for xml/svg tag)
-  const head = buf.subarray(0, 200).toString("utf8").trimStart();
-  if (head.startsWith("<?xml") || head.startsWith("<svg")) return "image/svg+xml";
   return null;
 }
 
@@ -114,6 +107,43 @@ export async function POST(req: Request) {
       });
       url = remote.publicUrl || `/uploads/${remote.storedFilename}`;
       storageKey = `media/${remote.id}`;
+
+      try {
+        const asset = await db.mediaAsset.create({
+          data: {
+            storageKey,
+            url,
+            mimeType: finalMime,
+            mediaType: "PHOTO",
+            title: title || null,
+            creator,
+            license: license || null,
+            caption,
+            isSynthetic,
+            uploadedById: user.id,
+          },
+        });
+
+        await writeAudit({
+          actorType: "STAFF",
+          actorId: user.id,
+          actorLabel: user.name,
+          action: "media.upload",
+          targetType: "ARTICLE",
+          targetId: asset.id,
+          reason: `${finalMime} ${file.size}b synthetic=${isSynthetic} creator=${creator.slice(0, 40)}`,
+        });
+
+        return ok({ asset }, 201);
+      } catch (dbErr) {
+        // Compensating action: quarantine remote asset if database insert fails
+        try {
+          await deleteFromMediaStorage(remote.id, user.id);
+        } catch (compErr) {
+          console.error("Failed to compensate remote media upload after DB error:", compErr);
+        }
+        throw dbErr;
+      }
     } else {
       if (!existsSync(UPLOAD_DIR)) await mkdir(UPLOAD_DIR, { recursive: true });
       const ext = MIME_TO_EXT[finalMime];
@@ -122,34 +152,34 @@ export async function POST(req: Request) {
       await writeFile(filepath, buffer);
       url = `/uploads/${filename}`;
       storageKey = `uploads/${filename}`;
+
+      const asset = await db.mediaAsset.create({
+        data: {
+          storageKey,
+          url,
+          mimeType: finalMime,
+          mediaType: "PHOTO",
+          title: title || null,
+          creator,
+          license: license || null,
+          caption,
+          isSynthetic,
+          uploadedById: user.id,
+        },
+      });
+
+      await writeAudit({
+        actorType: "STAFF",
+        actorId: user.id,
+        actorLabel: user.name,
+        action: "media.upload",
+        targetType: "ARTICLE",
+        targetId: asset.id,
+        reason: `${finalMime} ${file.size}b synthetic=${isSynthetic} creator=${creator.slice(0, 40)}`,
+      });
+
+      return ok({ asset }, 201);
     }
-
-    const asset = await db.mediaAsset.create({
-      data: {
-        storageKey,
-        url,
-        mimeType: finalMime,
-        mediaType: finalMime.startsWith("image/") ? "PHOTO" : "DOCUMENT",
-        title: title || null,
-        creator,
-        license: license || null,
-        caption,
-        isSynthetic,
-        uploadedById: user.id,
-      },
-    });
-
-    await writeAudit({
-      actorType: "STAFF",
-      actorId: user.id,
-      actorLabel: user.name,
-      action: "media.upload",
-      targetType: "ARTICLE",
-      targetId: asset.id,
-      reason: `${finalMime} ${file.size}b synthetic=${isSynthetic} creator=${creator.slice(0, 40)}`,
-    });
-
-    return ok({ asset }, 201);
   } catch (error) {
     return jsonError(error);
   }

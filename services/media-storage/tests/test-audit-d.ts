@@ -8,8 +8,8 @@ async function run() {
   console.log("=== AUDIT SECTION D: END-TO-END CMS INTEGRATION ===");
 
   // Ensure tunnel is pointed to loopback 4188
-  process.env.VERAX_MEDIA_API_URL = "http://127.0.0.1:4188";
-  process.env.VERAX_MEDIA_SECRET = "vx_media_prod_sec_2026_d3f9e2a1b7c8e4f501a2b3c4d5e6f7a8";
+  process.env.VERAX_MEDIA_API_URL = process.env.VERAX_MEDIA_API_URL || "http://127.0.0.1:4188";
+  process.env.VERAX_MEDIA_SECRET = process.env.VERAX_MEDIA_SECRET || "mock_secret_for_test";
 
   // Create a minimal 1x1 valid PNG
   const validPng = Buffer.from(
@@ -142,7 +142,10 @@ async function run() {
   process.env.VERAX_MEDIA_API_URL = "http://127.0.0.1:4188";
   const { generateMediaAuthHeaders } = await import("../../../src/lib/media-client");
   const authHeaders = generateMediaAuthHeaders({
+    method: "DELETE",
+    path: `/api/v1/media/${uploadResult.id}`,
     action: "delete",
+    resourceId: uploadResult.id,
     uploadedBy: "audit-bot",
   });
   const delRes = await fetch(`http://127.0.0.1:4188/api/v1/media/${uploadResult.id}`, {

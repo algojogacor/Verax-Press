@@ -1,4 +1,4 @@
-// State machine editorial artikel — Tahap A (TA §7.1).
+// State machine alur kerja editorial naskah (Tahap A).
 // Transisi HANYA terjadi melalui modul ini; route API tidak boleh menulis status secara langsung.
 // Setiap transisi menghasilkan EditorialReview + AuditEvent (dipanggil di route handler).
 
@@ -34,7 +34,7 @@ export const TRANSITION_RULES: TransitionRule[] = [
   // REVISION_NEEDED (kembali ke author)
   { action: "RESUBMIT_REVIEW", from: "REVISION_NEEDED", to: "PENDING_REVIEW", allowedRoles: AUTHOR_RULE_ROLES, requiresReason: false, gate: "NONE" },
   { action: "WITHDRAW", from: "REVISION_NEEDED", to: "WITHDRAWN", allowedRoles: AUTHOR_RULE_ROLES, requiresReason: true, gate: "NONE" },
-  // PENDING_APPROVAL — HANYA Chief Editor (TA §7.1; hard rule: publish chief-only)
+  // PENDING_APPROVAL: HANYA Pemimpin Redaksi (aturan baku: persetujuan akhir terpusat)
   { action: "PUBLISH", from: "PENDING_APPROVAL", to: "PUBLISHED", allowedRoles: ["CHIEF_EDITOR"], requiresReason: false, gate: "PUBLISH" },
   { action: "REJECT", from: "PENDING_APPROVAL", to: "REJECTED", allowedRoles: ["CHIEF_EDITOR"], requiresReason: true, gate: "NONE" },
   // PUBLISHED (pasca-publikasi; CORRECTED dibuat lewat jalur koreksi dengan CorrectionRecord)
@@ -66,14 +66,14 @@ export function canExecuteRule(
 }
 
 export const TRANSITION_LABELS: Record<TransitionAction, string> = {
-  SUBMIT_REVIEW: "Kirim untuk Review",
+  SUBMIT_REVIEW: "Ajukan Penelaahan",
   WITHDRAW: "Tarik Naskah",
-  START_FACT_CHECK: "Mulai Fact-Check",
+  START_FACT_CHECK: "Mulai Uji Fakta",
   REQUEST_REVISION: "Minta Revisi",
   REJECT: "Tolak",
-  SUBMIT_FOR_APPROVAL: "Ajukan untuk Persetujuan",
-  RESUBMIT_REVIEW: "Kirim Ulang untuk Review",
-  PUBLISH: "Setujui & Terbitkan",
+  SUBMIT_FOR_APPROVAL: "Ajukan Persetujuan",
+  RESUBMIT_REVIEW: "Kirim Ulang Penelaahan",
+  PUBLISH: "Setujui dan Terbitkan",
   RETRACT: "Cabut Artikel",
   ARCHIVE: "Arsipkan",
 };

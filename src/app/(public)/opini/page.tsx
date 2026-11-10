@@ -1,6 +1,6 @@
-// Indeks opini: /opini — ruang perspektif terkurasi dengan disclaimer wajib.
-// Struktur sama dengan halaman desk (header anchor + unggulan + grid) —
-// identitas opini dibedakan lewat label aksen & byline menonjol.
+// Indeks opini: /opini (ruang perspektif terkurasi dengan disclaimer wajib).
+// Struktur sama dengan halaman desk (header anchor + unggulan + grid).
+// Identitas opini dibedakan lewat label aksen & byline menonjol.
 // Hanya artikel format OPINION berstatus PUBLISHED/CORRECTED.
 import type { Metadata } from "next";
 import { db } from "@/lib/db";
@@ -40,7 +40,7 @@ export default async function OpinionPage() {
 
   return (
     <div className="mx-auto max-w-6xl px-4 py-10 sm:px-6 sm:py-12">
-      {/* Header seksi — anchor berat + standfirst */}
+      {/* Header seksi: anchor berat + standfirst */}
       <header className="border-b-2 border-verity-ink pb-8">
         <p className="font-sans text-[0.85rem] font-semibold uppercase tracking-[0.2em] text-verity-accent">
           Opini
@@ -51,7 +51,7 @@ export default async function OpinionPage() {
         <p className="mt-4 max-w-2xl font-serif text-[1.12rem] italic leading-[1.6] text-verity-ink-soft">
           Opini Verax Press adalah ruang perspektif terkurasi: setiap naskah diseleksi, disunting, dan
           diperiksa redaksi sebelum terbit. Di seksi ini penulis menghadirkan argumen dan sudut
-          pandang atas isu publik — bukan liputan faktual redaksi.
+          pandang atas isu publik, bukan liputan berita lapangan.
         </p>
       </header>
 

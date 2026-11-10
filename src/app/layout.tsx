@@ -26,17 +26,17 @@ const plexMono = IBM_Plex_Mono({
 
 export const metadata: Metadata = {
   title: {
-    default: "Verax Press — Media Independen Indonesia",
-    template: "%s — Verax Press",
+    default: "Verax Press | Media Independen Indonesia",
+    template: "%s | Verax Press",
   },
   description:
-    "Verax Press adalah media digital independen dengan kendali editorial manusia: verifikasi sumber, transparansi proses, dan koreksi yang tercatat. Fokus pada hukum, teknologi & kebijakan, serta isu publik Indonesia.",
+    "Verax Press adalah media digital independen dengan kendali editorial manusia: verifikasi sumber, transparansi proses, dan koreksi yang tercatat. Fokus pada hukum, teknologi, kebijakan, serta isu publik Indonesia.",
   keywords: ["Verax Press", "media independen", "berita Indonesia", "analisis", "explainer", "opini"],
   authors: [{ name: "Redaksi Verax Press" }],
   openGraph: {
-    title: "Verax Press — Media Independen Indonesia",
+    title: "Verax Press | Media Independen Indonesia",
     description:
-      "Pemberitaan, analisis, dan perspektif tentang hukum, teknologi, kebijakan, dan isu publik Indonesia — dengan verifikasi sumber dan koreksi yang transparan.",
+      "Pemberitaan, analisis, dan perspektif hukum, teknologi, kebijakan, serta isu publik Indonesia dengan verifikasi sumber dan keterbukaan koreksi.",
     siteName: "Verax Press",
     locale: "id_ID",
     type: "website",

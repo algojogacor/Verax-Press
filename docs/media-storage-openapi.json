@@ -1,0 +1,179 @@
+{
+  "openapi": "3.1.0",
+  "info": {
+    "title": "Verax Press Media Storage Microservice API",
+    "version": "1.1.0",
+    "description": "Lightweight, persistent media storage service hosted on Azure VM (forfh-korea-vm) for Verax Press editorial media delivery."
+  },
+  "servers": [
+    {
+      "url": "https://media.aryariap.my.id",
+      "description": "Production Reverse Proxy (Nginx HTTPS)"
+    },
+    {
+      "url": "http://127.0.0.1:4188",
+      "description": "Loopback Internal Microservice (Node.js)"
+    }
+  ],
+  "paths": {
+    "/health": {
+      "get": {
+        "summary": "Service and Storage Health Check",
+        "description": "Returns operational status, database status, and storage quota statistics.",
+        "responses": {
+          "200": {
+            "description": "Health status",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "status": { "type": "string", "example": "ok" },
+                    "uptime": { "type": "integer", "example": 120 },
+                    "database": { "type": "string", "example": "ok" },
+                    "storage": {
+                      "type": "object",
+                      "properties": {
+                        "usedBytes": { "type": "integer" },
+                        "quotaBytes": { "type": "integer" },
+                        "freeBytes": { "type": "integer" },
+                        "usagePercent": { "type": "string" }
+                      }
+                    },
+                    "media": {
+                      "type": "object",
+                      "properties": {
+                        "activePublic": { "type": "integer" },
+                        "activePrivate": { "type": "integer" },
+                        "quarantined": { "type": "integer" }
+                      }
+                    },
+                    "timestamp": { "type": "string", "format": "date-time" }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/media/upload": {
+      "post": {
+        "summary": "Upload Media Asset",
+        "description": "Accepts multipart/form-data. Requires cryptographically scoped HMAC signature matching method, path, action=upload, timestamp, and one-time nonce.",
+        "parameters": [
+          {
+            "name": "X-Media-Auth-Signature",
+            "in": "header",
+            "required": true,
+            "schema": { "type": "string" },
+            "description": "HMAC-SHA256 signature of canonical payload"
+          },
+          {
+            "name": "X-Media-Auth-Payload",
+            "in": "header",
+            "required": true,
+            "schema": { "type": "string" },
+            "description": "JSON string containing method, path, action, timestamp, expiresAt, nonce, uploadedBy, visibility, category"
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "multipart/form-data": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "file": {
+                    "type": "string",
+                    "format": "binary",
+                    "description": "Image binary (JPEG, PNG, or WebP up to 10MB)"
+                  }
+                },
+                "required": ["file"]
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Media asset uploaded and persisted successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "id": { "type": "string", "format": "uuid" },
+                    "storedFilename": { "type": "string" },
+                    "originalFilename": { "type": "string" },
+                    "visibility": { "type": "string", "enum": ["public", "private"] },
+                    "category": { "type": "string" },
+                    "mimeType": { "type": "string" },
+                    "fileExtension": { "type": "string" },
+                    "fileSize": { "type": "integer" },
+                    "sha256": { "type": "string" },
+                    "width": { "type": "integer", "nullable": true },
+                    "height": { "type": "integer", "nullable": true },
+                    "publicUrl": { "type": "string", "nullable": true },
+                    "createdAt": { "type": "string", "format": "date-time" }
+                  }
+                }
+              }
+            }
+          },
+          "400": { "description": "Invalid format, missing file, or malformed auth payload" },
+          "401": { "description": "Expired signature or nonce already consumed" },
+          "403": { "description": "HMAC verification failed or scope mismatch" },
+          "507": { "description": "Storage quota exceeded" }
+        }
+      }
+    },
+    "/api/v1/media/{id}": {
+      "get": {
+        "summary": "Get Media Metadata",
+        "description": "Retrieves metadata for a media asset by UUID. Requires HMAC auth if visibility is private.",
+        "parameters": [
+          { "name": "id", "in": "path", "required": true, "schema": { "type": "string", "format": "uuid" } }
+        ],
+        "responses": {
+          "200": { "description": "Media metadata" },
+          "401": { "description": "Unauthorized for private asset" },
+          "404": { "description": "Media asset not found" }
+        }
+      },
+      "delete": {
+        "summary": "Quarantine / Soft Delete Media Asset",
+        "description": "Moves media file to quarantine storage and sets database status to quarantined. Requires scoped HMAC auth with action=delete and resourceId matching path UUID.",
+        "parameters": [
+          { "name": "id", "in": "path", "required": true, "schema": { "type": "string", "format": "uuid" } }
+        ],
+        "responses": {
+          "200": { "description": "Asset quarantined successfully" },
+          "401": { "description": "Unauthorized or replay detected" },
+          "403": { "description": "HMAC signature mismatch or scope violation" },
+          "404": { "description": "Media asset not found" }
+        }
+      }
+    },
+    "/api/v1/media/{id}/file": {
+      "get": {
+        "summary": "Download / Stream Media File",
+        "description": "Serves media binary. Public media is served with public cache headers; private media requires scoped HMAC auth with action=download and resourceId.",
+        "parameters": [
+          { "name": "id", "in": "path", "required": true, "schema": { "type": "string", "format": "uuid" } }
+        ],
+        "responses": {
+          "200": {
+            "description": "Media binary stream",
+            "headers": {
+              "Cache-Control": { "schema": { "type": "string" } },
+              "X-Content-Type-Options": { "schema": { "type": "string", "example": "nosniff" } }
+            }
+          },
+          "401": { "description": "Unauthorized for private media" },
+          "404": { "description": "Media file not found on disk" }
+        }
+      }
+    }
+  }
+}

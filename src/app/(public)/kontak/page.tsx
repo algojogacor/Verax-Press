@@ -1,4 +1,4 @@
-// Kontak redaksi — routes readers to the right channel.
+// Kontak redaksi: kanal komunikasi pembaca.
 import { InstitutionalShell } from '@/components/public/institutional'
 import type { Metadata } from 'next'
 
@@ -17,9 +17,9 @@ export default function KontakPage() {
       <h2>Hak jawab, hak koreksi, dan keluhan</h2>
       <p>
         Gunakan kanal khusus kami agar setiap permohonan tercatat dan dapat ditelusuri:{' '}
-        <a href="/keluhan">Kanal Hak Jawab & Keluhan</a>.
+        <a href="/keluhan">Kanal Hak Jawab &amp; Keluhan</a>.
       </p>
-      <h2>Koreksi</h2>
+      <h2>Catatan koreksi</h2>
       <p>
         Rekaman koreksi yang telah dipublikasikan dapat dilihat di{' '}
         <a href="/koreksi">Catatan Koreksi</a>.
@@ -33,7 +33,7 @@ export default function KontakPage() {
       <h2>Kontributor</h2>
       <p>
         Penerbitan kontributor eksternal belum dibuka. Baca{' '}
-        <a href="/pedoman-kontributor">pedoman kontributor</a> untuk memahami rencana kami.
+        <a href="/pedoman-kontributor">pedoman kontributor</a> untuk memahami rencana kerja kami.
       </p>
     </InstitutionalShell>
   )

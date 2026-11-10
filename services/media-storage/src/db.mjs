@@ -49,6 +49,14 @@ export function getDb() {
     CREATE INDEX IF NOT EXISTS idx_media_visibility_cat ON media_items(visibility, category, status);
     CREATE INDEX IF NOT EXISTS idx_media_sha256 ON media_items(sha256);
     CREATE INDEX IF NOT EXISTS idx_media_status ON media_items(status);
+
+    CREATE TABLE IF NOT EXISTS consumed_nonces (
+      nonce TEXT PRIMARY KEY,
+      action TEXT NOT NULL,
+      consumed_at INTEGER NOT NULL,
+      expires_at INTEGER NOT NULL
+    );
+    CREATE INDEX IF NOT EXISTS idx_nonces_expires ON consumed_nonces(expires_at);
   `);
 
   return dbInstance;
@@ -141,4 +149,35 @@ export function backupDatabase(destPath) {
   // SQLite VACUUM INTO safely creates a consistent standalone copy without lock issues
   db.exec(`VACUUM INTO '${sanitizedDest.replace(/'/g, "''")}';`);
   return sanitizedDest;
+}
+
+export function consumeNonce(nonce, action, expiresAt) {
+  const db = getDb();
+  const now = Date.now();
+  try {
+    const stmt = db.prepare(`
+      INSERT INTO consumed_nonces (nonce, action, consumed_at, expires_at)
+      VALUES (?, ?, ?, ?)
+    `);
+    stmt.run(nonce, action, now, expiresAt);
+    return true;
+  } catch (err) {
+    if (err.message && (err.message.includes('UNIQUE') || err.message.includes('PRIMARY KEY'))) {
+      return false; // Already consumed
+    }
+    throw err;
+  }
+}
+
+export function cleanupExpiredNonces() {
+  try {
+    const db = getDb();
+    const now = Date.now();
+    const stmt = db.prepare(`DELETE FROM consumed_nonces WHERE expires_at < ?`);
+    const result = stmt.run(now);
+    return result.changes;
+  } catch (err) {
+    console.error('Failed to cleanup expired nonces:', err);
+    return 0;
+  }
 }

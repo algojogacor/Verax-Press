@@ -27,13 +27,13 @@ import { formatDateTime } from "@/lib/format";
 import type { ArticleDetailDTO, ContributionRole } from "@/types/verity";
 
 const REVIEW_DECISION_LABELS: Record<string, string> = {
-  SUBMIT_REVIEW: "Kirim review",
-  START_FACT_CHECK: "Mulai fact-check",
+  SUBMIT_REVIEW: "Ajukan penelaahan",
+  START_FACT_CHECK: "Mulai uji fakta",
   REQUEST_REVISION: "Minta revisi",
   SUBMIT_FOR_APPROVAL: "Ajukan persetujuan",
   PUBLISH: "Terbitkan",
   REJECT: "Tolak",
-  RESUBMIT_REVIEW: "Kirim ulang",
+  RESUBMIT_REVIEW: "Kirim ulang penelaahan",
   WITHDRAW: "Tarik",
   RETRACT: "Cabut",
   ARCHIVE: "Arsipkan",
@@ -158,7 +158,7 @@ export function ArticleWorkflowTab({ article }: { article: ArticleDetailDTO }) {
         )}
       </section>
 
-      {/* Kredit kontribusi — hanya editor+ */}
+      {/* Kredit kontribusi: hanya editor ke atas */}
       {isEditorPlus ? (
         <section aria-label="Kredit kontribusi" className="border border-verity-rule bg-card p-4 sm:p-6">
           <div className="flex flex-wrap items-center justify-between gap-3">
@@ -193,7 +193,7 @@ export function ArticleWorkflowTab({ article }: { article: ArticleDetailDTO }) {
               >
                 <Input
                   aria-label="Nama kontributor"
-                  placeholder="Nama person"
+                  placeholder="Nama lengkap"
                   value={row.personName}
                   onChange={(event) => updateRow(index, { personName: event.target.value })}
                 />

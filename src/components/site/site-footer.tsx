@@ -1,4 +1,4 @@
-// Footer publik — tautan institusional; menempel di bawah viewport (mt-auto pada layout).
+// Footer publik: tautan institusional; menempel di bawah viewport (mt-auto pada layout).
 import Link from "next/link";
 import { db } from "@/lib/db";
 
@@ -20,7 +20,7 @@ export async function SiteFooter() {
             </p>
             <p className="mt-4 max-w-sm font-serif text-sm leading-relaxed text-verity-ink-soft">
               Media digital independen dengan kendali editorial manusia. Setiap artikel melewati
-              review, fact-check, dan persetujuan editor sebelum terbit.
+              penelaahan, uji fakta, dan persetujuan redaktur sebelum terbit.
             </p>
           </div>
           <nav aria-label="Kebijakan redaksi">

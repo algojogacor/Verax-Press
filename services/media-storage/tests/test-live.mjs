@@ -6,7 +6,7 @@ const auth = generateUploadAuth({
   category: 'articles',
   visibility: 'public',
   uploadedBy: 'admin',
-  secret: 'vx_media_prod_sec_2026_d3f9e2a1b7c8e4f501a2b3c4d5e6f7a8',
+  secret: process.env.VERAX_MEDIA_SECRET || 'dev_secret',
 });
 const png = Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg==', 'base64');
 const boundary = '----TestBoundary';

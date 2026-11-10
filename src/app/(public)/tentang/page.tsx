@@ -1,4 +1,4 @@
-// Tentang Verax Press: /tentang — halaman kelembagaan (prosa serif, tanpa kartu).
+// Tentang Verax Press: /tentang (halaman kelembagaan, prosa serif).
 // Nada hati-hati: tidak ada klaim status hukum (lihat catatan penutup).
 import type { Metadata } from "next";
 import Link from "next/link";
@@ -9,10 +9,10 @@ export const dynamic = "force-dynamic";
 export const metadata: Metadata = {
   title: "Tentang Verax Press",
   description:
-    "Apa itu Verax Press: media digital independen dengan kendali editorial manusia — misi, nilai editorial, desk, cara kerja, dan peluncuran bertahap.",
+    "Mengenal Verax Press: media digital independen dengan kendali editorial manusia. Misi, nilai editorial, desk, cara kerja, dan peluncuran bertahap.",
 };
 
-/** Nilai editorial (Charter §2) — nilai & penerapannya. */
+/** Nilai editorial (Charter §2): nilai & penerapannya. */
 const EDITORIAL_VALUES: { name: string; application: string }[] = [
   {
     name: "Akurasi",
@@ -73,20 +73,20 @@ export default async function AboutPage() {
           <div className="mt-4 space-y-4 font-serif text-[1.02rem] leading-[1.78] text-verity-ink">
             <p>
               Verax Press adalah media digital independen yang berfokus pada isu publik Indonesia.
-              Kami menggabungkan newsroom yang sepenuhnya dikendalikan redaksi dengan kontribusi
+              Kami menggabungkan ruang redaksi yang sepenuhnya dikendalikan staf editorial dengan kontribusi
               eksternal yang terkurasi.
             </p>
             <p className="border-l-2 border-verity-rule-strong pl-4 italic">
               Nama kami diambil dari bahasa Latin{" "}
-              <span className="font-medium not-italic">&ldquo;verax&rdquo;</span> — jujur, yang
-              berkata benar. Motto redaksi,{" "}
+              <span className="font-medium not-italic">&ldquo;verax&rdquo;</span>, yang berarti jujur
+              atau berkata benar. Motto redaksi,{" "}
               <span className="not-italic">&ldquo;Ex Fontibus Veritas&rdquo;</span>, menegaskan
-              arahnya: kebenaran bersumber dari sumbernya.
+              arah kerja kami: kebenaran bersumber dari sumbernya.
             </p>
             <p>
-              Verax Press bukan platform self-publishing dan bukan forum terbuka. Tidak ada naskah
-              yang terbit tanpa persetujuan manusia: setiap artikel melewati review, pemeriksaan
-              fakta, dan persetujuan editor sebelum tayang.
+              Verax Press bukan platform publikasi mandiri dan bukan forum terbuka. Tidak ada naskah
+              yang terbit tanpa persetujuan manusia: setiap artikel melewati penelaahan, pemeriksaan
+              fakta, dan persetujuan redaktur sebelum tayang.
             </p>
           </div>
         </section>
@@ -170,17 +170,17 @@ export default async function AboutPage() {
           </h2>
           <div className="mt-4 space-y-4 font-serif text-[1.02rem] leading-[1.78] text-verity-ink">
             <p>
-              Setiap naskah melewati alur editorial yang sama: draf, review editor, fact-check,
-              lalu persetujuan akhir Chief Editor sebelum terbit. Hanya Chief Editor yang dapat
+              Setiap naskah melewati alur editorial yang sama: draf, penelaahan redaktur, uji fakta,
+              lalu persetujuan akhir Chief Editor sebelum terbit. Hanya Chief Editor yang memiliki wewenang
               menerbitkan artikel.
             </p>
             <p>
-              Sumber kunci pada setiap artikel diverifikasi oleh editor manusia — artikel tidak
-              disetujui terbit bila masih ada sumber kunci yang belum diverifikasi atau
-              dipertanyakan. Daftar sumber beserta statusnya tampil pada halaman artikel.
+              Sumber kunci pada setiap artikel diverifikasi oleh editor manusia. Naskah tidak
+              disetujui terbit bila masih terdapat sumber kunci yang belum diverifikasi atau
+              dipertanyakan. Daftar sumber beserta statusnya ditampilkan langsung pada halaman artikel.
             </p>
             <p>
-              Bila terjadi kesalahan material, koreksi tampil pada artikel yang bersangkutan dan
+              Bila terjadi kesalahan material, koreksi ditampilkan pada artikel yang bersangkutan dan
               tercatat pada{" "}
               <Link
                 href="/koreksi"
@@ -200,17 +200,17 @@ export default async function AboutPage() {
           </h2>
           <div className="mt-4 space-y-4 font-serif text-[1.02rem] leading-[1.78] text-verity-ink">
             <p>
-              Verax Press diluncurkan bertahap. Tahap A dijalankan oleh newsroom internal saja —
-              seluruh konten diproduksi dan disunting staf redaksi.
+              Verax Press diluncurkan bertahap. Tahap A dijalankan oleh ruang redaksi internal,
+              dengan seluruh konten diproduksi dan disunting oleh staf redaksi.
             </p>
             <p>
-              Tahap B membuka kontribusi eksternal secara undangan, setelah gerbang tata kelola —
-              termasuk kebijakan lisensi kontributor dan proses kurasi — terpenuhi.
+              Tahap B membuka kontribusi eksternal melalui mekanisme undangan khusus, setelah persyaratan tata kelola
+              seperti kebijakan lisensi kontributor dan proses kurasi terpenuhi secara lengkap.
             </p>
           </div>
         </section>
 
-        {/* Catatan penutup — nada hati-hati, tanpa klaim status hukum */}
+        {/* Catatan penutup: nada hati-hati, tanpa klaim status hukum */}
         <p className="border-t border-verity-rule pt-4 font-mono text-[11px] leading-relaxed text-verity-ink-faint">
           Verax Press adalah nama kerja. Verax Press belum mengklaim status badan hukum pers, pendaftaran
           PSE, atau verifikasi Dewan Pers.

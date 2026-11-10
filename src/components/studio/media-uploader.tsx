@@ -85,11 +85,11 @@ export function MediaUploader() {
           <input
             id="mfile"
             type="file"
-            accept="image/jpeg,image/png,image/webp,image/gif,image/svg+xml"
+            accept="image/jpeg,image/png,image/webp"
             onChange={(e) => setFile(e.target.files?.[0] ?? null)}
             className="block w-full text-[12px] text-verity-ink border border-verity-rule rounded-md p-2 bg-verity-paper file:mr-3 file:rounded file:border-0 file:bg-verity-paper-soft file:px-2 file:py-1 file:text-[11px]"
           />
-          <p className="text-[10px] text-verity-ink-faint">JPEG/PNG/WebP/GIF/SVG · maks 5 MB · validasi konten berkas.</p>
+          <p className="text-[10px] text-verity-ink-faint">JPEG/PNG/WebP · maks 5 MB · validasi konten berkas.</p>
         </div>
         <div className="space-y-1.5">
           <Label htmlFor="mtitle" className="text-[12px]">Judul (opsional)</Label>

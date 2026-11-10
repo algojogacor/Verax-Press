@@ -1,4 +1,4 @@
-// Halaman login studio — satu-satunya pintu masuk staf ke CMS.
+// Halaman masuk studio: gerbang akses staf ke CMS.
 "use client";
 
 import { Suspense, useState } from "react";
@@ -62,7 +62,7 @@ function LoginForm() {
               id="email"
               type="email"
               autoComplete="email"
-              placeholder="nama@verity.example"
+              placeholder="nama@redaksi.example"
               value={email}
               onChange={(event) => setEmail(event.target.value)}
               required

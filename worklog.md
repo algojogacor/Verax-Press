@@ -237,3 +237,24 @@ Dijalankan 9 Nov 2026 (sesi build-2). Transkrip lengkap: `scripts/acceptance-tes
 - **Langkah Pengguna yang Tersisa (User-side Actions):**
   - Konfigurasi DNS A Record: Arahkan `media.aryariap.my.id` ke IP publik VM (`20.214.143.187`).
   - Aktivasi Nginx & Certbot: Jalankan `sudo bash /home/azureuser/verax-media-service/install-media-nginx.sh` untuk menerapkan reverse proxy dan menerbitkan sertifikat Let's Encrypt.
+
+
+## 22. Verax Press — Perombakan Penulisan Sistemik Berbasis Standar Anti-AI-Writing (10 Nov 2026)
+
+- **Laporan Audit Lengkap:** `docs/superpowers/audits/2026-11-10-verax-system-writing-revision.md`
+- **Pedoman Baku Baru:** `docs/editorial/VERAX_WRITING_STANDARDS.md` dan aturan agen di `AGENTS.md`.
+- **Tujuan & Batasan:**
+  - Menerapkan keahlian `anti-ai-writing` untuk merombak total teks milik sistem, pengembang, dan institusi di seluruh proyek Verax Press.
+  - Memisahkan secara ketat teks sistem dari naskah berita: **isi artikel berita, draf editorial, kutipan narasumber, dan rekaman data di basis data tidak disentuh sama sekali**.
+- **Hasil Remediasi Utama:**
+  - **Pemberantasan Tanda Pisah Em Dash (—):** 167 kemunculan tanda pisah em dash pada direktori kode sumber (`src/`) dan dokumentasi telah dieliminasi 100%. Ditulis ulang dengan sintaksis bahasa Indonesia yang teratur, titik tengah (`·`), atau tanda kurung.
+  - **Pembersihan Kosakata Klise AI:** Membasmi kata-kata seperti *delve*, *elevate*, *seamless*, *robust*, *tapestry*, *testament*, *foster*, *revolutionize*, dan klaim bombastis lainnya.
+  - **Penyelarasan Bahasa Editorial:** Membakukan istilah antarmuka ke bahasa Indonesia jurnalistik (*review* → *penelaahan*, *fact-check* → *uji fakta*, *news* → *berita*, *editor* → *redaktur*).
+  - **Penghapusan Metrik Fiktif:** Mengganti skor persentase rekaan (*94.60%*) dengan pelaporan verifikasi nyata.
+  - **Transparansi Legalitas:** Menegaskan keterbukaan status Verax Press sebagai media percontohan independen tanpa memalsukan izin pers atau sertifikasi dewan pers.
+  - **Perombakan Dokumentasi `README.md`:** Menghilangkan seluruh emoji dekoratif pada heading, memperbarui acuan teknologi (Next.js 16, Turso Cloud, Verax Media Storage Azure VM), dan merapikan panduan pengujian.
+- **Verifikasi Kualitas Kode (100% Lulus):**
+  - `bun run typecheck`: 0 kesalahan TypeScript.
+  - `bun run lint`: Bersih tanpa peringatan.
+  - `bun test`: 16 passed, 35 skipped (regresi HTTP diskip secara benar), 0 failed.
+  - `bun run build`: 26/26 rute statis/dinamis terkompilasi sukses melalui Next.js Turbopack.

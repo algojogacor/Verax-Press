@@ -69,3 +69,6 @@ db/*.db-journal
 db/backups/
 db/disposable_*
 db/incident-*
+
+.vercel
+.env*

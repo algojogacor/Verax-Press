@@ -5,14 +5,28 @@ import crypto from 'node:crypto';
 import busboy from 'busboy';
 
 import { config } from './config.mjs';
-import { initStorageTree, resolveStorageRoot, getSafeFilePath, getStorageStats, checkQuotaAvailable, moveToQuarantine } from './storage.mjs';
-import { getDb, insertMediaRecord, getMediaRecordById, softDeleteMediaRecord, getMediaStats } from './db.mjs';
+import { initStorageTree, resolveStorageRoot, getSafeFilePath, getStorageStats, checkQuotaAvailable, moveToQuarantine, cleanupStaleTempFiles } from './storage.mjs';
+import { getDb, insertMediaRecord, getMediaRecordById, softDeleteMediaRecord, getMediaStats, cleanupExpiredNonces } from './db.mjs';
 import { verifyHmacAuth, applyCors } from './security.mjs';
 import { detectMagicMime, isDisallowedFormat, extractDimensions } from './detector.mjs';
 
 // Initialize storage directories and database
 const rootDir = initStorageTree();
 getDb();
+
+// Purge stale temporary uploads and expired nonces on boot
+try {
+  cleanupStaleTempFiles(15 * 60 * 1000);
+  cleanupExpiredNonces();
+} catch (_) {}
+
+// Periodic maintenance sweep (every 15 minutes)
+setInterval(() => {
+  try {
+    cleanupStaleTempFiles(15 * 60 * 1000);
+    cleanupExpiredNonces();
+  } catch (_) {}
+}, 15 * 60 * 1000).unref();
 
 function sendJson(res, statusCode, data) {
   res.writeHead(statusCode, { 'Content-Type': 'application/json' });
@@ -38,8 +52,8 @@ export function createMediaServer() {
     const pathname = parsedUrl.pathname;
 
     try {
-      // 1. Health check
-      if (req.method === 'GET' && pathname === '/health') {
+      // 1. Health check (minimal, non-sensitive public health status)
+      if ((req.method === 'GET' || req.method === 'HEAD') && pathname === '/health') {
         let dbOk = false;
         try {
           const db = getDb();
@@ -47,13 +61,33 @@ export function createMediaServer() {
           dbOk = row?.alive === 1;
         } catch (_) {}
 
+        sendJson(res, dbOk ? 200 : 503, {
+          status: dbOk ? 'ok' : 'degraded',
+          database: dbOk ? 'ok' : 'unavailable',
+          storage: 'ok',
+          timestamp: new Date().toISOString(),
+        });
+        return;
+      }
+
+      // 1b. Authenticated internal stats (disk and media counters)
+      if (req.method === 'GET' && pathname === '/api/v1/media/stats') {
+        const auth = verifyHmacAuth(req, {
+          method: 'GET',
+          path: '/api/v1/media/stats',
+          action: 'stats',
+        });
+        if (!auth.authorized) {
+          sendError(res, auth.statusCode || 401, auth.error, 'UNAUTHORIZED');
+          return;
+        }
+
         const storageStats = getStorageStats();
         const mediaStats = getMediaStats();
 
         sendJson(res, 200, {
-          status: dbOk ? 'ok' : 'degraded',
+          status: 'ok',
           uptime: Math.round(process.uptime()),
-          database: dbOk ? 'ok' : 'unavailable',
           storage: {
             usedBytes: storageStats.usedBytes,
             quotaBytes: storageStats.quotaBytes,
@@ -72,7 +106,11 @@ export function createMediaServer() {
 
       // 2. Upload media
       if (req.method === 'POST' && pathname === '/api/v1/media/upload') {
-        const auth = verifyHmacAuth(req);
+        const auth = verifyHmacAuth(req, {
+          method: 'POST',
+          path: '/api/v1/media/upload',
+          action: 'upload',
+        });
         if (!auth.authorized) {
           sendError(res, auth.statusCode || 401, auth.error, 'UNAUTHORIZED');
           return;
@@ -127,13 +165,38 @@ export function createMediaServer() {
         let originalFilename = 'file';
         let uploadError = null;
         let responseSent = false;
+        let isCleanedUp = false;
+        let writeStream = null;
+
+        const cleanupTemp = () => {
+          if (isCleanedUp) return;
+          isCleanedUp = true;
+          if (tempFilePath && fs.existsSync(tempFilePath)) {
+            try { fs.unlinkSync(tempFilePath); } catch (_) {}
+          }
+        };
 
         const respond = (status, payload, isErr = false) => {
           if (responseSent) return;
           responseSent = true;
-          if (isErr) sendError(res, status, payload.message, payload.code);
-          else sendJson(res, status, payload);
+          if (isErr) {
+            cleanupTemp();
+            sendError(res, status, payload.message, payload.code);
+          } else {
+            sendJson(res, status, payload);
+          }
         };
+
+        // Listen for client disconnect or abort during streaming
+        req.on('close', () => {
+          if (!req.complete && !responseSent) {
+            uploadError = { statusCode: 499, message: 'Client closed connection prematurely', code: 'CLIENT_ABORTED' };
+            if (writeStream && !writeStream.destroyed) {
+              try { writeStream.destroy(); } catch (_) {}
+            }
+            cleanupTemp();
+          }
+        });
 
         bb.on('file', (name, fileStream, info) => {
           if (fileHandled) {
@@ -150,7 +213,7 @@ export function createMediaServer() {
           }
           tempFilePath = path.join(tmpDir, `upload_${tempId}.tmp`);
 
-          const writeStream = fs.createWriteStream(tempFilePath);
+          writeStream = fs.createWriteStream(tempFilePath);
           const hash = crypto.createHash('sha256');
           let totalBytes = 0;
           const headChunks = [];
@@ -183,7 +246,7 @@ export function createMediaServer() {
             };
             fileStream.resume();
             writeStream.destroy();
-            if (tempFilePath && fs.existsSync(tempFilePath)) fs.unlinkSync(tempFilePath);
+            cleanupTemp();
             respond(413, uploadError, true);
           });
 
@@ -198,20 +261,20 @@ export function createMediaServer() {
               code: 'STREAM_ERROR',
             };
             writeStream.destroy();
-            if (tempFilePath && fs.existsSync(tempFilePath)) fs.unlinkSync(tempFilePath);
+            cleanupTemp();
             respond(500, uploadError, true);
           });
 
           writeStream.on('finish', async () => {
             if (uploadError) {
-              if (tempFilePath && fs.existsSync(tempFilePath)) fs.unlinkSync(tempFilePath);
+              cleanupTemp();
               respond(uploadError.statusCode, uploadError, true);
               return;
             }
 
             if (totalBytes === 0) {
               uploadError = { statusCode: 400, message: 'Uploaded file is empty', code: 'EMPTY_FILE' };
-              if (tempFilePath && fs.existsSync(tempFilePath)) fs.unlinkSync(tempFilePath);
+              cleanupTemp();
               respond(400, uploadError, true);
               return;
             }
@@ -222,7 +285,7 @@ export function createMediaServer() {
             const disallowedCheck = isDisallowedFormat(headBuffer);
             if (disallowedCheck.rejected) {
               uploadError = { statusCode: 400, message: disallowedCheck.reason, code: 'FORBIDDEN_FORMAT' };
-              if (tempFilePath && fs.existsSync(tempFilePath)) fs.unlinkSync(tempFilePath);
+              cleanupTemp();
               respond(400, uploadError, true);
               return;
             }
@@ -235,7 +298,7 @@ export function createMediaServer() {
                 message: `Unsupported or invalid file signature. Allowed types: ${config.allowedMimes.join(', ')}`,
                 code: 'INVALID_SIGNATURE',
               };
-              if (tempFilePath && fs.existsSync(tempFilePath)) fs.unlinkSync(tempFilePath);
+              cleanupTemp();
               respond(400, uploadError, true);
               return;
             }
@@ -245,7 +308,7 @@ export function createMediaServer() {
               checkQuotaAvailable(totalBytes);
             } catch (err) {
               uploadError = { statusCode: 507, message: err.message, code: 'INSUFFICIENT_STORAGE' };
-              if (tempFilePath && fs.existsSync(tempFilePath)) fs.unlinkSync(tempFilePath);
+              cleanupTemp();
               respond(507, uploadError, true);
               return;
             }
@@ -260,6 +323,7 @@ export function createMediaServer() {
 
             // 6. Move file atomically to destination
             fs.renameSync(tempFilePath, targetPath);
+            isCleanedUp = true;
 
             // 7. Store record in SQLite
             const sha256Hex = hash.digest('hex');
@@ -330,7 +394,12 @@ export function createMediaServer() {
 
         // Private media metadata requires HMAC authorization
         if (record.visibility === 'private') {
-          const auth = verifyHmacAuth(req);
+          const auth = verifyHmacAuth(req, {
+            method: req.method,
+            path: `/api/v1/media/${id}`,
+            action: 'metadata',
+            resourceId: id,
+          });
           if (!auth.authorized) {
             sendError(res, auth.statusCode || 401, 'Private media metadata requires authentication: ' + auth.error, 'UNAUTHORIZED');
             return;
@@ -372,7 +441,12 @@ export function createMediaServer() {
 
         // Private media requires authorization
         if (record.visibility === 'private') {
-          const auth = verifyHmacAuth(req);
+          const auth = verifyHmacAuth(req, {
+            method: req.method,
+            path: `/api/v1/media/${id}/file`,
+            action: 'download',
+            resourceId: id,
+          });
           if (!auth.authorized) {
             sendError(res, auth.statusCode || 401, 'Private media download requires authentication: ' + auth.error, 'UNAUTHORIZED');
             return;
@@ -390,7 +464,15 @@ export function createMediaServer() {
           return;
         }
 
-        if (!fs.existsSync(record.storage_path)) {
+        let activePath = record.storage_path;
+        try {
+          const resolved = getSafeFilePath(record.visibility, record.category, record.stored_filename);
+          if (fs.existsSync(resolved)) {
+            activePath = resolved;
+          }
+        } catch (_) {}
+
+        if (!activePath || !fs.existsSync(activePath)) {
           sendError(res, 404, 'Stored file is missing from disk', 'FILE_MISSING');
           return;
         }
@@ -406,14 +488,19 @@ export function createMediaServer() {
           res.end();
           return;
         }
-        fs.createReadStream(record.storage_path).pipe(res);
+        fs.createReadStream(activePath).pipe(res);
         return;
       }
 
       // 5. Delete (quarantine) media: DELETE /api/v1/media/:id
       if (req.method === 'DELETE' && metaMatch) {
         const id = metaMatch[1];
-        const auth = verifyHmacAuth(req);
+        const auth = verifyHmacAuth(req, {
+          method: 'DELETE',
+          path: `/api/v1/media/${id}`,
+          action: 'delete',
+          resourceId: id,
+        });
         if (!auth.authorized) {
           sendError(res, auth.statusCode || 401, 'Delete operations require authentication: ' + auth.error, 'UNAUTHORIZED');
           return;
@@ -426,8 +513,16 @@ export function createMediaServer() {
         }
 
         // Move to quarantine folder to avoid accidental permanent data loss
-        if (fs.existsSync(record.storage_path)) {
-          moveToQuarantine(record.storage_path, record.stored_filename);
+        let activePath = record.storage_path;
+        try {
+          const resolved = getSafeFilePath(record.visibility, record.category, record.stored_filename);
+          if (fs.existsSync(resolved)) {
+            activePath = resolved;
+          }
+        } catch (_) {}
+
+        if (activePath && fs.existsSync(activePath)) {
+          moveToQuarantine(activePath, record.stored_filename);
         }
 
         softDeleteMediaRecord(id);

@@ -1,4 +1,4 @@
-// Editor artikel — halaman kerja utama studio: header status, bar transisi, tab-tab.
+// Ruang penyuntingan naskah: tampilan kerja utama studio dengan status, bilah transisi, dan panel kerja.
 "use client";
 
 import { useState } from "react";
@@ -157,7 +157,7 @@ export default function ArticleEditorPage() {
         </p>
         {article.unverifiedKeySourceCount > 0 ? (
           <p className="mt-2 font-mono text-[11px] text-verity-unverified">
-            {article.unverifiedKeySourceCount} sumber kunci belum diverifikasi — gerbang publikasi aktif.
+            {article.unverifiedKeySourceCount} sumber kunci belum diverifikasi; gerbang publikasi terkunci.
           </p>
         ) : null}
 

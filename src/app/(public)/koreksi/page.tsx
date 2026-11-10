@@ -1,4 +1,4 @@
-// Log Koreksi publik: /koreksi — akuntabilitas editorial.
+// Log Koreksi publik: /koreksi (akuntabilitas editorial).
 // Hanya koreksi atas artikel yang masih hidup (PUBLISHED/CORRECTED) yang ditampilkan.
 import type { Metadata } from "next";
 import Link from "next/link";
@@ -10,7 +10,7 @@ export const dynamic = "force-dynamic";
 export const metadata: Metadata = {
   title: "Log Koreksi",
   description:
-    "Catatan publik atas setiap koreksi material pada artikel Verax Press — riwayat tidak dihapus diam-diam.",
+    "Catatan publik atas setiap koreksi material pada artikel Verax Press. Riwayat pembaruan tidak pernah dihapus secara diam-diam.",
 };
 
 export default async function CorrectionsPage() {
@@ -32,7 +32,7 @@ export default async function CorrectionsPage() {
         </h1>
         <p className="mt-4 font-serif text-[1.02rem] leading-[1.78] text-verity-ink-soft">
           Koreksi atas kesalahan material tampil pada artikel yang bersangkutan dan tercatat pada
-          log ini. Riwayat koreksi kami pertahankan — tidak dihapus diam-diam — sebagai bagian dari
+          log ini. Riwayat koreksi kami pertahankan dan tidak dihapus diam-diam, sebagai bagian dari
           komitmen transparansi redaksi.
         </p>
       </header>

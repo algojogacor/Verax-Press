@@ -128,7 +128,7 @@ export interface ArticleListItemDTO {
 }
 
 export interface ArticleDetailDTO extends ArticleListItemDTO {
-  content: unknown; // ContentBlock[] — divalidasi saat render
+  content: unknown; // ContentBlock[] (divalidasi saat render)
   aiDisclosurePublic: boolean;
   aiDisclosureNote: string | null;
   contributions: { id: string; personName: string; role: ContributionRole; publicCredit: boolean }[];

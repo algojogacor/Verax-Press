@@ -123,7 +123,7 @@ export default async function ArticlePage({ params }: Params) {
         </p>
       </div>
 
-      {/* Disclaimer opini (wajib — Contributor Policy §8) */}
+      {/* Pernyataan sanggahan opini (wajib: Pedoman Kontributor §8) */}
       {isOpinion ? (
         <aside className="mt-5 max-w-(--measure-article) border border-verity-rule bg-verity-paper-soft px-5 py-4">
           <p className="font-mono text-[12px] font-medium uppercase tracking-[0.18em] text-verity-accent">Opini</p>
@@ -133,7 +133,7 @@ export default async function ArticlePage({ params }: Params) {
         </aside>
       ) : null}
 
-      {/* Disclosure AI publik (Charter §4.3 — wajib untuk substantive) */}
+      {/* Keterbukaan penggunaan AI (Piagam Redaksi §4.3: wajib untuk kategori substantif) */}
       {isLive && article.aiDisclosurePublic && article.aiInvolvement !== "none" ? (
         <aside className="mt-5 max-w-(--measure-article) border border-verity-rule bg-verity-paper-soft px-5 py-4">
           <p className="font-mono text-[12px] font-medium uppercase tracking-[0.18em] text-verity-ink-soft">
@@ -186,16 +186,15 @@ export default async function ArticlePage({ params }: Params) {
         </div>
       )}
 
-      {/* Sumber & verifikasi — transparansi inti Verax Press.
-          Diperlakukan sebagai BABAK BARU artikel yang sama: napas 64px + satu-
-          satunya rule tebal (2px ink) di bagian akhir — bahasa visualnya bagian
-          dari janji artikel, bukan modul terpisah. */}
+      {/* Sumber & verifikasi: transparansi inti Verax Press.
+          Diletakkan sebagai babak lanjutan artikel: jeda ruang proporsional dan garis
+          pembatas tegas (2px) di bagian akhir agar menyatu utuh dengan komitmen redaksi. */}
       {isLive && article.sources.length > 0 ? (
         <section aria-label="Sumber dan verifikasi" className="mt-16 max-w-3xl border-t-2 border-verity-ink pt-8">
           <h2 className="font-serif text-[1.45rem] font-semibold text-verity-ink">Sumber &amp; Verifikasi</h2>
           <p className="mt-2.5 font-serif text-[0.95rem] italic leading-relaxed text-verity-ink-soft">
-            Daftar referensi yang digunakan redaksi. Status verifikasi diperiksa oleh editor
-            manusia sebelum artikel disetujui.
+            Daftar rujukan yang digunakan redaksi. Status verifikasi ditelaah langsung oleh redaktur
+            sebelum naskah disetujui.
           </p>
           <ul className="mt-6 space-y-5">
             {article.sources.map((source) => (
@@ -240,9 +239,8 @@ export default async function ArticlePage({ params }: Params) {
         </section>
       ) : null}
 
-      {/* Artikel terkait — navigasi, bukan bagian artikel: diturunkan jadi
-          label struktur small-caps + hairline (kontras dengan rule tebal seksi
-          sumber), agar akhir halaman tidak terbaca sebagai dua modul kembar. */}
+      {/* Artikel terkait: navigasi pelengkap di bawah artikel, menggunakan
+          garis pemisah halus agar akhir halaman tetap seimbang. */}
       {related.length > 0 ? (
         <section aria-label="Artikel lain" className="mt-14 max-w-3xl border-t border-verity-rule pt-6">
           <h2 className="font-sans text-[0.8rem] font-semibold uppercase tracking-[0.2em] text-verity-ink-soft">

@@ -1,4 +1,4 @@
-// NextAuth v4 — khusus staf redaksi (CMS /studio). Kontributor eksternal (Tahap B)
+// NextAuth v4: khusus staf redaksi (CMS /studio). Kontributor eksternal (Tahap B)
 // akan memakai auth terpisah sesuai arsitektur; API client TIDAK login lewat sini.
 
 import type { NextAuthOptions } from "next-auth";

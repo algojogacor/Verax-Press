@@ -1,6 +1,6 @@
-// Author page — public profile + published articles. Respects anonymity rules:
-// 'ANON' profiles are never linked (article pages render "Anonim" without a link),
-// so this page is only reachable for real-name / pen-name profiles.
+// Profil publik penulis dan arsip karya terbit. Sesuai prinsip proteksi privasi:
+// Profil dengan mode 'ANON' tidak memiliki pranala publik (artikel menampilkan "Anonim"),
+// sehingga halaman ini hanya dapat diakses untuk nama asli atau nama pena terdaftar.
 import { notFound } from "next/navigation";
 import Link from "next/link";
 import { db } from "@/lib/db";
@@ -16,7 +16,7 @@ export async function generateMetadata({ params }: PageCtx): Promise<Metadata> {
   const { id } = await params;
   const person = await db.person.findUnique({ where: { id } });
   if (!person || person.anonymityMode.toUpperCase() === "ANON") return { title: "Verax Press" };
-  return { title: `${person.publicName} — Verax Press` };
+  return { title: `${person.publicName} | Verax Press` };
 }
 
 export default async function AuthorPage({ params }: PageCtx) {

@@ -1,6 +1,6 @@
 "use client";
 
-// Mobile navigation — accessible disclosure menu for the public masthead.
+// Mobile navigation: accessible disclosure menu for the public masthead.
 import { useState } from "react";
 import Link from "next/link";
 import { Menu, X } from "lucide-react";

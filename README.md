@@ -1,147 +1,147 @@
 # Verax Press
 
-> **"Ex Fontibus Veritas"** — *Kebenaran Bersumber dari Sumbernya. Media Digital Independen dengan Kendali Editorial Manusia.*
+> **"Ex Fontibus Veritas"** | *Kebenaran Bersumber dari Asalnya. Publikasi Media Digital Independen dengan Kendali Editorial Redaktur.*
 
-Verax Press (sebelumnya dikenal sebagai *Verity*) adalah platform media jurnalisme digital modern yang mengutamakan akurasi faktual, verifikasi sumber primer, transparansi proses editorial, dan pertanggungjawaban manusia di atas kecepatan publikasi semata.
-
----
-
-## 🏛️ Fondasi Editorial & Nilai Utama
-
-1. **Kendali Editorial Manusia Penuh:** Tidak ada naskah yang dapat dipublikasikan tanpa persetujuan manusia (*human-in-the-loop*). AI hanya diperlakukan sebagai asisten naskah atau pengirim draf awal melalui gerbang ingest terbatas.
-2. **Gerbang Verifikasi Sumber (*Source Verification Gate*):** Setiap klaim material wajib memiliki rujukan sumber primer. Artikel berstatus `PENDING_APPROVAL` tidak dapat dinaikkan ke status `PUBLISHED` jika masih terdapat *key source* yang belum berstatus `VERIFIED`.
-3. **Log Koreksi Terbuka (*Correction Log*):** Setiap perbaikan kesalahan faktual pasca-terbit dicatat secara terbuka pada artikel bersangkutan dan diarsipkan pada halaman `/koreksi` publik.
-4. **Desain Broadsheet Bergengsi:** Menggabungkan tipografi editorial koran (*Newsreader* serif, drop cap CSS `initial-letter: 3`, aturan tata letak Oxford `.rule-double`) dengan antarmuka web modern yang responsif dan aksesibel (WCAG AAA contrast 17.2:1).
+Verax Press adalah publikasi jurnalisme digital independen yang menempatkan verifikasi sumber primer, transparansi penelusuran fakta, dan pertanggungjawaban manusia di atas kecepatan publikasi. Sistem ini dibangun dengan arsitektur web modern yang memisahkan gerbang redaksi, repositori artikel, dan penyimpanan aset media secara tegas.
 
 ---
 
-## 🛠️ Tech Stack
+## Nilai Redaksi dan Prinsip Kerja
 
-- **Runtime & Package Manager:** [Bun 1.4.3](https://bun.sh/)
-- **Framework:** [Next.js 15.2.0](https://nextjs.org/) (App Router, Turbopack, Standalone output)
-- **UI Library:** [React 19](https://react.dev/)
-- **Bahasa:** [TypeScript 5.8.2](https://www.typescriptlang.org/) (Strict mode, `noImplicitAny: true`)
-- **Styling:** [Tailwind CSS v4](https://tailwindcss.com/) & [tw-animate-css](https://github.com/the-m-project/tw-animate-css)
-- **Komponen UI:** [Radix UI](https://www.radix-ui.com/) & [shadcn/ui](https://ui.shadcn.com/)
-- **Database ORM:** [Prisma ORM 6.19.2](https://www.prisma.io/)
-- **Database Engine:** SQLite WAL mode (`db/custom.db`; teruji portabel untuk PostgreSQL)
-- **Autentikasi CMS:** [NextAuth.js v4](https://next-auth.js.org/) dengan algoritma password `scrypt` (native `node:crypto`) dan fail-safe guard untuk produksi
-- **Test Runner:** [Bun Test](https://bun.sh/) (51 automated assertions: unit, state machine, domain, and HTTP regression tests)
-- **Ikonografi:** [Lucide React](https://lucide.dev/)
+1. **Kendali Penuh Redaktur:** Naskah hanya dapat terbit melalui persetujuan berjenjang redaktur manusia. Agen kecerdasan buatan hanya diperlakukan sebagai asisten penyusunan draf awal melalui gerbang pemasukan data (ingestion API) dan tidak memiliki wewenang penerbitan langsung.
+2. **Gerbang Verifikasi Sumber:** Setiap rujukan penting wajib berstatus terverifikasi sebelum naskah dapat diterbitkan. Sistem secara teknis menolak transisi status ke `PUBLISHED` bila masih terdapat sumber primer berkategori kunci yang belum ditelaah redaksi.
+3. **Pencatatan Koreksi Terbuka:** Kekeliruan faktual yang ditemukan pasca-penerbitan diperbaiki dengan mencantumkan catatan revisi pada naskah bersangkutan serta diarsipkan pada halaman `/koreksi`.
+4. **Tipografi Broadsheet Klasik:** Mengadaptasi hierarki visual surat kabar dengan rupa huruf Newsreader, penanda akhir naskah tombstone, dan tata letak berjenjang yang memprioritaskan kenyamanan baca serta kepatuhan kontras aksesibilitas.
 
 ---
 
-## 📁 Struktur Direktori
+## Komponen Teknologi
+
+- **Runtime dan Manajer Paket:** [Bun](https://bun.sh/)
+- **Kerangka Kerja Web:** [Next.js 16](https://nextjs.org/) (App Router, Turbopack)
+- **Pustaka Antarmuka:** [React 19](https://react.dev/)
+- **Bahasa Pemrograman:** [TypeScript 5](https://www.typescriptlang.org/) (Strict mode)
+- **Penataan Gaya:** [Tailwind CSS v4](https://tailwindcss.com/)
+- **Komponen Dasar:** [Radix UI](https://www.radix-ui.com/) dan pola shadcn/ui
+- **ORM Database:** [Prisma ORM 6.19.2](https://www.prisma.io/)
+- **Basis Data Produksi:** [Turso Cloud](https://turso.tech/) (libSQL, wilayah Singapura `aws-ap-southeast-1`) dengan adapter `@prisma/adapter-libsql`
+- **Basis Data Lokal:** SQLite berkas lokal (`db/custom.db`, mode WAL) untuk lingkungan pengembangan mandiri
+- **Penyimpanan Media:** Layanan terisolasi Verax Media Storage Service pada mesin virtual Azure (`https://media.aryariap.my.id`), verifikasi HMAC SHA-256, jalur penyimpanan kanonikal di `/var/lib/verax/media`
+- **Autentikasi Redaksi:** [NextAuth.js v4](https://next-auth.js.org/) dengan fungsi hashing `scrypt` (native `node:crypto`)
+- **Pemeriksa Mutu Otomatis:** Bun Test (51 pengujian otomatis untuk domain, alur kerja, keamanan, dan persistensi)
+
+---
+
+## Susunan Direktori
 
 ```text
 D:\Projects\verax\
 ├── prisma/
-│   ├── schema.prisma       # Skema 16-model terpadu (Desk, Article, SourceReference, MediaAsset, dll.)
-│   ├── migrations/         # Baseline migrasi versi Prisma (20261110000000_init)
-│   └── seed.ts             # Skema seed idempotent (3 desk, 16 artikel, 4 staf, demo API client)
+│   ├── schema.prisma       # Skema model basis data (Desk, Article, SourceReference, MediaAsset, dll.)
+│   ├── migrations/         # Riwayat migrasi Prisma
+│   └── seed.ts             # Data awal idempotensial (desk editorial, staf, contoh artikel)
 ├── db/
-│   ├── custom.db           # SQLite database berkas lokal (WAL mode)
-│   └── backups/            # Direktori snapshot online SQLite (VACUUM INTO)
+│   ├── custom.db           # Berkas basis data SQLite untuk pengembangan lokal
+│   └── backups/            # Salinan cadangan SQLite (VACUUM INTO)
 ├── docs/
-│   ├── adr/                # Dokumen keputusan arsitektur (ADR-001 s/d ADR-005)
-│   └── runbooks/           # Prosedur operasional, disaster recovery, dan backup
+│   ├── editorial/          # Standar penulisan redaksional (VERAX_WRITING_STANDARDS.md)
+│   ├── adr/                # Catatan keputusan arsitektur (ADR-001 hingga ADR-005)
+│   └── runbooks/           # Panduan operasional dan pemulihan sistem
 ├── public/
-│   ├── assets/editorial/   # Diagram vektor SVG (pdp-sandi, judicial-eberkas, timeline, dll.)
-│   └── uploads/            # Berkas publik media terbitan
+│   ├── assets/editorial/   # Diagram vektor SVG redaksional
+│   └── uploads/            # Direktori cadangan media statis
 ├── src/
 │   ├── app/
-│   │   ├── (public)/       # Halaman publik (/, /artikel, /desk, /penulis, /kebijakan-ai, /kontak, dll.)
-│   │   ├── studio/         # Antarmuka CMS staf redaksi (Dashboard, Articles, Complaints, Audit, Media)
-│   │   ├── api/            # API endpoints (/api/studio/*, /api/internal/v1/*, /api/public/*)
-│   │   ├── globals.css     # Master design tokens, Oxford double rules, drop caps, & utilities
-│   │   └── layout.tsx      # Root layout dengan Newsreader, Inter, dan IBM Plex Mono
+│   │   ├── (public)/       # Halaman pembaca (beranda, desk, artikel, kebijakan, kontak)
+│   │   ├── studio/         # Antarmuka CMS redaksi (dashboard, artikel, media, keluhan, audit)
+│   │   ├── api/            # Rute API studio, internal v1, dan publik
+│   │   ├── globals.css     # Variabel desain dan rupa huruf cetak
+│   │   └── layout.tsx      # Kerangka utama situs web
 │   ├── components/
-│   │   ├── site/           # Komponen publik (Masthead, DeskNav, ArticleCard, MobileNav, Footer)
-│   │   ├── studio/         # Komponen CMS (WorkflowBar, SourceManager, MediaUploader, ReviewDrawer)
-│   │   └── ui/             # Primitif UI (Button, Dialog, Badge, Toaster, Table, Input, dll.)
+│   │   ├── site/           # Komponen publik (kepala surat kabar, navigasi, kartu artikel, kaki halaman)
+│   │   ├── studio/         # Komponen CMS (penyunting naskah, alur kerja, pengunggah media)
+│   │   └── ui/             # Primitif antarmuka pengguna
 │   ├── lib/
-│   │   ├── domain/         # State machine workflow, block-JSON content parser, serializers, audit
-│   │   ├── db.ts           # PrismaClient singleton instance
-│   │   └── auth.ts         # Konfigurasi NextAuth v4 dengan getAuthSecret() hardening
-│   └── tests/              # Suite pengujian komprehensif (51 tes otomatis)
-├── VERAX_AUDIT.md          # Laporan audit komparatif dan penilaian matematis
-├── VERAX_MERGE_REPORT.md   # Laporan konsolidasi master dan silsilah arsitektur
-├── VERAX_QA_REPORT.md      # Laporan verifikasi QA gerbang rilis produksi
-└── VERAX_ISSUES_REGISTER.md # Daftar pelacakan isu teknis terverifikasi
+│   │   ├── domain/         # Mesin status alur kerja, parser konten blok, serialisasi
+│   │   ├── db.ts           # Inisialisasi koneksi basis data (Turso / SQLite)
+│   │   ├── auth.ts         # Konfigurasi otentikasi staf redaksi
+│   │   └── media-client.ts # Klien integrasi layanan penyimpanan media via HMAC
+│   └── tests/              # Kumpulan pengujian otomatis
+├── AGENTS.md               # Pedoman instruksi agen pengembang
+└── worklog.md              # Catatan kronologis kemajuan proyek
 ```
 
 ---
 
-## 🚀 Panduan Memulai Cepat
+## Panduan Menjalankan Proyek
 
-### 1. Instalasi Dependensi
+### 1. Memasang Dependensi
 ```bash
 bun install
 ```
 
-### 2. Konfigurasi Lingkungan
-Salin berkas template lingkungan:
+### 2. Menyiapkan Variabel Lingkungan
+Salin berkas konfigurasi acuan:
 ```bash
 cp .env.example .env
 ```
-Pastikan `NEXTAUTH_SECRET` atau `AUTH_SECRET` telah terisi di berkas `.env`.
+Lengkapi konfigurasi berikut di berkas `.env`:
+- `DATABASE_URL`: Alamat koneksi database (URL libSQL Turso atau file lokal SQLite).
+- `TURSO_AUTH_TOKEN`: Token otentikasi Turso Cloud (jika menggunakan koneksi jarak jauh).
+- `NEXTAUTH_SECRET`: Kunci enkripsi sesi redaksi.
+- `VERAX_MEDIA_API_URL`: URL layanan media (`https://media.aryariap.my.id`).
+- `VERAX_MEDIA_SECRET`: Kunci rahasia penandatanganan HMAC media.
 
-### 3. Migrasi Database
-Untuk database baru:
+### 3. Mengatur Basis Data
+Untuk menginisialisasi skema pada basis data:
 ```bash
-bun x prisma migrate deploy
+bun x prisma db push
 ```
-Untuk menginisialisasi database yang sudah memiliki data awal (tanpa menghapus data):
+Untuk mengisi data awal redaksi:
 ```bash
-bun x prisma migrate resolve --applied 20261110000000_init
-bun x prisma migrate deploy
+bun run db:seed
 ```
 
 ### 4. Menjalankan Server Pengembangan
 ```bash
 bun run dev
 ```
-Akses portal publik di `http://localhost:3000` dan studio CMS di `http://localhost:3000/studio`.
+Buka peramban di `http://localhost:3000` untuk portal publik dan `http://localhost:3000/studio` untuk ruang kerja redaksi.
 
 ---
 
-## 🧪 Pengujian & Pemeriksaan Mutu
+## Pengujian dan Pemeriksaan Mutu
 
-Verax Press dilengkapi suite pengujian otomatis yang mencakup unit, domain, dan integrasi HTTP end-to-end:
+Sebelum mengajukan perubahan kode, jalankan seluruh rangkaian pemeriksaan mutu berikut:
 
 ```bash
-# 1. Pemeriksaan tipe TypeScript
+# 1. Pemeriksaan tipe data TypeScript
 bun run typecheck
 
-# 2. Pemeriksaan linting ESLint
+# 2. Pemeriksaan kaidah penulisan kode (linting)
 bun run lint
 
-# 3. Menjalankan seluruh test suite (51 tes, 102 asersi)
+# 3. Pengujian logika domain, keamanan, dan alur kerja
 bun test
 
-# 4. Kompilasi build produksi (Next.js Turbopack)
+# 4. Kompilasi build produksi Next.js
 bun run build
 ```
 
 ---
 
-## 🛡️ Operasional & Pencadangan Data
+## Arsitektur Data dan Penyimpanan
 
-### Pencadangan Snapshot Online
-Pencadangan database dilakukan secara transaksional menggunakan SQLite `VACUUM INTO` yang aman dijalankan saat server aktif:
-```bash
-bun scripts/backup-db.ts
-```
-Skrip ini secara otomatis membuat snapshot bertanggal di `db/backups/custom-<timestamp>.db` dan menjalankan `PRAGMA integrity_check;`.
+### Basis Data
+Sistem mengadopsi pemisahan lingkungan yang jelas:
+- **Produksi (Vercel):** Menghubungkan aplikasi ke kluster Turso Cloud di wilayah Singapura melalui protokol libSQL terenkripsi dengan koneksi pooling terkelola.
+- **Pengembangan Lokal:** Mendukung berkas SQLite lokal murni tanpa ketergantungan koneksi internet.
+
+### Penyimpanan Media
+Seluruh berkas gambar dan lampiran dokumen dikelola oleh layanan khusus Verax Media Storage yang berjalan pada mesin virtual Linux terisolasi. Unggahan dari CMS diautentikasi menggunakan tanda tangan digital HMAC SHA-256 berbasis waktu. Berkas fisik disimpan pada direktori `/var/lib/verax/media` dan didistribusikan melalui proksi balik Nginx dengan enkripsi TLS.
 
 ---
 
-## 📊 Status Mutu & Klasifikasi Rilis
+## Kepatuhan dan Standar Redaksional
 
-- **Skor Mutu Produk:** **94.60%** (Arsitektur 95, Kode 96, UI 96, Fungsionalitas 95, UX 93, Performa 92, Aksesibilitas 91)
-- **Tingkat Kesiapan Rilis:** **STAGING READY / PRODUCTION CANDIDATE (Single-Instance Monolith)**
-- **Audit & Kepatuhan:**
-  - 16 Model Prisma Domain terintegrasi.
-  - Zero data contamination (database berisi tepat 16 artikel kanonikal redaksi).
-  - Isolasi pengujian otomatis terverifikasi.
-  - Fail-safe abort pada rahasia autentikasi lingkungan produksi.
+Seluruh teks sistem, antarmuka CMS, dokumentasi teknis, dan komunikasi publik dalam repositori ini wajib mematuhi standar penulisan institusional Verax Press yang terdokumentasi di [docs/editorial/VERAX_WRITING_STANDARDS.md](file:///d:/Projects/verax/docs/editorial/VERAX_WRITING_STANDARDS.md). Aturan ini melarang penggunaan tanda pisah em dash, kata klise kecerdasan buatan, metrik fiktif, serta ornamen visual yang berlebihan.

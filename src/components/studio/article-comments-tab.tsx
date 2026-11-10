@@ -1,4 +1,4 @@
-// Tab Catatan: komentar redaksi — internal (default) atau terlihat penulis.
+// Tab Catatan: komentar redaksi (internal bawaan atau terlihat penulis).
 "use client";
 
 import { useState } from "react";
@@ -94,7 +94,7 @@ export function ArticleCommentsTab({ article }: { article: ArticleDetailDTO }) {
           <Textarea
             id="comment-body"
             rows={3}
-            placeholder="Tulis catatan review atau instruksi revisi…"
+            placeholder="Tulis catatan penelaahan atau arahan revisi…"
             value={body}
             onChange={(event) => setBody(event.target.value)}
           />

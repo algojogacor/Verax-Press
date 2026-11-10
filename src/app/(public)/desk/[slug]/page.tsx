@@ -1,7 +1,7 @@
-// Halaman desk: /desk/[slug] — indeks artikel terbit per desk.
-// Struktur broadsheet: header berat (rule 2px) + standfirst, artikel pertama
-// sebagai unggulan (tier featured), sisanya grid. Kicker kartu hanya format
-// (nama desk sudah diucapkan H1). Desk nonaktif/tidak ditemukan → 404;
+// Halaman desk: /desk/[slug] (indeks artikel terbit per desk).
+// Struktur broadsheet: pemisah tegas (rule 2px) dengan ringkasan pengantar, artikel pertama
+// sebagai unggulan (tier featured), sisanya kisi berjenjang. Kicker kartu hanya format
+// (nama desk sudah dicantumkan pada judul halaman). Desk nonaktif atau tidak ditemukan menghasilkan 404;
 // hanya artikel PUBLISHED/CORRECTED yang tampil.
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
@@ -55,7 +55,7 @@ export default async function DeskPage({ params }: Params) {
 
   return (
     <div className="mx-auto max-w-6xl px-4 py-10 sm:px-6 sm:py-12">
-      {/* Header seksi — anchor berat + standfirst */}
+      {/* Header seksi: jangkar visual dan ringkasan pengantar */}
       <header className="border-b-2 border-verity-ink pb-8">
         <p className="font-sans text-[0.85rem] font-semibold uppercase tracking-[0.2em] text-verity-ink-soft">
           Desk
@@ -70,22 +70,22 @@ export default async function DeskPage({ params }: Params) {
         ) : null}
       </header>
 
-      {/* Tiering 3 tingkat — ritme yang mengecil, bukan grid seragam:
-          unggulan (utuh) → 2 kartu dengan deck (hairline) → ekor indeks
+      {/* Tingkatan 3 lapis: ritme mengecil, bukan kisi seragam:
+          unggulan (utuh) ke 2 kartu dengan ringkasan (hairline) lalu ekor indeks
           ringkas untuk artikel lebih lama. */}
       <section aria-label={`Artikel desk ${desk.name}`} className="pt-10">
         {articles.length === 0 ? (
           <p className="py-12 text-center font-serif text-[1.02rem] leading-relaxed text-verity-ink-soft">
             Belum ada artikel terbit di desk ini. Naskah yang sedang diproses editorial akan
-            tampil di sini setelah melewati review, fact-check, dan persetujuan editor.
+            tampil di sini setelah melewati penelaahan, uji fakta, dan persetujuan redaktur.
           </p>
         ) : (
           <>
             <FeaturedArticleCard article={articles[0]} />
             {articles.length > 1 ? (
-              // Kartu standar membawa hairline atasnya sendiri — pemisah
-              // level grid TIDAK dipakai (hindari dua hairline bertumpuk);
-              // whitespace yang memisahkan tier.
+              // Kartu standar membawa hairline atasnya sendiri; pemisah
+              // level grid TIDAK dipakai (menghindari dua hairline bertumpuk);
+              // whitespace yang memisahkan tingkatan.
               <div className="mt-12 grid gap-x-10 gap-y-8 sm:grid-cols-2">
                 {articles.slice(1, 3).map((article) => (
                   <StandardArticleCard key={article.id} article={article} kickerVariant="format" />
@@ -93,8 +93,8 @@ export default async function DeskPage({ params }: Params) {
               </div>
             ) : null}
             {articles.length > 3 ? (
-              // Ekor indeks ringkas — kolom-kolom sejajar (bukan satu kolom
-              // yang menyisakan ruang mati), hairline per item sejajar per baris
+              // Ekor indeks ringkas: kolom sejajar (bukan satu kolom
+              // yang menyisakan ruang mati), garis per item sejajar per baris
               <div className="mt-10 grid gap-x-10 sm:grid-cols-2 lg:grid-cols-3">
                 {articles.slice(3).map((article) => (
                   <CompactArticleCard key={article.id} article={article} showTime />

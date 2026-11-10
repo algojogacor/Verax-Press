@@ -139,3 +139,28 @@ export function moveToQuarantine(currentPath, storedFilename) {
   }
   return destination;
 }
+
+export function cleanupStaleTempFiles(maxAgeMs = 15 * 60 * 1000) {
+  const root = resolveStorageRoot();
+  const tmpDir = path.join(root, 'tmp');
+  if (!fs.existsSync(tmpDir)) return 0;
+
+  const now = Date.now();
+  let cleaned = 0;
+  try {
+    const entries = fs.readdirSync(tmpDir);
+    for (const entry of entries) {
+      if (entry.startsWith('upload_') && entry.endsWith('.tmp')) {
+        const fullPath = path.join(tmpDir, entry);
+        try {
+          const stat = fs.statSync(fullPath);
+          if (now - stat.mtimeMs > maxAgeMs) {
+            fs.unlinkSync(fullPath);
+            cleaned++;
+          }
+        } catch (_) {}
+      }
+    }
+  } catch (_) {}
+  return cleaned;
+}

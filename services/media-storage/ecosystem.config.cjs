@@ -1,3 +1,21 @@
+/* eslint-disable @typescript-eslint/no-require-imports */
+const fs = require('fs');
+const path = require('path');
+
+let envConfig = {};
+try {
+  const envFile = fs.readFileSync(path.join(__dirname, '.env'), 'utf8');
+  for (const line of envFile.split('\n')) {
+    const trimmed = line.trim();
+    if (trimmed && !trimmed.startsWith('#')) {
+      const idx = trimmed.indexOf('=');
+      if (idx !== -1) {
+        envConfig[trimmed.slice(0, idx).trim()] = trimmed.slice(idx + 1).trim();
+      }
+    }
+  }
+} catch (_) {}
+
 module.exports = {
   apps: [
     {
@@ -17,7 +35,7 @@ module.exports = {
         MEDIA_PORT: '4188',
         MEDIA_HOST: '127.0.0.1',
         MEDIA_STORAGE_ROOT: '/var/lib/verax/media',
-        MEDIA_HMAC_SECRET: 'vx_media_prod_sec_2026_d3f9e2a1b7c8e4f501a2b3c4d5e6f7a8',
+        ...envConfig,
       },
       error_file: '/home/azureuser/verax-media-service/logs/err.log',
       out_file: '/home/azureuser/verax-media-service/logs/out.log',

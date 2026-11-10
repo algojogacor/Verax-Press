@@ -1,5 +1,5 @@
-// Masthead publik Verax Press — struktur broadsheet klasik:
-// baris utilitas → motto Latin → wordmark → baris tanggal/edisi → nav.
+// Masthead publik Verax Press: struktur broadsheet klasik:
+// baris utilitas -> motto Latin -> wordmark -> baris tanggal/edisi -> nav.
 // Motto "Ex Fontibus Veritas" (kebenaran bersumber dari sumbernya) mengikat
 // etimologi nama (verax, Lat.: jujur) dengan identitas verifikasi sumber.
 // Server component: daftar desk diambil dari DB; interaksi aktif ditangani DeskNav (client).
@@ -70,7 +70,7 @@ export async function Masthead() {
           href="/"
           className="mt-3 block text-center font-serif text-[1.65rem] font-semibold leading-none tracking-[0.14em] text-verity-ink pl-[0.14em] sm:mt-4 sm:text-[2.6rem] sm:tracking-[0.24em] sm:pl-[0.24em] lg:text-[3rem]"
           style={{ fontOpticalSizing: "auto" }}
-          aria-label="Verax Press — halaman depan"
+          aria-label="Verax Press, halaman utama"
         >
           VERAX PRESS
         </Link>

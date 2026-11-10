@@ -1,0 +1,10 @@
+.next
+.vercel
+node_modules
+New folder
+db/backups
+scratch
+*.tmp*
+*.db-wal
+*.db-shm
+.env*.local

@@ -114,3 +114,24 @@ Validator: `src/lib/domain/content.ts` (`articleContentSchema`, `parseContent`, 
 Lihat `src/types/verity.ts` (satu-satunya sumber tipe untuk UI).
 Label bahasa Indonesia: `src/lib/domain/constants.ts` (STATUS_LABELS, FORMAT_LABELS, dll).
 Format tanggal: `src/lib/format.ts`.
+
+
+## Media Storage API (Persistent Azure VM Storage)
+
+Terintegrasi melalui `src/lib/media-client.ts` menggunakan otentikasi server-to-server HMAC-SHA256 dengan request scoping ketat (`method`, `path`, `action`, `resourceId`, `nonce`, `timestamp`, `expiresAt`) dan one-time nonce consumption.
+
+### POST `/api/studio/media`
+- Autentikasi: Session redaksi (`CHIEF_EDITOR | EDITOR | INTERNAL_AUTHOR`).
+- Request: `multipart/form-data` dengan field `file` (JPEG/PNG/WebP maks 5MB), `creator` (wajib), `caption` (wajib), `title?`, `license?`, `isSynthetic?`.
+- Alur: Next.js server memvalidasi magic bytes, menandatangani HMAC request, mengalirkan berkas ke Azure VM loopback (:4188), mencatat metadata di `media.sqlite`, mencatat `MediaAsset` di Prisma, dan mencatat audit log.
+- Respons: `201 { asset: MediaAssetDTO }`.
+
+### DELETE `/api/studio/media/[id]`
+- Autentikasi: `CHIEF_EDITOR | EDITOR`.
+- Validasi: Memastikan gambar tidak sedang digunakan sebagai `heroMedia` pada artikel aktif (mengembalikan 409 Conflict jika masih digunakan).
+- Alur: Mengirim signed HMAC DELETE ke Azure VM (file dipindahkan ke direktori `quarantine/`), menghapus record Prisma, dan mencatat audit log.
+- Respons: `200 { message, id }`.
+
+### GET `/api/studio/media/[id]/preview`
+- Autentikasi: Session redaksi (`CHIEF_EDITOR | EDITOR | INTERNAL_AUTHOR`).
+- Alur: Server-side streaming proxy untuk private media. Menandatangani HMAC download request ke Azure VM dan mengalirkan stream biner ke browser dengan header `Cache-Control: private, no-cache`. Secret HMAC tidak pernah terekspos ke browser.

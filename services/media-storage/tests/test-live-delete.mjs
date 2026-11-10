@@ -4,7 +4,7 @@ import http from 'node:http';
 const id = '3630056e-c663-49d5-9e86-dc39563601fb';
 const auth = generateUploadAuth({
   action: 'delete',
-  secret: 'vx_media_prod_sec_2026_d3f9e2a1b7c8e4f501a2b3c4d5e6f7a8',
+  secret: process.env.VERAX_MEDIA_SECRET || 'dev_secret',
 });
 
 const req = http.request({

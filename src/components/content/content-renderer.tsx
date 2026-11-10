@@ -1,12 +1,12 @@
 // Renderer block-JSON → JSX. Tidak ada HTML mentah: semua string dirender sebagai
 // text node React (aman dari XSS by construction). Skema: src/lib/domain/content.ts.
 // Tradisi editorial: paragraf pembuka yang cukup panjang mendapat DROP CAP
-// (huruf pertama besar menggantung) — klasik, tenang, tanpa dekorasi.
+// (huruf pertama besar menggantung), klasik dan tenang tanpa ornamen.
 //
 // RITME (Tahap 2): wrapper TIDAK memakai space-y seragam. Tiap blok diberi
-// margin kontekstual menurut jenisnya & blok sebelumnya — heading "memeluk"
-// konten di bawahnya (margin bawah kecil) dan menjauh dari bagian sebelumnya
-// (margin atas besar), pull-quote/note/gambar = jeda set-piece yang bernapas.
+// margin kontekstual menurut jenis dan blok sebelumnya: judul melekat pada
+// konten di bawahnya (margin bawah kecil) dan berjarak dari bagian sebelumnya
+// (margin atas besar), pull-quote/note/gambar merupakan jeda visual yang terukur.
 // Margin antar-sibling collapse (layout blok biasa), jadi jarak aktual =
 // max(margin-bawah blok sebelumnya, margin-atas blok berikutnya).
 import type { ArticleContent } from "@/lib/domain/content";
@@ -28,7 +28,7 @@ export function ContentRenderer({ content, endMark = false }: { content: Article
         const prev = index > 0 ? content[index - 1] : null;
         const isFirst = index === 0;
         // Blok berbingkai (quote/note/gambar) melepas margin bawahnya bila ia
-        // blok terakhir — supaya end mark tetap menempel pada penutup artikel.
+        // blok terakhir agar tanda akhir tetap menempel pada penutup artikel.
         const boxedBottom = isLastBlock(index, lastIndex, endMark);
         const afterHeading = prev?.type === "heading";
 
@@ -77,9 +77,8 @@ export function ContentRenderer({ content, endMark = false }: { content: Article
               </h3>
             );
           case "quote":
-            // Pull-quote sebagai jeda yang disengaja: napas 40px di kedua sisi,
-            // interior terpusat & lebih sempit dari measure — bahasa "set piece",
-            // bukan separator body.
+            // Pull-quote sebagai jeda yang disengaja: napas proporsional di kedua sisi,
+            // tata letak terpusat dan lebih ramping dari lebar naskah utama.
             return (
               <figure
                 key={index}
@@ -94,7 +93,7 @@ export function ContentRenderer({ content, endMark = false }: { content: Article
                 </blockquote>
                 {block.attribution ? (
                   <figcaption className="mx-auto mt-4 max-w-[42ch] text-center font-mono text-[11px] uppercase tracking-[0.14em] text-verity-ink-faint">
-                    — {block.attribution}
+                    · {block.attribution}
                   </figcaption>
                 ) : null}
               </figure>
@@ -182,9 +181,8 @@ export function ContentRenderer({ content, endMark = false }: { content: Article
             return null;
         }
       })}
-      {/* End mark (tombstone) — sinyal klasik “artikel selesai”, menempel blok
-          terakhir (blok terakhir melepas margin bawahnya; blok display agar
-          jarak tepat 12px tanpa line-box anonim). */}
+      {/* Tanda akhir (tombstone): penanda naskah selesai, melekat pada blok
+          terakhir tanpa celah berlebih. */}
       {endMark ? (
         <span aria-hidden="true" className="mt-3 block h-[9px] w-[9px] bg-verity-ink" />
       ) : null}
@@ -192,8 +190,8 @@ export function ContentRenderer({ content, endMark = false }: { content: Article
   );
 }
 
-/** Apakah blok ini blok terakhir dan end mark akan mengikuti — untuk melepas
- *  margin bawah blok berbingkai agar penutup artikel tetap rapat. */
+/** Memeriksa apakah blok merupakan penutup dan tanda akhir akan mengikuti
+ *  untuk melepas margin bawah blok berbingkai agar akhir artikel tetap rapi. */
 function isLastBlock(index: number, lastIndex: number, endMark: boolean): boolean {
   return endMark && index === lastIndex;
 }

@@ -1,4 +1,4 @@
-// Sitemap dinamis: /sitemap.xml — halaman statis, desk aktif, dan artikel terbit.
+// Sitemap dinamis: /sitemap.xml untuk halaman statis, desk aktif, dan artikel terbit.
 // Base URL dapat dioverride via NEXT_PUBLIC_SITE_URL di produksi.
 import type { MetadataRoute } from "next";
 import { db } from "@/lib/db";

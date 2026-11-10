@@ -27,14 +27,24 @@ export interface UploadMediaResult {
   createdAt: string;
 }
 
+export function isMediaConfigured(): boolean {
+  return Boolean(process.env.VERAX_MEDIA_API_URL && process.env.VERAX_MEDIA_SECRET);
+}
+
 function getMediaConfig() {
-  const apiUrl = process.env.VERAX_MEDIA_API_URL || 'https://media.aryariap.my.id';
-  const secret = process.env.VERAX_MEDIA_SECRET || 'vx_media_prod_sec_2026_d3f9e2a1b7c8e4f501a2b3c4d5e6f7a8';
-  return { apiUrl, secret };
+  const apiUrl = process.env.VERAX_MEDIA_API_URL;
+  const secret = process.env.VERAX_MEDIA_SECRET;
+  if (!apiUrl || !secret) {
+    throw new Error('VERAX_MEDIA_API_URL and VERAX_MEDIA_SECRET must be configured');
+  }
+  return { apiUrl: apiUrl.replace(/\/$/, ''), secret };
 }
 
 export function generateMediaAuthHeaders(options: {
-  action: 'upload' | 'download' | 'delete';
+  method: 'POST' | 'GET' | 'DELETE' | 'HEAD';
+  path: string;
+  action: 'upload' | 'download' | 'delete' | 'metadata';
+  resourceId?: string | null;
   uploadedBy?: string;
   visibility?: 'public' | 'private';
   category?: string;
@@ -42,10 +52,17 @@ export function generateMediaAuthHeaders(options: {
 }) {
   const { secret } = getMediaConfig();
   const now = Date.now();
+  const nonce = crypto.randomUUID();
+  const canonicalPath = options.path.split('?')[0].replace(/\/+$/, '') || '/';
+
   const payload = {
+    method: options.method.toUpperCase(),
+    path: canonicalPath,
     action: options.action,
+    resourceId: options.resourceId ? String(options.resourceId) : null,
     timestamp: now,
     expiresAt: now + (options.ttlMs || 300_000), // 5 minutes valid
+    nonce,
     uploadedBy: options.uploadedBy || 'system',
     visibility: options.visibility || 'public',
     category: options.category || 'articles',
@@ -65,7 +82,10 @@ export function generateMediaAuthHeaders(options: {
 
 export async function uploadToMediaStorage(params: UploadMediaParams): Promise<UploadMediaResult> {
   const { apiUrl } = getMediaConfig();
+  const path = '/api/v1/media/upload';
   const authHeaders = generateMediaAuthHeaders({
+    method: 'POST',
+    path,
     action: 'upload',
     uploadedBy: params.uploadedBy,
     visibility: params.visibility || 'public',
@@ -81,7 +101,7 @@ export async function uploadToMediaStorage(params: UploadMediaParams): Promise<U
   const tail = Buffer.from(`\r\n--${boundary}--\r\n`);
   const body = Buffer.concat([head, params.buffer, tail]);
 
-  const endpoint = `${apiUrl.replace(/\/$/, '')}/api/v1/media/upload`;
+  const endpoint = `${apiUrl}${path}`;
   const res = await fetch(endpoint, {
     method: 'POST',
     headers: {
@@ -99,13 +119,18 @@ export async function uploadToMediaStorage(params: UploadMediaParams): Promise<U
   return data as UploadMediaResult;
 }
 
-export async function deleteFromMediaStorage(id: string): Promise<void> {
+export async function deleteFromMediaStorage(id: string, uploadedBy: string = 'system'): Promise<void> {
   const { apiUrl } = getMediaConfig();
+  const path = `/api/v1/media/${encodeURIComponent(id)}`;
   const authHeaders = generateMediaAuthHeaders({
+    method: 'DELETE',
+    path,
     action: 'delete',
+    resourceId: id,
+    uploadedBy,
   });
 
-  const endpoint = `${apiUrl.replace(/\/$/, '')}/api/v1/media/${encodeURIComponent(id)}`;
+  const endpoint = `${apiUrl}${path}`;
   const res = await fetch(endpoint, {
     method: 'DELETE',
     headers: {
@@ -117,4 +142,55 @@ export async function deleteFromMediaStorage(id: string): Promise<void> {
     const data = await res.json().catch(() => ({}));
     throw new Error(data?.error || `Media deletion failed with HTTP ${res.status}`);
   }
+}
+
+export async function getMediaMetadata(id: string): Promise<UploadMediaResult> {
+  const { apiUrl } = getMediaConfig();
+  const path = `/api/v1/media/${encodeURIComponent(id)}`;
+  const authHeaders = generateMediaAuthHeaders({
+    method: 'GET',
+    path,
+    action: 'metadata',
+    resourceId: id,
+  });
+
+  const endpoint = `${apiUrl}${path}`;
+  const res = await fetch(endpoint, {
+    method: 'GET',
+    headers: {
+      ...authHeaders,
+    },
+  });
+
+  const data = await res.json();
+  if (!res.ok) {
+    throw new Error(data?.error || `Media metadata request failed with HTTP ${res.status}`);
+  }
+
+  return data as UploadMediaResult;
+}
+
+export async function fetchPrivateMediaStream(id: string): Promise<Response> {
+  const { apiUrl } = getMediaConfig();
+  const path = `/api/v1/media/${encodeURIComponent(id)}/file`;
+  const authHeaders = generateMediaAuthHeaders({
+    method: 'GET',
+    path,
+    action: 'download',
+    resourceId: id,
+  });
+
+  const endpoint = `${apiUrl}${path}`;
+  const res = await fetch(endpoint, {
+    method: 'GET',
+    headers: {
+      ...authHeaders,
+    },
+  });
+
+  if (!res.ok) {
+    throw new Error(`Failed to fetch private media file with HTTP ${res.status}`);
+  }
+
+  return res;
 }

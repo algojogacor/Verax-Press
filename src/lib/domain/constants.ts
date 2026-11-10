@@ -29,7 +29,7 @@ export const ARTICLE_STATUSES: ArticleStatus[] = [
 
 export const ARTICLE_FORMATS: ArticleFormat[] = ["NEWS", "OPINION", "ANALYSIS", "EXPLAINER", "FEATURE", "INTERVIEW"];
 
-/** D2 LOCKED: format News hanya diproduksi newsroom — tidak boleh dari kontributor/agent. */
+/** Format Berita hanya diproduksi ruang redaksi internal, tertutup bagi kontributor luar atau agen AI. */
 export const CONTRIBUTOR_ALLOWED_FORMATS: ArticleFormat[] = [
   "OPINION",
   "ANALYSIS",
@@ -64,8 +64,8 @@ export const ROLE_LABELS: Record<Role, string> = {
 
 export const STATUS_LABELS: Record<ArticleStatus, string> = {
   DRAFT: "Draft",
-  PENDING_REVIEW: "Menunggu Review",
-  FACT_CHECK: "Fact-Check",
+  PENDING_REVIEW: "Menunggu Penelaahan",
+  FACT_CHECK: "Uji Fakta",
   REVISION_NEEDED: "Perlu Revisi",
   PENDING_APPROVAL: "Menunggu Persetujuan",
   PUBLISHED: "Terbit",
@@ -77,11 +77,11 @@ export const STATUS_LABELS: Record<ArticleStatus, string> = {
 };
 
 export const FORMAT_LABELS: Record<ArticleFormat, string> = {
-  NEWS: "News",
+  NEWS: "Berita",
   OPINION: "Opini",
   ANALYSIS: "Analisis",
-  EXPLAINER: "Explainer",
-  FEATURE: "Feature",
+  EXPLAINER: "Penjelas",
+  FEATURE: "Kisah Khas",
   INTERVIEW: "Wawancara",
 };
 
@@ -116,14 +116,14 @@ export const COMPLAINT_STATUS_LABELS: Record<string, string> = {
 
 export const VERSION_TYPE_LABELS: Record<VersionType, string> = {
   author: "Penulis",
-  editorial_copyedit: "Copyedit Redaksi",
-  risk_edit: "Risk-Edit",
-  ingestion: "Ingestion API",
+  editorial_copyedit: "Penyuntingan Redaksi",
+  risk_edit: "Penyuntingan Risiko",
+  ingestion: "Pemasukan API",
 };
 
 export const CONTRIBUTION_ROLE_LABELS: Record<ContributionRole, string> = {
   AUTHOR: "Penulis",
-  EDITOR: "Editor",
+  EDITOR: "Redaktur",
   REPORTER: "Reporter",
   REVIEWER: "Peninjau",
   VISUAL: "Visual",
@@ -136,14 +136,14 @@ export const AI_INVOLVEMENT_LABELS: Record<AiInvolvement, string> = {
 };
 
 export const ORIGIN_LABELS: Record<string, string> = {
-  NEWSROOM: "Newsroom",
-  INGESTION_API: "AI Agent (API)",
+  NEWSROOM: "Ruang Redaksi",
+  INGESTION_API: "Agen AI (API)",
   CONTRIBUTOR: "Kontributor",
 };
 
-/** Template struktur yang disarankan per format (Contributor Policy §4.2) — dipakai sebagai panduan di editor. */
+/** Panduan susunan tulisan per format (Pedoman Kontributor §4.2) sebagai acuan di editor. */
 export const FORMAT_STRUCTURE_HINTS: Record<ArticleFormat, string> = {
-  NEWS: "Pemberitaan faktual: lead faktual → konteks → detail terverifikasi → kutipan beratribusi.",
+  NEWS: "Pemberitaan faktual: teras berita faktual → konteks → rincian terverifikasi → kutipan beratribusi.",
   OPINION: "Pendahuluan → Argumen utama → Argumen pendukung → Anti-argumen (opsional) → Kesimpulan.",
   ANALYSIS: "Latar belakang → Bukti → Analisis → Implikasi → Kesimpulan.",
   EXPLAINER: "Pertanyaan utama → Penjelasan → Poin kunci → Konteks → Sumber.",
@@ -151,10 +151,10 @@ export const FORMAT_STRUCTURE_HINTS: Record<ArticleFormat, string> = {
   INTERVIEW: "Pendahuluan → Profil narasumber → Tanya jawab → Penutup.",
 };
 
-/** Disclaimer wajib artikel Opini (Contributor Policy §8). */
+/** Pernyataan sanggahan wajib artikel Opini (Pedoman Kontributor §8). */
 export const OPINION_DISCLAIMER =
   "Pendapat dalam tulisan ini merupakan tanggung jawab penulis dan tidak otomatis mewakili pandangan resmi Redaksi Verax Press.";
 
-/** Catatan proses standar untuk ai_involvement=substantive (Charter §4.3). */
+/** Catatan proses standar untuk ai_involvement=substantive (Piagam Redaksi §4.3). */
 export const AI_SUBSTANTIVE_NOTE_DEFAULT =
   "Draf awal artikel ini disusun dengan bantuan AI, lalu diperiksa terhadap sumber dan disunting oleh redaksi.";

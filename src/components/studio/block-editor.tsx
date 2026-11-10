@@ -40,7 +40,7 @@ const BLOCK_TYPE_DESCRIPTIONS: Record<BlockType, string> = {
   paragraph: "Teks isi artikel.",
   heading: "Sub-judul bagian (level 2 atau 3).",
   quote: "Kutipan dengan atribusi narasumber.",
-  list: "Butir poin — bullet atau bernomor.",
+  list: "Daftar butir poin (simbol atau bernomor).",
   image: "Gambar via URL, dengan alt, keterangan, dan kredit.",
   note: "Kotak catatan konteks atau koreksi.",
   qa: "Pasangan pertanyaan dan jawaban.",
@@ -75,7 +75,7 @@ function defaultBlock(type: BlockType): ContentBlock {
   }
 }
 
-/** Validasi isi blok saat ini — dipakai sebelum PATCH. */
+/** Validasi isi blok saat ini sebelum pengiriman data (PATCH). */
 export function validateBlocks(
   blocks: ContentBlock[],
 ): { ok: true; data: ContentBlock[] } | { ok: false; message: string } {
@@ -86,7 +86,7 @@ export function validateBlocks(
     const path = issue.path.join(".");
     const blockIndex = typeof issue.path[0] === "number" ? (issue.path[0] as number) + 1 : null;
     const label = blockIndex ? `Blok ${blockIndex}` : "Konten";
-    return `${label}: ${path} — ${issue.message}`;
+    return `${label}: ${path} (${issue.message})`;
   });
   return {
     ok: false,
@@ -199,8 +199,8 @@ export function BlockEditor({ blocks, onChange }: BlockEditorProps) {
                       <SelectValue />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="2">H2 — Bagian</SelectItem>
-                      <SelectItem value="3">H3 — Sub-bagian</SelectItem>
+                      <SelectItem value="2">H2 (Bagian)</SelectItem>
+                      <SelectItem value="3">H3 (Sub-bagian)</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>

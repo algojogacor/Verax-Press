@@ -1,10 +1,10 @@
-// Kebijakan AI — reader-facing AI transparency policy.
+// Kebijakan AI: transparansi kecerdasan artifisial untuk pembaca.
 import { InstitutionalShell, LegalNote } from '@/components/public/institutional'
 import type { Metadata } from 'next'
 
 export const metadata: Metadata = {
   title: 'Kebijakan AI',
-  description: 'Bagaimana Verax Press menggunakan dan mengungkapkan penggunaan kecerdasan artifisial.',
+  description: 'Transparansi penggunaan kecerdasan artifisial di Verax Press.',
 }
 
 export default function KebijakanAiPage() {
@@ -12,7 +12,7 @@ export default function KebijakanAiPage() {
     <InstitutionalShell
       kicker="Transparansi"
       title="Kebijakan Kecerdasan Artifisial"
-      intro="AI adalah alat bantu, bukan sumber fakta dan bukan penerbit. Akuntabilitas editorial selalu ada pada manusia."
+      intro="AI adalah alat bantu teknis, bukan sumber fakta dan bukan penerbit. Tanggung jawab editorial selalu berada pada manusia."
     >
       <h2>Prinsip dasar</h2>
       <p>
@@ -26,23 +26,23 @@ export default function KebijakanAiPage() {
         proporsional:
       </p>
       <p>
-        <strong>Tidak menggunakan AI</strong> — atau hanya fungsi mekanis seperti pemeriksaan
+        <strong>Tanpa bantuan AI</strong>: hanya menggunakan fungsi penunjang mekanis seperti pemeriksaan
         ejaan.
         <br />
-        <strong>Asistif</strong> — AI membantu riset awal, ringkasan sumber, alternatif judul,
-        atau struktur; manusia menulis dan memeriksa teks akhir.
+        <strong>Asistif</strong>: AI membantu riset awal, ringkasan dokumen sumber, alternatif judul,
+        atau susunan kerangka; manusia menulis dan memeriksa teks akhir.
         <br />
-        <strong>Substantif</strong> — AI menyusun bagian substansial dari draf awal. Artikel
+        <strong>Substantif</strong>: AI menyusun bagian substansial dari draf awal. Artikel
         seperti ini wajib memuat catatan proses publik.
       </p>
       <h2>Yang tidak kami perbolehkan</h2>
       <p>
         AI tidak boleh membuat narasumber, kutipan, dokumen, atau peristiwa yang tidak ada.
         Konten yang memerlukan peliputan lapangan tidak cukup disusun dari kompilasi sumber
-        daring. Ringkasan sumber harus memberi nilai tambah orisinal — bukan parafrasa
+        daring. Ringkasan sumber harus memberi nilai tambah yang orisinal, bukan sekadar parafrasa
         artikel media lain.
       </p>
-      <h2>Byline dan kredit</h2>
+      <h2>Kredit dan baris nama</h2>
       <p>
         Byline “Redaksi Verax Press” hanya untuk karya yang diverifikasi dan disunting secara
         bermakna oleh editor manusia. Kredit penyuntingan dicantumkan hanya pada orang yang

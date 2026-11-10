@@ -4,7 +4,8 @@
 // Konten JSON disimpan sebagai String (helper serialize/parse di src/lib/domain/content.ts).
 
 generator client {
-  provider = "prisma-client-js"
+  provider        = "prisma-client-js"
+  previewFeatures = ["driverAdapters"]
 }
 
 datasource db {

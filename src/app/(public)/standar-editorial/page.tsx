@@ -1,4 +1,4 @@
-// Standar Editorial: /standar-editorial — ringkasan publik kebijakan internal redaksi.
+// Standar Editorial: /standar-editorial (ringkasan publik kebijakan internal redaksi).
 // TANPA angka tenggat hari (masih kajian hukum — lihat worklog §3).
 import type { Metadata } from "next";
 import Link from "next/link";
@@ -9,7 +9,7 @@ export const metadata: Metadata = {
     "Ringkasan publik standar editorial Verax Press: verifikasi sumber, keberimbangan, kebijakan AI, atribusi, serta koreksi dan hak jawab.",
 };
 
-/** Tingkat keterlibatan AI (Charter §4) — label & penjelasan ringkas. */
+/** Tingkat keterlibatan AI (Charter §4): label & penjelasan ringkas. */
 const AI_LEVELS: { name: string; description: string }[] = [
   {
     name: "Tanpa AI",
@@ -19,7 +19,7 @@ const AI_LEVELS: { name: string; description: string }[] = [
   {
     name: "Asistif",
     description:
-      "AI membantu pekerjaan teknis — misalnya riset awal atau perapian struktur — sementara substansi, bahasa, dan keputusan editorial sepenuhnya dikerjakan manusia.",
+      "AI membantu pekerjaan teknis, seperti riset awal atau perapian struktur, sementara substansi, bahasa, dan keputusan editorial sepenuhnya dikerjakan manusia.",
   },
   {
     name: "Substantif",
@@ -53,8 +53,8 @@ export default function StandardsPage() {
           <div className="mt-4 space-y-4 font-serif text-[1.02rem] leading-[1.78] text-verity-ink">
             <p>
               Kami mengutamakan sumber primer: dokumen resmi, data, dan keterangan narasumber
-              langsung. Setiap referensi yang digunakan redaksi dicatat lengkap — judul, penerbit,
-              URL, serta tanggal terbit dan akses — lalu ditampilkan pada halaman artikel.
+              langsung. Setiap referensi yang digunakan redaksi dicatat lengkap (judul, penerbit,
+              URL, serta tanggal terbit dan akses), lalu ditampilkan pada halaman artikel.
             </p>
             <p>
               Sumber kunci diverifikasi oleh editor manusia. Artikel tidak disetujui untuk terbit
@@ -100,7 +100,7 @@ export default function StandardsPage() {
               naskah apa pun tanpa keputusan manusia. AI tidak pernah dijadikan sumber fakta.
             </p>
             <p>
-              Agen AI eksternal hanya dapat mengirim draf melalui API internal Verax Press — tanpa hak
+              Agen AI eksternal hanya dapat mengirim draf melalui API internal Verax Press, tanpa hak
               menyetujui atau menerbitkan naskah.
             </p>
           </div>
