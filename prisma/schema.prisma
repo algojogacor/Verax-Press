@@ -1,0 +1,355 @@
+// Verax Press (nama kerja sebelumnya: Verity) — Prisma schema (SQLite untuk dev/MVP; ditulis portabel agar mudah pindah ke PostgreSQL)
+// Catatan penting (SQLite): tidak ada enum dan list primitif → semua kode berupa String,
+// validasi literal union dilakukan di aplikasi (src/lib/domain/*, Zod).
+// Konten JSON disimpan sebagai String (helper serialize/parse di src/lib/domain/content.ts).
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+// ============================================================
+// Identity & Access
+// ============================================================
+
+/// Akun staf redaksi (login CMS). Role: CHIEF_EDITOR | EDITOR | INTERNAL_AUTHOR | VOLUNTEER.
+/// Grant eksplisit (bukan default role) sesuai permission matrix TA §5.1:
+/// canRiskEdit = article:risk_edit, canManageComplaints = complaint:manage.
+model StaffUser {
+  id                 String    @id @default(cuid())
+  email              String    @unique
+  name               String
+  role               String // CHIEF_EDITOR | EDITOR | INTERNAL_AUTHOR | VOLUNTEER
+  status             String    @default("ACTIVE") // ACTIVE | SUSPENDED
+  passwordHash       String
+  canRiskEdit        Boolean   @default(false)
+  canManageComplaints Boolean  @default(false)
+  lastLoginAt        DateTime?
+  createdAt          DateTime  @default(now())
+  updatedAt          DateTime  @updatedAt
+
+  person             Person?
+  createdArticles    Article[] @relation("ArticleCreator")
+  verifiedSources    SourceReference[] @relation("SourceVerifier")
+  reviews            EditorialReview[]
+  comments           ReviewComment[]
+  decidedCorrections CorrectionRecord[] @relation("CorrectionApprover")
+  disclosureDecided  Article[] @relation("DisclosureDecider")
+  uploadedMedia      MediaAsset[] @relation("MediaUploader")
+}
+
+/// Akun kontributor eksternal — Tahap B (TIDAK AKTIF pada MVP; gerbang legal belum terpenuhi).
+model Contributor {
+  id               String    @id @default(cuid())
+  email            String    @unique
+  passwordHash     String
+  adultConfirmedAt DateTime? // deklarasi 18+ (D1 LOCKED)
+  status           String    @default("INVITED") // INVITED | ACTIVE | SUSPENDED
+  createdAt        DateTime  @default(now())
+  updatedAt        DateTime  @updatedAt
+
+  person           Person?
+  submissions      Submission[]
+}
+
+/// Identitas publik (dipisah dari akun login). anonymityMode: REAL_NAME | PEN_NAME | ANONYMOUS.
+model Person {
+  id            String   @id @default(cuid())
+  accountType   String // STAFF | EXTERNAL | BYLINE_ONLY
+  staffUserId   String?  @unique
+  staffUser     StaffUser? @relation(fields: [staffUserId], references: [id])
+  contributorId String?  @unique
+  contributor   Contributor? @relation(fields: [contributorId], references: [id])
+  publicName    String
+  anonymityMode String   @default("REAL_NAME")
+  bio           String?
+  createdAt     DateTime @default(now())
+
+  contributions ArticleContribution[]
+}
+
+// ============================================================
+// Editorial domain
+// ============================================================
+
+/// Desk redaksi. Seed: hukum-keadilan, teknologi-kebijakan, nasional-publik.
+model Desk {
+  id          String   @id @default(cuid())
+  slug        String   @unique
+  name        String
+  description String?
+  sortOrder   Int      @default(0)
+  isActive    Boolean  @default(true)
+  createdAt   DateTime @default(now())
+
+  articles    Article[]
+}
+
+/// Artikel. status (Tahap A): DRAFT | PENDING_REVIEW | FACT_CHECK | REVISION_NEEDED |
+/// PENDING_APPROVAL | PUBLISHED | REJECTED | WITHDRAWN | CORRECTED | RETRACTED | ARCHIVED.
+/// Tidak ada status SCHEDULED pada MVP (D3 LOCKED).
+model Article {
+  id                     String    @id @default(cuid())
+  slug                   String    @unique
+  title                  String
+  deck                   String?
+  deskId                 String
+  desk                   Desk      @relation(fields: [deskId], references: [id])
+  format                 String // NEWS | OPINION | ANALYSIS | EXPLAINER | FEATURE | INTERVIEW
+  status                 String    @default("DRAFT")
+  contentJson            String    @default("\"[]\"") // block-JSON tervalidasi Zod
+  byline                 String    @default("Redaksi Verax Press")
+  origin                 String    @default("NEWSROOM") // NEWSROOM | INGESTION_API | CONTRIBUTOR
+  aiInvolvement          String    @default("none") // none | assistive | substantive
+  aiDisclosurePublic     Boolean   @default(false)
+  aiDisclosureNote       String?
+  disclosureDecidedById  String?
+  disclosureDecidedBy    StaffUser? @relation("DisclosureDecider", fields: [disclosureDecidedById], references: [id])
+  disclosureDecidedAt    DateTime?
+  createdById            String?
+  createdBy              StaffUser? @relation("ArticleCreator", fields: [createdById], references: [id])
+  heroMediaId            String?
+  heroMedia              MediaAsset? @relation("HeroMediaAsset", fields: [heroMediaId], references: [id], onDelete: SetNull)
+  firstPublishedAt       DateTime?
+  publishedAt            DateTime?
+  createdAt              DateTime  @default(now())
+  updatedAt              DateTime  @updatedAt
+
+  versions               ArticleVersion[]
+  contributions          ArticleContribution[]
+  sources                SourceReference[]
+  reviews                EditorialReview[]
+  comments               ReviewComment[]
+  submissions            Submission[]
+  complaints             Complaint[]
+  corrections            CorrectionRecord[]
+  mediaAssets            MediaAsset[]
+
+  @@index([status, publishedAt])
+  @@index([deskId, status])
+  @@index([format, status])
+}
+
+/// Riwayat versi. versionType: author | editorial_copyedit | risk_edit | ingestion.
+/// Risk-edit wajib changeReason + notifikasi penulis (TA §8).
+model ArticleVersion {
+  id               String    @id @default(cuid())
+  articleId        String
+  article          Article   @relation(fields: [articleId], references: [id], onDelete: Cascade)
+  versionNo        Int
+  title            String
+  deck             String?
+  contentJson      String
+  versionType      String // author | editorial_copyedit | risk_edit | ingestion
+  changeReason     String?
+  createdById      String? // staff user id (null untuk agent/API)
+  createdByLabel   String? // mis. "api-client:demo-agent"
+  notifiedAuthorAt DateTime?
+  authorResponse   String? // pending | accepted | revised | withdrawn
+  createdAt        DateTime  @default(now())
+
+  @@unique([articleId, versionNo])
+  @@index([articleId, createdAt])
+}
+
+/// Kredit terstruktur person-role. role: AUTHOR | EDITOR | REPORTER | REVIEWER | VISUAL.
+model ArticleContribution {
+  id           String  @id @default(cuid())
+  articleId    String
+  article      Article @relation(fields: [articleId], references: [id], onDelete: Cascade)
+  personId     String
+  person       Person  @relation(fields: [personId], references: [id])
+  role         String
+  displayOrder Int     @default(0)
+  publicCredit Boolean @default(true)
+
+  @@unique([articleId, personId, role])
+}
+
+/// Referensi sumber + status verifikasi (TA §10). verificationStatus: UNVERIFIED | VERIFIED | DISPUTED.
+/// Hanya Editor/Chief Editor yang boleh mengubah verification_status (source:verify).
+model SourceReference {
+  id                 String    @id @default(cuid())
+  articleId          String
+  article            Article   @relation(fields: [articleId], references: [id], onDelete: Cascade)
+  title              String
+  publisher          String?
+  url                String?
+  sourceType         String // PRIMARY | SECONDARY | DOCUMENT | INTERVIEW | DATA | OFFICIAL
+  publishedAt        DateTime?
+  accessedAt         DateTime?
+  supports           String?
+  isKeySource        Boolean   @default(false)
+  verificationStatus String    @default("UNVERIFIED")
+  verifiedById       String?
+  verifiedBy         StaffUser? @relation("SourceVerifier", fields: [verifiedById], references: [id])
+  verifiedAt         DateTime?
+  verificationNote   String?
+  createdAt          DateTime  @default(now())
+  updatedAt          DateTime  @updatedAt
+
+  @@index([articleId])
+}
+
+/// Keputusan review (internal). decision = aksi transisi yang diambil.
+model EditorialReview {
+  id         String   @id @default(cuid())
+  articleId  String
+  article    Article  @relation(fields: [articleId], references: [id], onDelete: Cascade)
+  reviewerId String
+  reviewer   StaffUser @relation(fields: [reviewerId], references: [id])
+  fromStatus String
+  toStatus   String
+  decision   String // e.g. SUBMIT_REVIEW, MOVE_FACT_CHECK, REQUEST_REVISION, PUBLISH, REJECT, ...
+  notes      String?
+  createdAt  DateTime @default(now())
+
+  @@index([articleId, createdAt])
+}
+
+/// Komentar review. authorVisible=false berarti internal note — TIDAK BOLEH bocor ke publik/kontributor.
+model ReviewComment {
+  id            String   @id @default(cuid())
+  articleId     String
+  article       Article  @relation(fields: [articleId], references: [id], onDelete: Cascade)
+  authorId      String
+  author        StaffUser @relation(fields: [authorId], references: [id])
+  authorVisible Boolean  @default(false)
+  body          String
+  createdAt     DateTime @default(now())
+
+  @@index([articleId, createdAt])
+}
+
+/// Intake submission (origin INGESTION_API saat ini; CONTRIBUTOR untuk Tahap B).
+model Submission {
+  id                    String   @id @default(cuid())
+  origin                String // INGESTION_API | CONTRIBUTOR
+  articleId             String   @unique
+  article               Article  @relation(fields: [articleId], references: [id], onDelete: Cascade)
+  agentId               String?
+  contributorId         String?
+  contributor           Contributor? @relation(fields: [contributorId], references: [id])
+  status                String   @default("SUBMITTED") // SUBMITTED | EDITORIAL_REVIEW | RESOLVED
+  aiInvolvementDeclared String
+  aiUsageNote           String?
+  verificationNotes     String?
+  idempotencyKey        String?  @unique
+  payloadHash           String? // deteksi bentrok idempotency key
+  tagsJson              String? // tag dari agent (disimpan, tidak otomatis dipublikasikan)
+  submittedAt           DateTime @default(now())
+  createdAt             DateTime @default(now())
+
+  @@index([origin, status])
+}
+
+// ============================================================
+// API clients (Internal Content Ingestion — scope submit ONLY)
+// ============================================================
+
+model ApiClient {
+  id         String    @id @default(cuid())
+  clientId   String    @unique
+  name       String
+  secretHash String // scrypt hash; secret plaintext TIDAK pernah disimpan
+  scopes     String    @default("submit") // comma-separated; hanya "submit" pada MVP
+  status     String    @default("ACTIVE") // ACTIVE | REVOKED
+  expiresAt  DateTime?
+  lastUsedAt DateTime?
+  createdAt  DateTime  @default(now())
+}
+
+/// Metadata aset visual (ingestion/Editor/Library) — hak penggunaan wajib tercatat (Charter §3.4).
+model MediaAsset {
+  id                 String    @id @default(cuid())
+  storageKey         String?
+  url                String
+  mimeType           String?
+  mediaType          String?   // PHOTO | ILLUSTRATION | DIAGRAM | DOCUMENT
+  title              String?
+  creator            String?
+  license            String?
+  permissionEvidence String?
+  caption            String?
+  sourceUrl          String?
+  isSynthetic        Boolean   @default(false)
+  uploadedById       String?
+  uploadedBy         StaffUser? @relation("MediaUploader", fields: [uploadedById], references: [id], onDelete: SetNull)
+  uploadedByLabel    String?
+  articleId          String?
+  article            Article?  @relation(fields: [articleId], references: [id], onDelete: Cascade)
+  heroForArticles    Article[] @relation("HeroMediaAsset")
+  createdAt          DateTime  @default(now())
+
+  @@index([articleId])
+}
+
+// ============================================================
+// Complaints & Corrections
+// ============================================================
+
+/// Keluhan publik. type: HAK_JAWAB | HAK_KOREKSI | KELUHAN | PERMINTAAN_PENGHAPUSAN.
+/// deadline NULL sampai legal review menetapkan tenggat (LEGAL REVIEW REQUIRED).
+model Complaint {
+  id                  String    @id @default(cuid())
+  refCode             String    @unique // KEL-{tahun}-{urut}
+  type                String
+  articleId           String?
+  article             Article?  @relation(fields: [articleId], references: [id])
+  senderName          String
+  senderEmail         String
+  senderPhone         String?
+  message             String
+  status              String    @default("RECEIVED") // RECEIVED | IN_REVIEW | RESOLVED | REJECTED
+  deadline            DateTime?
+  decision            String?
+  decidedAt           DateTime?
+  correctionRecordId  String?
+  createdAt           DateTime  @default(now())
+  updatedAt           DateTime  @updatedAt
+
+  @@index([status, createdAt])
+}
+
+/// Koreksi publik (Correction Log). approvedBy = Chief Editor (atau editor dengan grant).
+model CorrectionRecord {
+  id           String   @id @default(cuid())
+  articleId    String
+  article      Article  @relation(fields: [articleId], references: [id], onDelete: Cascade)
+  summary      String // apa yang salah
+  publicNote   String // catatan publik: apa yang diperbaiki
+  versionRefId String? // versi sebelum/sesudah
+  approvedById String
+  approvedBy   StaffUser @relation("CorrectionApprover", fields: [approvedById], references: [id])
+  correctedAt  DateTime @default(now())
+  createdAt    DateTime @default(now())
+
+  @@index([articleId])
+}
+
+// ============================================================
+// Audit (append-only)
+// ============================================================
+
+/// Event audit untuk semua keputusan/perubahan penting. TIDAK menyimpan secret/token.
+model AuditEvent {
+  id            String   @id @default(cuid())
+  actorType     String // STAFF | API_CLIENT | SYSTEM | PUBLIC
+  actorId       String?
+  actorLabel    String? // email staf / nama client (non-sensitif)
+  action        String // article.created, article.transition, source.verified, complaint.created, ...
+  targetType    String // ARTICLE | SOURCE | SUBMISSION | COMPLAINT | CORRECTION | API_CLIENT | AUTH
+  targetId      String?
+  reason        String?
+  correlationId String?
+  metadataJson  String? // konteks kecil (mis. from/to status) — tanpa data sensitif
+  createdAt     DateTime @default(now())
+
+  @@index([targetType, targetId])
+  @@index([createdAt])
+  @@index([action])
+}

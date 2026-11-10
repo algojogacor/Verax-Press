@@ -1,0 +1,59 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 675" fill="none">
+  <rect width="1200" height="675" fill="#F3EFE6"/>
+  <rect x="44" y="36" width="1112" height="603" fill="#FFFFFF" stroke="#141413" stroke-width="2"/>
+  <rect x="52" y="44" width="1096" height="587" fill="none" stroke="#C7C0B3" stroke-width="1"/>
+  <rect x="44" y="36" width="1112" height="46" fill="#141413"/>
+  <text x="76" y="64" fill="#FBF9F5" font-family="monospace" font-size="12.5" font-weight="700" letter-spacing="1.8">
+    PELAT VISUAL REDAKSI · DESK HUKUM &amp; KEADILAN: TRANSPARANSI PUTUSAN &amp; REDAKSI DATA PRIBADI
+  </text>
+  <text x="1124" y="64" fill="#D6CEBE" font-family="monospace" font-size="11.5" text-anchor="end">
+    SKEMA E-BERKAS · DEMO TAHAP A
+  </text>
+
+  <!-- Two balancing scales / columns -->
+  <rect x="92" y="122" width="476" height="444" fill="#FBF9F5" stroke="#141413" stroke-width="1.5"/>
+  <rect x="92" y="122" width="476" height="6" fill="#8B1E1E"/>
+  <text x="120" y="164" fill="#8B1E1E" font-family="monospace" font-size="11.5" font-weight="700" letter-spacing="1.2">
+    PRINSIP I · KETERBUKAAN PERSIDANGAN
+  </text>
+  <text x="120" y="196" fill="#141413" font-family="Georgia, serif" font-size="20" font-weight="700">
+    Akses Publik atas Pertimbangan
+  </text>
+  <text x="120" y="222" fill="#141413" font-family="Georgia, serif" font-size="20" font-weight="700">
+    Hukum Majelis Hakim
+  </text>
+  <line x1="120" y1="242" x2="540" y2="242" stroke="#C7C0B3" stroke-width="1.5"/>
+  <text x="120" y="278" fill="#141413" font-family="sans-serif" font-size="13.5" font-weight="600">• Amar putusan dan rasio decidendi wajib dapat</text>
+  <text x="134" y="300" fill="#44403C" font-family="sans-serif" font-size="13.5">diakses untuk pengawasan publik &amp; eksaminasi.</text>
+  <text x="120" y="340" fill="#141413" font-family="sans-serif" font-size="13.5" font-weight="600">• Nomor register perkara, komposisi majelis,</text>
+  <text x="134" y="362" fill="#44403C" font-family="sans-serif" font-size="13.5">dan pasal dakwaan tetap bersifat terbuka.</text>
+  <rect x="120" y="424" width="420" height="108" fill="#FFFFFF" stroke="#141413" stroke-width="1.2"/>
+  <text x="142" y="454" fill="#8B1E1E" font-family="monospace" font-size="11.5" font-weight="700" letter-spacing="1">RUJUKAN INSTRUMEN PRIMER:</text>
+  <text x="142" y="478" fill="#141413" font-family="sans-serif" font-size="13" font-weight="700">SK KMA No. 2-144/KMA/SK/VIII/2022</text>
+  <text x="142" y="500" fill="#57534E" font-family="sans-serif" font-size="12.5">Standar Pelayanan Informasi Publik di Pengadilan</text>
+
+  <rect x="632" y="122" width="476" height="444" fill="#FBF9F5" stroke="#141413" stroke-width="1.5"/>
+  <rect x="632" y="122" width="476" height="6" fill="#141413"/>
+  <text x="660" y="164" fill="#141413" font-family="monospace" font-size="11.5" font-weight="700" letter-spacing="1.2">
+    PRINSIP II · PELINDUNGAN SUBJEK DATA
+  </text>
+  <text x="660" y="196" fill="#141413" font-family="Georgia, serif" font-size="20" font-weight="700">
+    Pengaburan Identitas Sensitif
+  </text>
+  <text x="660" y="222" fill="#141413" font-family="Georgia, serif" font-size="20" font-weight="700">
+    Saksi &amp; Korban (Pseudonimisasi)
+  </text>
+  <line x1="660" y1="242" x2="1080" y2="242" stroke="#C7C0B3" stroke-width="1.5"/>
+  <text x="660" y="278" fill="#141413" font-family="sans-serif" font-size="13.5" font-weight="600">• NIK, alamat rumah, rekam medis, dan identitas</text>
+  <text x="674" y="300" fill="#44403C" font-family="sans-serif" font-size="13.5">anak wajib dikaburkan sebelum publikasi direktori.</text>
+  <text x="660" y="340" fill="#141413" font-family="sans-serif" font-size="13.5" font-weight="600">• Mencegah penyalahgunaan salinan putusan</text>
+  <text x="674" y="362" fill="#44403C" font-family="sans-serif" font-size="13.5">untuk pemrofilan ilegal atau intimidasi saksi.</text>
+  <rect x="660" y="424" width="420" height="108" fill="#FFFFFF" stroke="#141413" stroke-width="1.2"/>
+  <text x="682" y="454" fill="#14532D" font-family="monospace" font-size="11.5" font-weight="700" letter-spacing="1">KEWAJIBAN PASAL 53 UU PDP:</text>
+  <text x="682" y="478" fill="#141413" font-family="sans-serif" font-size="13" font-weight="700">Penunjukan Pejabat Pelaksana Pelindungan Data</text>
+  <text x="682" y="500" fill="#57534E" font-family="sans-serif" font-size="12.5">Standarisasi redaksi berlapis berbasis peran hukum</text>
+
+  <text x="76" y="608" fill="#44403C" font-family="monospace" font-size="11.5" font-weight="600">
+    DOKUMEN SUMBER PRIMER: PUTUSAN MK &amp; PASAL 53 UU NO. 27 TAHUN 2022 · MEJA RISET HUKUM &amp; KEADILAN VERITY
+  </text>
+</svg>
