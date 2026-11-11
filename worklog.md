@@ -783,3 +783,20 @@ Dijalankan 9 Nov 2026 (sesi build-2). Transkrip lengkap: `scripts/acceptance-tes
        - Uji masuk via `POST /api/auth/callback/credentials` dengan akun Pemimpin Redaksi `pemredVP`: HTTP 302 Redirect, berhasil menerbitkan sesi kredensial NextAuth.
        - Sesi aktif terverifikasi: `user.username = 'pemredVP'`, `user.role = 'CHIEF_EDITOR'`, `user.name = 'Arya Rizky Ardhi Pratama'`.
        - Dashboard Meja Redaksi `GET /api/studio/dashboard`: HTTP 200 OK, menyajikan 0 naskah, 0 keluhan, dan otoritas penuh redaksi (`canPublish: true`, `canManageStaff: true`, `canManageApiClients: true`).
+
+
+## 40. Verax Press: Pendaftaran Domain Pendek Vercel (11 Nov 2026)
+- **Status:** Selesai dan terverifikasi penuh.
+- **Objektif:**
+  - Memeriksa ketersediaan domain pendek `vp.vercel.app` dan `vrx.vercel.app`.
+  - Mendaftarkan alias domain pendek alternatif berbasis `vrx` dan `vp`.
+- **Hasil Pemeriksaan Domain:**
+  - `vp.vercel.app`: Tidak tersedia (sudah digunakan oleh pihak ketiga).
+  - `vrx.vercel.app`: Tidak tersedia (sudah digunakan oleh pihak ketiga).
+- **Domain Pendek yang Berhasil Didaftarkan dan Aktif (HTTP 200 OK):**
+  - `https://vrxp.vercel.app` (4 karakter: VRX Press)
+  - `https://vpid.vercel.app` (4 karakter: Verax Press Indonesia)
+  - `https://vrxid.vercel.app` (5 karakter: VRX Indonesia)
+  - `https://vpnews.vercel.app` (6 karakter: VP News)
+  - `https://vrxnews.vercel.app` (7 karakter: VRX News)
+  - `https://veraxpress.vercel.app` (Verax Press resmi)
