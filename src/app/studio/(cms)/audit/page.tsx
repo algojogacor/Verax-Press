@@ -164,7 +164,7 @@ export default function StudioAuditPage() {
                     ) : null}
                   </TableCell>
                   <TableCell className="max-w-64 font-mono text-[11px] text-verity-ink-soft">
-                    {event.reason ?? "—"}
+                    {event.reason ?? "-"}
                   </TableCell>
                 </TableRow>
               ))}

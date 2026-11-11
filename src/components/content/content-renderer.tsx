@@ -12,11 +12,12 @@
 import type { ArticleContent } from "@/lib/domain/content";
 
 export function ContentRenderer({ content, endMark = false }: { content: ArticleContent; endMark?: boolean }) {
-  // Drop cap hanya untuk paragraf pembuka pertama yang cukup panjang (≥80 karakter)
-  // agar tidak menjadi gimmick pada pembuka pendek.
-  const dropCapIndex = content.findIndex(
-    (block) => block.type === "paragraph" && block.text.length >= 80,
-  );
+  // Drop cap HANYA untuk paragraf pembuka pertama artikel (bukan di tengah naskah)
+  // dengan ambang batas minimal 2 baris penuh (≥120 karakter) agar huruf besar tidak menggantung.
+  const firstBlock = content[0];
+  const dropCapIndex =
+    firstBlock && firstBlock.type === "paragraph" && firstBlock.text.length >= 120 ? 0 : -1;
+
   // H2 pertama artikel = pergantian babak (dari prosa pembuka ke tubuh artikel)
   // → napas terbesar; H2 berikutnya lebih rapat.
   const firstH2Index = content.findIndex((b) => b.type === "heading" && b.level === 2);
@@ -41,10 +42,9 @@ export function ContentRenderer({ content, endMark = false }: { content: Article
                 className={
                   (isFirst || afterHeading ? "" : "mt-6 ") +
                   "font-serif text-[1.0625rem] leading-[1.78] text-verity-ink" +
-                  // Drop cap 2 baris penuh: line-box 5rem×0.76 ≈ 2× line-height body (30.3px)
-                  // agar dua baris pertama mengalir rapi di samping huruf (wrap klasik).
+                  // Drop cap 2 baris seimbang: 3.25rem dengan leading 0.82 agar mengalir rapi di samping huruf
                   (useDropCap
-                    ? " first-letter:float-left first-letter:mr-3 first-letter:mt-[0.18rem] first-letter:font-serif first-letter:text-[5rem] first-letter:font-semibold first-letter:leading-[0.76] first-letter:text-verity-ink"
+                    ? " first-letter:float-left first-letter:mr-3 first-letter:mt-1 first-letter:font-serif first-letter:text-[3.25rem] first-letter:font-semibold first-letter:leading-[0.82] first-letter:text-verity-ink"
                     : "")
                 }
               >

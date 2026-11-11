@@ -134,16 +134,16 @@ export default async function HomePage() {
       {/* ===== Paket utama: lead mendominasi + headline sekunder + rail Terbaru ===== */}
       <section
         aria-label="Utama"
-        className="grid gap-10 pb-10 pt-1 lg:grid-cols-[minmax(0,1fr)_19rem] lg:gap-12"
+        className="grid gap-8 pb-10 pt-1 md:grid-cols-[minmax(0,1.35fr)_16rem] md:gap-8 lg:grid-cols-[minmax(0,1fr)_19rem] lg:gap-12"
       >
         <div>
           <LeadArticleCard article={lead as PublicArticle} />
-          {/* Headline sekunder — bagian dari paket utama, dipisah rule sedang */}
+          {/* Headline sekunder: bagian dari paket utama, dipisah rule sedang */}
           {secondaries.length > 0 ? (
             <div className="mt-8 border-t border-verity-rule-strong">
               {secondaries.map((article) => (
                 <article key={article.id} className="border-b border-verity-rule py-4 last:border-b-0">
-                  <h3 className="font-serif text-[1.3rem] font-semibold leading-[1.22] text-verity-ink">
+                  <h3 className="font-serif text-[1.25rem] font-semibold leading-[1.22] text-verity-ink sm:text-[1.3rem]">
                     <Link href={`/artikel/${article.slug}`} className="block hover:text-verity-accent-deep">
                       {article.title}
                     </Link>
@@ -160,7 +160,7 @@ export default async function HomePage() {
             </div>
           ) : null}
         </div>
-        <aside aria-label="Terbaru" className="lg:border-l lg:border-verity-rule lg:pl-8 lg:pt-9">
+        <aside aria-label="Terbaru" className="border-t border-verity-rule-strong pt-6 md:border-t-0 md:border-l md:border-verity-rule md:pl-6 md:pt-8 lg:pl-8 lg:pt-9">
           <div className="border-b-2 border-verity-ink pb-2.5">
             <h2 className="font-sans text-[0.85rem] font-semibold uppercase tracking-[0.2em] text-verity-ink">
               Terbaru
@@ -174,7 +174,7 @@ export default async function HomePage() {
         </aside>
       </section>
 
-      {/* ===== Seksi desk — napas antar-seksi disengaja & tidak seragam:
+      {/* ===== Seksi desk: napas antar-seksi disengaja dan tidak seragam:
           jeda terbesar setelah paket utama (membuka babak liputan), lalu
           seksi-seksi berikut lebih rapat; tiap seksi berganti tata letak. ===== */}
       {renderedSections.map((section, index) => {
@@ -183,37 +183,37 @@ export default async function HomePage() {
         return (
           <section key={section.desk.id} aria-label={section.desk.name} className={isShowcase ? "mt-8" : "mt-14"}>
             <SectionHeading title={section.desk.name} href={`/desk/${section.desk.slug}`} />
-            {/* Showcase: standfirst desk — teks pengantar yang hanya muncul
-                di seksi pembuka, memberi rasa kurasi editorial */}
+            {/* Showcase: standfirst desk (teks pengantar yang hanya muncul
+                di seksi pembuka, memberi rasa kurasi editorial) */}
             {isShowcase && section.desk.description ? (
               <p className="mt-4 max-w-2xl font-serif text-[1.05rem] italic leading-[1.6] text-verity-ink-soft">
                 {section.desk.description}
               </p>
             ) : null}
             {layout === "solo" ? (
-              // Satu-satunya artikel unggulan seksi — lebar penuh, deck lega
+              // Satu-satunya artikel unggulan seksi: lebar penuh, deck lega
               <div className="mt-7 max-w-3xl">
                 <FeaturedArticleCard article={section.articles[0]} />
               </div>
             ) : layout === "featured-list" ? (
-              // Unggulan besar + daftar teks — pola showcase
-              <div className="mt-7 grid gap-8 lg:grid-cols-[minmax(0,1.55fr)_minmax(0,1fr)] lg:gap-12">
+              // Unggulan besar + daftar teks: pola showcase
+              <div className="mt-7 grid gap-8 md:grid-cols-[minmax(0,1.4fr)_minmax(0,1fr)] lg:grid-cols-[minmax(0,1.55fr)_minmax(0,1fr)] lg:gap-12">
                 <FeaturedArticleCard article={section.articles[0]} />
-                <div className="lg:border-l lg:border-verity-rule lg:pl-8">
+                <div className="md:border-l md:border-verity-rule md:pl-6 lg:pl-8">
                   {section.articles.slice(1).map((article) => (
                     <CompactArticleCard key={article.id} article={article} showTime />
                   ))}
                 </div>
               </div>
             ) : layout === "grid" ? (
-              // Grid rata — kartu dengan hairline atas masing-masing
+              // Grid rata: kartu dengan hairline atas masing-masing
               <div className="mt-7 grid gap-x-10 gap-y-8 sm:grid-cols-2">
                 {section.articles.map((article) => (
                   <StandardArticleCard key={article.id} article={article} kickerVariant="format" />
                 ))}
               </div>
             ) : (
-              // Baris editorial — headline kiri, deck kanan
+              // Baris editorial: headline kiri, deck kanan
               <div className="mt-3">
                 {section.articles.map((article) => (
                   <RowArticleCard key={article.id} article={article} />
@@ -225,7 +225,7 @@ export default async function HomePage() {
       })}
 
       {/* ===== Opini: rule ganda klasik (2px ink + 3px + hairline, full-bleed)
-          + label serif italic — identitas seksi editorial lewat garis &
+          + label serif italic: identitas seksi editorial lewat garis &
           tipografi, bukan latar warna (pola halaman opini NYT/Guardian). ===== */}
       {opini.length > 0 ? (
         <section aria-label="Opini" className="mt-16">

@@ -81,24 +81,51 @@ export default async function DeskPage({ params }: Params) {
           </p>
         ) : (
           <>
-            <FeaturedArticleCard article={articles[0]} />
-            {articles.length > 1 ? (
-              // Kartu standar membawa hairline atasnya sendiri; pemisah
-              // level grid TIDAK dipakai (menghindari dua hairline bertumpuk);
-              // whitespace yang memisahkan tingkatan.
-              <div className="mt-12 grid gap-x-10 gap-y-8 sm:grid-cols-2">
-                {articles.slice(1, 3).map((article) => (
-                  <StandardArticleCard key={article.id} article={article} kickerVariant="format" />
-                ))}
+            {/* Grid Utama Desk: Unggulan di kiri + Naskah Terkini / Konteks di kanan */}
+            <div className="grid gap-8 lg:grid-cols-[minmax(0,1.5fr)_minmax(0,1fr)] lg:gap-12">
+              <div>
+                <FeaturedArticleCard article={articles[0]} />
               </div>
-            ) : null}
+
+              {articles.length > 1 ? (
+                <div className="border-t border-verity-rule-strong pt-6 lg:border-t-0 lg:border-l lg:border-verity-rule lg:pl-8 lg:pt-0">
+                  <p className="font-sans text-[0.75rem] font-semibold uppercase tracking-[0.2em] text-verity-ink-soft mb-4">
+                    Liputan Terkini
+                  </p>
+                  <div className="divide-y divide-verity-rule">
+                    {articles.slice(1, 3).map((article) => (
+                      <div key={article.id} className="py-4 first:pt-0 last:pb-0">
+                        <StandardArticleCard article={article} kickerVariant="format" />
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              ) : (
+                <div className="border-t border-verity-rule-strong pt-6 lg:border-t-0 lg:border-l lg:border-verity-rule lg:pl-8 lg:pt-0">
+                  <div className="border border-verity-rule bg-verity-paper-soft p-6">
+                    <p className="font-mono text-[11px] font-medium uppercase tracking-[0.14em] text-verity-accent">
+                      Fokus Liputan Redaksi
+                    </p>
+                    <p className="mt-2.5 font-serif text-[0.92rem] italic leading-relaxed text-verity-ink-soft">
+                      Setiap liputan di desk ini dikerjakan dengan disiplin verifikasi sumber primer
+                      serta keterbukaan metodologi penelaahan.
+                    </p>
+                  </div>
+                </div>
+              )}
+            </div>
+
+            {/* Indeks Tambahan (Artikel ke-4 dst) */}
             {articles.length > 3 ? (
-              // Ekor indeks ringkas: kolom sejajar (bukan satu kolom
-              // yang menyisakan ruang mati), garis per item sejajar per baris
-              <div className="mt-10 grid gap-x-10 sm:grid-cols-2 lg:grid-cols-3">
-                {articles.slice(3).map((article) => (
-                  <CompactArticleCard key={article.id} article={article} showTime />
-                ))}
+              <div className="mt-14 border-t border-verity-rule-strong pt-8">
+                <p className="font-sans text-[0.8rem] font-semibold uppercase tracking-[0.2em] text-verity-ink-soft mb-6">
+                  Arsip Naskah {desk.name}
+                </p>
+                <div className="grid gap-x-10 gap-y-6 sm:grid-cols-2 lg:grid-cols-3">
+                  {articles.slice(3).map((article) => (
+                    <CompactArticleCard key={article.id} article={article} showTime />
+                  ))}
+                </div>
               </div>
             ) : null}
           </>

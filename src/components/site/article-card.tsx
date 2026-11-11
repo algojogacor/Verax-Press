@@ -58,44 +58,44 @@ function Meta({ article, className = "" }: { article: PublicArticle; className?:
   );
 }
 
-/** Berita utama homepage — elemen paling dominan di halaman (ukuran + whitespace). */
+/** Berita utama homepage: elemen paling dominan di halaman dengan tipografi responsif terukur. */
 export function LeadArticleCard({ article }: { article: PublicArticle }) {
   return (
-    <article className="pt-7 sm:pt-9">
+    <article className="pt-5 sm:pt-9">
       <Kicker desk={article.desk} format={article.format} />
-      <h2 className="mt-4 text-balance font-serif text-[2.15rem] font-semibold leading-[1.06] tracking-[-0.015em] text-verity-ink sm:text-[3.25rem] lg:text-[3.5rem]">
+      <h2 className="mt-3.5 text-balance font-serif text-[1.45rem] font-semibold leading-[1.16] tracking-[-0.012em] text-verity-ink sm:mt-4 sm:text-[2.5rem] sm:leading-[1.08] lg:text-[3.25rem]">
         <Link href={`/artikel/${article.slug}`} className="block hover:text-verity-accent-deep">
           {article.title}
         </Link>
       </h2>
       {article.deck ? (
-        <p className="mt-5 max-w-[58ch] font-serif text-[1.2rem] italic leading-[1.5] text-verity-ink-soft sm:text-[1.35rem]">
+        <p className="mt-3.5 max-w-[58ch] font-serif text-[1.05rem] italic leading-[1.55] text-verity-ink-soft sm:mt-5 sm:text-[1.25rem] sm:leading-[1.5]">
           {article.deck}
         </p>
       ) : null}
-      <div className="mt-6 border-t border-verity-rule-strong pt-3.5">
+      <div className="mt-5 border-t border-verity-rule-strong pt-3 sm:mt-6 sm:pt-3.5">
         <Meta article={article} />
       </div>
     </article>
   );
 }
 
-/** Unggulan per-seksi / pembuka listing desk — tier di bawah lead, di atas standard. */
+/** Unggulan per-seksi / pembuka listing desk: tier di bawah lead, di atas standard. */
 export function FeaturedArticleCard({ article }: { article: PublicArticle }) {
   return (
     <article>
       <Kicker desk={article.desk} format={article.format} variant="format" />
-      <h3 className="mt-2.5 font-serif text-[1.55rem] font-semibold leading-[1.18] tracking-[-0.008em] text-verity-ink sm:text-[1.7rem]">
+      <h3 className="mt-2 text-balance font-serif text-[1.4rem] font-semibold leading-[1.18] tracking-[-0.008em] text-verity-ink sm:mt-2.5 sm:text-[1.7rem]">
         <Link href={`/artikel/${article.slug}`} className="block hover:text-verity-accent-deep">
           {article.title}
         </Link>
       </h3>
       {article.deck ? (
-        <p className="mt-3 line-clamp-3 font-serif text-[1.05rem] italic leading-[1.6] text-verity-ink-soft">
+        <p className="mt-2.5 line-clamp-3 font-serif text-[0.98rem] italic leading-[1.6] text-verity-ink-soft sm:mt-3 sm:text-[1.05rem]">
           {article.deck}
         </p>
       ) : null}
-      <Meta article={article} className="mt-3.5" />
+      <Meta article={article} className="mt-3 sm:mt-3.5" />
     </article>
   );
 }

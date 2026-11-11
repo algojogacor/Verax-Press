@@ -1,20 +1,16 @@
-// PATCH  /api/studio/articles/[id]/sources/[sourceId] — edit metadata / verifikasi / penanda kunci.
-// DELETE /api/studio/articles/[id]/sources/[sourceId] — hapus sumber.
+// PATCH  /api/studio/articles/[id]/sources/[sourceId]: edit metadata / verifikasi / penanda kunci.
+// DELETE /api/studio/articles/[id]/sources/[sourceId]: hapus sumber.
 import { NextResponse } from "next/server";
 import { z } from "zod";
 import { db } from "@/lib/db";
 import { ApiError, jsonError, ok, parseJsonBody, requireSession } from "@/lib/api";
 import { articleDetailInclude, toArticleDetail } from "@/lib/domain/serializers";
-import { canEditArticleContent, canReadArticle, userHasPermission } from "@/lib/domain/permissions";
+import { canEditArticleContent, canReadArticle } from "@/lib/domain/permissions";
 import { writeAudit } from "@/lib/domain/audit";
 import { SOURCE_TYPES, VERIFICATION_STATUSES } from "@/lib/domain/constants";
 import type { SessionUser } from "@/types/verity";
 
 type Params = { params: Promise<{ id: string; sourceId: string }> };
-
-function grantsOf(user: SessionUser) {
-  return { role: user.role, canRiskEdit: false, canManageComplaints: false };
-}
 
 export async function PATCH(request: Request, { params }: Params) {
   try {
@@ -51,9 +47,9 @@ export async function PATCH(request: Request, { params }: Params) {
 
     const isEditorPlus = user.role === "CHIEF_EDITOR" || user.role === "EDITOR";
 
-    // Verifikasi sumber: hanya editor/chief (source:verify) — acceptance criteria TA §12.1.
+    // Verifikasi sumber: hanya editor/chief (source:verify) sesuai acceptance criteria TA §12.1.
     if (body.verificationStatus !== undefined || body.verificationNote !== undefined) {
-      if (!userHasPermission(grantsOf(user), "source:verify")) {
+      if (!isEditorPlus) {
         throw new ApiError(403, "FORBIDDEN", "Hanya editor yang dapat mengubah status verifikasi sumber.");
       }
     }

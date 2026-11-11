@@ -1,4 +1,4 @@
-// GET /api/studio/dashboard — ringkasan newsroom (role-scoped).
+// GET /api/studio/dashboard: ringkasan newsroom (role-scoped).
 import { NextResponse } from "next/server";
 import { db } from "@/lib/db";
 import { jsonError, requireSession } from "@/lib/api";
@@ -11,13 +11,11 @@ export async function GET() {
     const isEditorPlus = user.role === "CHIEF_EDITOR" || user.role === "EDITOR";
     const canSeeAudit = user.role === "CHIEF_EDITOR";
 
-    // Grant eksplisit dari DB (bukan asumsi role) — TA §5.1 "by explicit grant".
-    const staff = await db.staffUser.findUnique({
-      where: { id: user.id },
-      select: { canRiskEdit: true, canManageComplaints: true },
-    });
-    const grants = { role: user.role, canRiskEdit: staff?.canRiskEdit ?? false, canManageComplaints: staff?.canManageComplaints ?? false };
-    const canManageComplaints = userHasPermission(grants, "complaint:manage");
+    // Grant eksplisit dari profil staf DB terverifikasi
+    const canManageComplaints = userHasPermission(
+      { role: user.role, canRiskEdit: user.canRiskEdit ?? false, canManageComplaints: user.canManageComplaints ?? false },
+      "complaint:manage"
+    );
 
     // Internal Author hanya melihat naskahnya sendiri.
     const articleFilter = isEditorPlus

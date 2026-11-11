@@ -35,13 +35,34 @@ export const authOptions: NextAuthOptions = {
     CredentialsProvider({
       name: "Verax Press Newsroom",
       credentials: {
-        email: { label: "Email", type: "email" },
+        email: { label: "Email atau Nama Pengguna", type: "text" },
         password: { label: "Password", type: "password" },
       },
       async authorize(credentials) {
         if (!credentials?.email || !credentials?.password) return null;
-        const email = credentials.email.trim().toLowerCase();
-        const user = await db.staffUser.findUnique({ where: { email } });
+        const identifier = credentials.email.trim();
+        const user =
+          (await db.staffUser.findFirst({
+            where: {
+              OR: [
+                { email: identifier },
+                { email: identifier.toLowerCase() },
+              ],
+            },
+          })) ??
+          (
+            await db.$queryRaw<
+              Array<{
+                id: string;
+                email: string;
+                name: string;
+                role: string;
+                status: string;
+                passwordHash: string;
+              }>
+            >`SELECT id, email, name, role, status, passwordHash FROM StaffUser WHERE email = ${identifier} COLLATE NOCASE LIMIT 1`
+          )[0];
+
         // Pesan error generik + delay ringan via verify tetap konstan waktu.
         if (!user) return null;
         if (user.status !== "ACTIVE") return null;

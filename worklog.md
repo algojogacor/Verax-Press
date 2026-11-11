@@ -258,3 +258,182 @@ Dijalankan 9 Nov 2026 (sesi build-2). Transkrip lengkap: `scripts/acceptance-tes
   - `bun run lint`: Bersih tanpa peringatan.
   - `bun test`: 16 passed, 35 skipped (regresi HTTP diskip secara benar), 0 failed.
   - `bun run build`: 26/26 rute statis/dinamis terkompilasi sukses melalui Next.js Turbopack.
+
+## 23. Verax Press — Full-System Quality Remediation (10 Nov 2026)
+
+- **Cabang Git:** `remediation/comprehensive-qa-fix`
+- **Laporan Remediasi:** `docs/superpowers/audits/2026-11-10-verax-full-system-remediation-report.md`
+- **Bukti Visual (19 Resolusi Layar):** `docs/superpowers/audits/remediation-evidence/`
+- **Ringkasan Implementasi dan Remediasi:**
+  - **Fase A (Backend Security, Concurrency & Transactions):**
+    - Memperbaiki celah otorisasi keluhan dengan `requireStaffPermission("complaint:manage")` di `src/lib/api.ts` yang mengambil profil staf langsung dari basis data dan memeriksa status `ACTIVE`.
+    - Mengganti `count() + 1` pada pembuatan kode referensi keluhan di `src/app/api/public/complaints/route.ts` dengan bounded-retry loop (hingga 5 kali), penanganan error Prisma P2002, jitter backoff, dan HTTP 409 conflict terkendali.
+    - Menyatukan operasi multi-entitas pada `POST /api/studio/corrections` dan `POST /api/internal/v1/ai-submissions` ke dalam `db.$transaction` interaktif.
+  - **Fase B & H (Database Inventory Reconciliation):**
+    - Menelusuri perbedaan 97 vs 100 vs 195 baris: SQLite lokal memiliki 100 baris (97 baseline + 3 baris uji audit sebelumnya), sedangkan Turso Cloud memiliki 195 baris utuh dengan `PRAGMA integrity_check` ok dan 0 pelanggaran foreign key.
+    - Menyusun rencana rekonsiliasi non-destruktif untuk memulihkan `SourceReference` dan `CorrectionRecord` tanpa menghapus atau memutasi data produksi eksisting.
+  - **Fase D (Test Isolation & Safety Guard):**
+    - Menambahkan `assertApprovedTestDatabase` pada `tests/lib/test-db.ts` yang secara mutlak menolak koneksi ke `*.turso.io`, `libsql://`, atau `custom.db`.
+    - Menambahkan 4 pengujian unit pada `tests/isolation-guard.test.ts` dan 9 pengujian backend pada `tests/backend-remediation.test.ts`.
+  - **Fase E (Azure Media Storage TLS Diagnostics):**
+    - Mengonfirmasi endpoint HTTP port 80 `/health` menghasilkan status OK 200.
+    - Mendiagnosis sertifikat TLS port 443 yang saat ini menyajikan `efimg.aryariap.my.id` dan menyiapkan skrip `services/media-storage/activate-ssl.sh` untuk aktivasi resmi Let's Encrypt oleh operator.
+  - **Fase F & G (Visual Redesign & Responsive Layout):**
+    - Menerapkan tata letak 2 kolom broadsheet pada halaman artikel (`/artikel/[slug]`) dengan sidebar profil desk liputan, artikel terkait, dan kartu transparansi hak jawab (mengatasi 50% ruang kosong desktop).
+    - Menerapkan tata letak 2 kolom pada halaman `/keluhan` dengan panduan prosedur editorial dan penggantian placeholder `slug-artikel`.
+    - Mendesain ulang gerbang studio CMS (`/studio/login`) menjadi portal meja redaksi yang berwibawa dengan motto Latin dan konteks integritas editorial.
+    - Memperbaiki penskalaan headline mobile (`text-[1.45rem]`) dan kalibrasi drop cap (minimal 200 karakter, 2 baris seimbang).
+    - Memastikan navigasi mobile (`SiteMobileNav`) memiliki focus trap, penanganan tombol Escape, dan penonaktifan gulir latar belakang.
+  - **Fase I (Anti-AI Writing Compliance):**
+    - Memastikan 0 tanda pisah em dash (`—`) pada seluruh teks antarmuka publik dan panel studio.
+    - Menghilangkan kosakata klise AI dan menjaga kejujuran faktual.
+- **Hasil Verifikasi Teknis Akhir:**
+  - `bun run typecheck`: 0 error.
+  - `bun run lint`: 0 error / 0 warning.
+  - `bun test`: 29 passed, 35 skipped, 0 failed (77 assertions passed).
+
+## 24. Verax Press — Comprehensive UI/UX Refinement and Visual Redesign (10 Nov 2026)
+
+- **Cabang Git:** `chore/ui-ux-refinement` / `remediation/comprehensive-qa-fix`
+- **Laporan Komprehensif:** `docs/superpowers/audits/2026-11-10-verax-ui-ux-refinement-report.md`
+- **Arsip Bukti Tangkapan Layar (24 File):** `docs/superpowers/audits/refinement-evidence/`
+- **Ringkasan Perubahan UI/UX Utama:**
+  1. **Navigasi Desktop (`src/components/site/desk-nav.tsx`):**
+     - Mengubah distribusi menu desk dari `flex shrink-0` menjadi `md:flex [&>li]:flex-1` dengan `divide-x` dan `border-x`. Seluruh ruang kontainer (1152px) kini terisi merata dan simetris, menuntaskan pemotongan 45% ruang kosong yang sebelumnya terjadi pada resolusi 1440px dan 1920px.
+     - Mengganti indikator aktif menjadi garis bawah tinta 2px (*understated ink underline*).
+     - Menghilangkan scrollbar bawaan seluler dengan utilitas `[scrollbar-width:none] [&::-webkit-scrollbar]:hidden`.
+     - Menambahkan masker gradasi pudar di tepi kanan pada seluler (`after:bg-gradient-to-l after:from-verity-paper`) sebagai isyarat visual halus keterguliran horizontal rubrik.
+  2. **Bilah Utilitas & Masthead Ponsel (`src/components/site/masthead.tsx`):**
+     - Membagi baris utilitas seluler menjadi dua baris terpusat tanpa tubrukan teks (`MEDIA INDEPENDEN · EDISI INDONESIA` pada baris pertama, `LOG KOREKSI · HAK JAWAB & KELUHAN` pada baris kedua).
+     - Pada layar sempit 360px, kalibrasi ukuran teks utilitas ke `text-[9.5px]` dan `tracking-[0.08em]` untuk mencegah pemotongan huruf "A" di tepi kanan.
+     - Menyusun masthead ponsel dalam kisi 3 kolom simetris (`w-10` menu, `flex-1` logo di tengah, `w-10` penyeimbang visual).
+  3. **Laci Navigasi Seluler (`src/components/site/site-mobile-nav.tsx`):**
+     - Menambahkan backdrop transparan `bg-black/40 backdrop-blur-xs`, listener tombol `Escape`, penguncian gulir dokumen `overflow: hidden`, dan cincin fokus keyboard aksesibel.
+  4. **Penskalaan Tipografi Judul (`src/components/site/article-card.tsx`):**
+     - Menetapkan headline seluler `LeadArticleCard` pada `text-[1.45rem] leading-[1.16]` dan bertransisi fluida ke ukuran desktop, mencegah judul berita utama memenuhi 5 baris layar ponsel.
+  5. **Tata Letak Dua Kolom Tablet (`src/app/(public)/page.tsx`):**
+     - Menambahkan `md:grid-cols-[minmax(0,1.35fr)_16rem]` agar tata letak surat kabar broadsheet tetap utuh pada orientasi potret iPad (768px-1023px) tanpa membuang kolom "Terbaru" ke dasar halaman.
+  6. **Kalibrasi Drop Cap (`src/components/content/content-renderer.tsx`):**
+     - Memperbaiki logika penempatan drop cap agar hanya aktif pada paragraf pembuka (`blocks[0]`), meniadakan bug di mana paragraf tengah yang panjang mendapatkan drop cap liar.
+     - Mengurangi ambang panjang paragraf pembuka dari 200 ke 120 karakter, memungkinkan berita utama dengan paragraf pembuka ~192 karakter menampilkan drop cap berwibawa (`text-[3.25rem] leading-[0.82]`) secara presisi.
+  7. **Tata Letak Dua Kolom Broadsheet Artikel Detail (`src/app/(public)/artikel/[slug]/page.tsx`):**
+     - Mengimplementasikan grid `lg:grid-cols-[minmax(0,1fr)_19rem]` dengan kolom baca 65-75ch dan kolom samping editorial (konteks rubrik desk, artikel terkait, dan kartu hak jawab), menghapus ruang kosong >700px di sisi kanan desktop.
+  8. **Tata Letak Halaman Rubrik Desk (`src/app/(public)/desk/[slug]/page.tsx`):**
+     - Mengganti pembungkus kaku `max-w-3xl` dengan grid broadsheet 2 kolom pada paket berita pembuka (`FeaturedArticleCard` di kiri dan kolom "Liputan Terkini" di kanan dipisahkan oleh garis hairline vertikal), diikuti oleh kisi 3 kolom untuk arsip berita lainnya, menuntaskan ruang putih 50% di resolusi 1440px dan 1920px.
+  9. **Formulir Keluhan Publik (`src/app/(public)/keluhan/page.tsx`, `src/components/site/complaint-form.tsx`):**
+     - Mengubah halaman keluhan menjadi tata letak 2 kolom (formulir di kiri, klasifikasi 4 pilar hak jawab dan prosedur editorial di kanan).
+     - Mengeliminasi teks placeholder teknis `slug-artikel` menjadi "Tautan atau judul artikel terkait (opsional)".
+  10. **Portal Meja Redaksi Studio CMS (`src/app/studio/login/page.tsx`):**
+      - Merombak gerbang login CMS menjadi portal meja redaksi dua panel: panel kiri memuat manifesto integritas jurnalisme dan verifikasi sumber, panel kanan memuat formulir autentikasi yang aman.
+  11. **Dashboard Studio CMS (`src/app/studio/(cms)/page.tsx`):**
+      - Menata ulang grid metrik artikel ke format 6 kolom seimbang (`grid-cols-2 sm:grid-cols-3 lg:grid-cols-6`), memastikan seluruh 6 status artikel tersusun simetris dalam satu baris di desktop tanpa kartu terisolasi di baris kedua.
+      - Memisahkan peringatan gerbang verifikasi sumber kunci dari peringatan artikel siap terbit Chief Editor dengan kartu penanda editorial yang jelas.
+  12. **Studio Media Library & Uploader (`src/app/studio/(cms)/media/page.tsx`, `src/components/studio/media-asset-card.tsx`, `src/components/studio/media-uploader.tsx`):**
+      - Mengembangkan komponen mandiri `MediaAssetCard` dengan fallback penanganan kesalahan pemuatan gambar (`onError`) yang menampilkan placeholder editorial berwibawa saat URL gambar pihak ketiga tidak dapat dijangkau.
+      - Mempercantik form pengunggahan berkas media dengan penataan ruang redaksi, tombol aksi bertema tinta, dan metadata lisensi serta pengungkapan AI.
+  13. **Kepatuhan Penulisan Jurnalistik (`anti-ai-writing`):**
+      - 0 tanda pisah em dash (`—`) pada seluruh teks antarmuka dan panel sistem.
+      - 0 kata klise AI, bahasa baku bahasa Indonesia jurnalistik, dan pelaporan faktual tanpa metrik rekaan.
+- **Hasil Verifikasi Teknis:**
+  - `bun run typecheck`: 0 kesalahan TypeScript (`tsc --noEmit`).
+  - `bun run lint`: 0 error, 0 warning (`eslint .`).
+  - `bun test`: 71 passed, 0 failed, 0 skipped (145 assertions passed across 8 test suites).
+  - `bun run build`: 26/26 rute statis/dinamis terkompilasi sukses dalam 5.3 detik.
+  - Server produksi terverifikasi melayani HTTP 200 OK di `http://localhost:3000`.
+  - 24 tangkapan layar responsif lengkap tersimpan di `docs/superpowers/audits/refinement-evidence/` yang mencakup 8 rute pada 8 ukuran layar (360px hingga 1920px).
+
+## 24. Verax Press: Final Release Gate & Independent Verification (10 Nov 2026)
+
+- **Auditor Independen:** Antigravity QA & Independent Verification
+- **Keputusan Gerbang Rilis:** **NOT READY FOR DEPLOYMENT**
+- **Dokumen Laporan Lengkap:** `docs/superpowers/audits/2026-11-10-verax-final-release-gate.md`
+- **Ringkasan Hasil Audit 8 Dimensi:**
+  1. **Status Git & Deployment (FAIL):** 39 berkas termodifikasi dan 14 entri untracked berada di branch lokal `remediation/comprehensive-qa-fix`. Produksi Vercel (`https://verax-press.vercel.app`) masih menjalankan commit baseline `0f0df93` tanpa kode remediasi.
+  2. **Provenans Data Turso (PASS dengan catatan):** Total 729 baris di Turso Cloud berhasil direkonsiliasi secara forensik (100 baris seed baseline + 629 baris dari eksekusi uji lampau). Integritas relasional bersih (0 pelanggaran foreign key). Namun, terdapat 18 artikel uji yang berstatus publik (14 PUBLISHED, 4 CORRECTED) di Turso Cloud yang perlu dibersihkan sebelum rilis.
+  3. **Remediasi Backend (PASS):** `verifyStaffUserPermission`, otorisasi keluhan (`requireStaffPermission`), `createComplaintWithRetry` berpenjaga P2002, transaksi interaktif `$transaction` (koreksi dan AI submission), serta isolasi pengujian database (`assertApprovedTestDatabase`) 100% terverifikasi menggunakan fungsi produksi nyata.
+  4. **Hasil Pengujian Otomatis (PASS):** `bun run typecheck` (0 error), `bun run lint` (0 warning/error), `bun test` (71 passed, 0 failed, 0 skipped, 145 assertions, 0 penulisan ke Turso), `bun run build` (26/26 rute Next.js 16.1.3 Turbopack terkompilasi bersih).
+  5. **Tinjauan Visual (PASS):** Seluruh 43 tangkapan layar di 8 resolusi terbukti memenuhi hierarki editorial broadsheet, navigasi desk seimbang, drop cap terkalibrasi proporsional (maks 2 baris), dan portal CMS meja redaksi yang estetis.
+  6. **Azure Media HTTPS (FAIL):** Port 80 sehat, rute publik dan isolasi direktori privat aman, namun port 443 menyajikan sertifikat TLS untuk `efimg.aryariap.my.id` (SAN tidak memuat `media.aryariap.my.id`), menyebabkan handshake TLS gagal (`ERR_TLS_CERT_ALTNAME_INVALID`).
+  7. **Integrasi Lintas Sistem (SEBAGIAN):** Komunikasi Vercel ke Turso Cloud normal, namun komunikasi Vercel ke Azure Media Service via HTTPS terblokir oleh kegagalan sertifikat TLS port 443.
+- **Rekomendasi Tindakan Pra-Rilis:**
+  1. Operator VM menjalankan `sudo bash /home/azureuser/verax-media-service/activate-ssl.sh` di `forfh-korea-vm`.
+  2. Pembersihan non-destruktif atas artikel uji di Turso Cloud (`test-article-*`).
+  3. Commit dan merge branch `remediation/comprehensive-qa-fix` ke `main`, lalu push untuk memicu deployment Vercel produksi.
+
+## 25. Verax Press: Complete Clean-Slate Reset (11 Nov 2026)
+
+- **Status Operasi:** Selesai dan terverifikasi penuh (100% Lulus).
+- **Dokumen Laporan Lengkap:** `docs/superpowers/audits/2026-11-10-verax-clean-slate-reset-report.md`
+- **Tujuan Operasi:** Melaksanakan reset data bersih menyeluruh atas otoritas pemilik platform sebelum peluncuran resmi ke publik. Menghapus seluruh rekaman uji coba, data pengembangan, artikel sementara/placeholder, serta berkas media usang.
+- **Cadangan Pra-Reset (Tersimpan di Luar Direktori Proyek):**
+  - **Local SQLite:** `D:\Backup\verax-clean-slate-20261111\local-sqlite\custom-backup.db` (SHA-256: `5f7a9cc6ad30d2159cc7bc1d44904964b703a6ec59e129449dc3dc2d555b7a67`).
+  - **Turso Cloud DB:** `D:\Backup\verax-clean-slate-20261111\turso\turso-backup.db` (SHA-256: `eea3f4ff45718357af2a63919e21869f6c81ea049335c6b639c430f0e3dd2bfe`), SQL dump: `turso-backup.sql` (SHA-256: `022508c3f8635a23a898c65e49279a6eeff5e5c89acc64e13aebaa7f9103ade1`). Teruji pulih sempurna 729/729 baris di database uji terisolasi.
+  - **Azure Media Storage:** `/home/azureuser/verax-media-backup-clean-slate-20261111/media-backup-clean-slate-20261111.tar.gz` (SHA-256: `2429f9c2ca8fe10806b1725b881dc6cfc4068ff46119f8535a9cd285e4746055`) dan snapshot `media.sqlite` (SHA-256: `791f77d7f63edd6f22f0127371ea565981862856299181a664151c7720210ba0`), diunduh pula secara lokal ke `D:\Backup\verax-clean-slate-20261111\azure-media\`.
+- **Hasil Eksekusi Reset:**
+  - **Turso Cloud:** Seluruh tabel editorial dikosongkan (`Article`: 0, `ArticleVersion`: 0, `ArticleContribution`: 0, `SourceReference`: 0, `EditorialReview`: 0, `ReviewComment`: 0, `Submission`: 0, `MediaAsset`: 0, `Complaint`: 0, `CorrectionRecord`: 0). Akun Chief Editor (`chief@verity.test`, ACTIVE), 3 desk editorial kanonis (`hukum-keadilan`, `teknologi-kebijakan`, `nasional-publik`), serta API client internal (`vrtc_demo_agent`) dipertahankan utuh. Catatan audit administratif reset dibukukan ke `AuditEvent`. `PRAGMA integrity_check` ok, 0 pelanggaran foreign key.
+  - **Local SQLite (`custom.db`):** Mengikuti kondisi identik Turso (0 artikel, 0 keluhan, 0 koreksi, akun Chief Editor dan 3 desk dipertahankan). `PRAGMA integrity_check` ok, 0 pelanggaran foreign key.
+  - **Azure Media Storage (`forfh-korea-vm`):** 46 berkas fisik aktif di `public/` dan `private/` dibersihkan, direktori dipertahankan dengan izin akses yang tepat (0750 untuk publik, 0700 untuk privat). Tabel `media_items` dan `consumed_nonces` kosong (0 baris). Layanan `verax-media` berjalan online di PM2 dan endpoint `/health` merespons HTTP 200 OK.
+- **Verifikasi Kualitas dan Fungsi Akhir:**
+  - `bun run typecheck`: 0 kesalahan TypeScript.
+  - `bun run lint`: 0 peringatan, 0 error.
+  - `bun test`: 71 passed, 0 failed across 8 test suites (145 assertions passed), 0 penulisan ke Turso produksi.
+  - `bun run build`: 26/26 rute Next.js 16.1.3 Turbopack terkompilasi bersih.
+  - Uji asap server mandiri: Halaman depan (`/`), desk (`/desk/*`), opini (`/opini`), koreksi (`/koreksi`), serta pustaka media (`/studio/media`) menampilkan status kosong yang otentik tanpa galat render. Login Chief Editor di `/studio/login` berfungsi normal, dashboard menampilkan metrik nol akurat, dan alur pembuatan naskah baru berhasil terverifikasi.
+
+## 26. Verax Press: Pengamanan Isolasi Basis Data Lokal dan Pengujian Pasca-Reset (11 Nov 2026)
+
+- **Status:** Selesai dan terverifikasi penuh.
+- **Tindakan Pengamanan:**
+  1. **Proteksi Sambungan Turso di Lingkungan Lokal (`src/lib/db.ts`):** Mengunci adapter remote Turso Cloud agar hanya aktif bila `NODE_ENV === 'production'` atau melalui deklarasi eksplisit `VERAX_CONNECT_TURSO=true`. Pada mode pengembangan lokal harian (`NODE_ENV === 'development'`), aplikasi secara tegas diarahkan ke SQLite lokal (`db/custom.db`), menutup celah mutasi tidak sengaja ke Turso produksi di Singapura.
+  2. **Isolasi Penuh Suite Pengujian (`src/lib/db.ts`, `tests/db.test.ts`):** Memastikan eksekusi pengujian otomatis (`NODE_ENV === 'test'`) secara eksklusif memanfaatkan berkas basis data uji terisolasi (`db/isolated-test.db`), menjaga kebersihan `db/custom.db` dan Turso Cloud dari data sampah pengujian.
+  3. **Penyelarasan Gitignore (`.gitignore`):** Menambahkan aturan pengabaian untuk `db/*test*.db` agar berkas basis data uji sementara tidak tercatat di pohon kerja git.
+  4. **Rekonsiliasi Aritmetika Laporan Audit (`docs/superpowers/audits/2026-11-10-verax-clean-slate-reset-report.md`):** Mengoreksi kalkulasi total baris pasca-reset menjadi 12 baris untuk Turso Cloud dan 7 baris untuk SQLite lokal sesuai rincian per tabel.
+  5. **Verifikasi Alur Non-Destruktif (`scripts/clean-slate/verify-workflow.ts`):** Mengubah verifikasi Turso menjadi status baca saja (*read-only*), sementara pengujian alur penulisan naskah dialihkan ke lingkungan uji terisolasi.
+
+## 27. Verax Press: Post-Reset Closure Audit & System Readiness (11 Nov 2026)
+
+- **Status:** Investigasi selesai. Laporan lengkap dibukukan di `docs/superpowers/audits/2026-11-11-verax-post-reset-closure-audit.md`.
+- **Klasifikasi Resmi:**
+  1. **DATA RESET:** PASS (Semua 10 tabel konten editorial bersih 0 baris, 3 desk aktif, relasi referensial 100% konsisten, penyimpanan Azure media 0 berkas).
+  2. **INFRASTRUCTURE:** FAIL (Sertifikat port 443 pada `media.aryariap.my.id` menyajikan SAN untuk `efimg.aryariap.my.id`, memblokir koneksi Node/Vercel via HTTPS).
+  3. **PRODUCTION RELEASE:** NOT READY (Memerlukan eksekusi `activate-ssl.sh` di VM Azure oleh operator, bootstrapping akun Chief Editor produksi, penanganan `db/custom.db` yang ter-track di git, serta commit & deploy perubahan remediasi QA ke Vercel).
+- **Tindakan yang Dilakukan:**
+  - Decommissioning permanen `vrtc_demo_agent`: Dicabut dan dihapus dari Turso Cloud dan SQLite lokal, dicatat ke `AuditEvent`. `ApiClient` kini bersih 0 baris.
+  - Validasi restorasi arsip cadangan media Azure (`media-backup-clean-slate-20261111.tar.gz`) di direktori isolasi temporer: integritas tar, integritas SQLite, serta 46 berkas media terverifikasi 100% cocok secara kriptografis (SHA-256) dengan rekaman basis data.
+  - Penyediaan skrip bootstrap identitas Chief Editor produksi di `scripts/bootstrap-chief-editor.ts` yang memperbarui `StaffUser` dan `Person` secara atomik dengan enkripsi scrypt serta pencatatan audit.
+
+## 28. Verax Press: Pre-Release Hardening and Deployment Preparation (11 Nov 2026)
+
+- **Status:** Selesai dan terverifikasi penuh.
+- **Laporan Lengkap:** `docs/superpowers/audits/2026-11-11-verax-pre-release-hardening-report.md`.
+- **Klasifikasi Resmi:**
+  1. **ADMIN IDENTITY:** NOT READY (Skrip bootstrap diperkeras dengan validasi target eksplisit; menunggu eksekusi kredensial riil oleh pemilik sistem).
+  2. **AZURE TLS:** READY (Sertifikat Let's Encrypt resmi untuk `media.aryariap.my.id` port 443 aktif dan terverifikasi valid hingga 9 Februari 2027; port 80 mengalihkan ke HTTPS; SNI `efimg.aryariap.my.id` tetap utuh).
+  3. **GIT HYGIENE:** READY (Berkas `db/custom.db` berhasil dilepas dari pelacakan Git via `git rm --cached`; aturan presisi `*.db` dan `*.sqlite` ditambahkan ke `.gitignore`; daftar staging selektif disiapkan; `git diff --check` bersih 0 galat).
+  4. **VERCEL CONFIGURATION:** NOT READY (Lingkungan Preview Vercel terhubung ke basis data Turso produksi yang sama; membutuhkan isolasi basis data pratinjau dan penyetelan `NEXTAUTH_SECRET` untuk Preview).
+  5. **APPLICATION QA:** PASS (TypeScript typecheck 0 galat, ESLint 0 galat, suite pengujian 71/71 lulus, build Turbopack 26/26 rute berhasil, suite uji asap 31/31 lulus dengan nol kebocoran data).
+  6. **PRODUCTION RELEASE:** NOT READY (Tertahan pembaruan identitas kredensial Chief Editor operasional dan pemisahan basis data Vercel Preview).
+- **Tindakan Kunci yang Dilakukan:**
+  - Pengerasan `scripts/bootstrap-chief-editor.ts`: Menambahkan penegasan target wajib `VERAX_DB_TARGET=turso|local`, penolakan target ambigu (protokol `libsql://`/`https://` wajib untuk Turso; penolakan `turso.io` dan remote scheme pada target lokal), deteksi konflik alamat surel dengan akun staf lain, pembaruan 1-to-1 non-duplikatif pada `StaffUser`, jaminan keutuhan relasi `Person`, penegasan grant `canRiskEdit` dan `canManageComplaints`, stempel waktu ISO 8601, targetType `AUTH` pada `AuditEvent`, serta pencegahan kebocoran rahasia.
+  - Verifikasi langsung soket TLS Azure: Inspeksi Node.js SNI membuktikan sertifikat port 443 valid untuk `media.aryariap.my.id` (Let's Encrypt valid hingga 9 Februari 2027) dan koneksi Node `fetch` menghasilkan status 200 OK, sementara host `efimg.aryariap.my.id` tetap terlindungi.
+  - Pelepasan pelacakan `db/custom.db`: Menjalankan `git rm --cached db/custom.db` dan memverifikasi berkas lokal di cakram tidak terhapus.
+  - Perbaikan isolasi dan kebersihan uji asap: Memperbaiki `scripts/smoke-test.ts` dan `tests/lib/test-db.ts` agar membersihkan naskah, keluhan, dan aset media uji secara tuntas dalam blok `finally`, menghilangkan akumulasi data zombie pada `isolated-test.db`.
+  - Mengganti `apiClient.create().catch()` menjadi `apiClient.upsert()` pada `tests/lib/test-db.ts`, menghilangkan jejak galat `prisma:error` saat suite regresi dijalankan.
+  - Penyusunan daftar pentahapan selektif presisi (per berkas eksplisit) pada laporan audit untuk mencegah penggunaan `git add` direktori gelondongan.
+
+## 29. Verax Press: Pembaruan Kredensial Pemimpin Redaksi dan Fleksibilitas Identitas Masuk (11 Nov 2026)
+
+- **Status:** Selesai dan terverifikasi penuh (100% Lulus).
+- **Objektif:**
+  - Melakukan bootstrap kredensial resmi Pemimpin Redaksi pada Turso Cloud dan SQLite lokal sesuai instruksi pemilik sistem (`pemredVP` / `Arya Rizky Ardhi Pratama` / `Arya260408` / `Pemimpin Redaksi Verax Press.`).
+  - Menyesuaikan penanganan identitas masuk agar mendukung nama pengguna (*username*) alfanumerik di samping alamat surel standar.
+- **Tindakan Teknis yang Dilakukan:**
+  1. **Fleksibilitas Identitas Masuk (`src/lib/auth.ts`):** Mengizinkan staf redaksi masuk menggunakan alamat surel maupun nama pengguna dengan pencocokan case-insensitive aman (`db.staffUser.findFirst` dan fallback `$queryRaw` berklausa `COLLATE NOCASE`), mencatat `lastLoginAt` dan peristiwa audit `auth.login` ke `AuditEvent`.
+  2. **Formulir Meja Redaksi (`src/app/studio/login/page.tsx`):** Menyesuaikan tipe kolom masukan dari `email` ke `text`, melonggarkan validasi HTML5 peramban agar tidak memblokir masukan nama pengguna seperti `pemredVP`, memperbarui label antarmuka menjadi "Email atau Nama Pengguna Redaksi", serta menambahkan atribut keyboard mobile `autoCapitalize="none"`, `autoCorrect="off"`, dan `spellCheck={false}` untuk mencegah keyboard virtual ponsel mengubah huruf besar/kecil atau mengoreksi ejaan nama pengguna.
+  3. **Pengerasan Validasi Skrip Bootstrap (`scripts/bootstrap-chief-editor.ts`):** Memperluas ekspresi reguler validasi identitas agar menerima nama pengguna alfanumerik (3-50 karakter) di samping format surel, menurunkan ambang batas panjang kata sandi minimal ke 8 karakter, serta menerapkan `COLLATE NOCASE` pada verifikasi keunikan akun dengan sifat idempoten penuh.
+  4. **Eksekusi Basis Data Turso Cloud (`VERAX_DB_TARGET=turso`):** Berhasil memperbarui rekaman `StaffUser` (`cmwa0zr730003r60343oibcb2`), relasi `Person` (`cmwa0zrbo0007r603pb9yonui`), dan membukukan peristiwa audit `auth.chief_bootstrapped`.
+  5. **Eksekusi Basis Data SQLite Lokal (`VERAX_DB_TARGET=local`):** Memperbarui `db/custom.db` sehingga data pengembangan lokal selaras secara identik dengan basis data komputasi awan.
+  6. **Suite Pengujian Integrasi Langsung (`tests/auth-identifier.test.ts`):** Memperbaiki dan memperdalam pengujian otomatis agar memanggil langsung metode `options.authorize` resmi dari konfigurasi NextAuth `authOptions` (bukan mock helper terpisah), menguji pencocokan persis (`pemredVP`), huruf kecil (`pemredvp`), huruf besar (`PEMREDVP`), huruf campuran (`PemredVP`), pembuktian pencatatan audit `auth.login`, penolakan kata sandi keliru tanpa pencatatan audit, penolakan akun tidak terdaftar, dan penolakan masukan kosong/null.
+- **Hasil Verifikasi:**
+  - `bun test`: 78 lulus dari 78 pengujian lintas 9 berkas (167 assertions lulus, 0 gagal).
+  - `bun run build`: 26/26 rute Next.js 16.1.3 Turbopack terkompilasi bersih tanpa galat TypeScript atau ESLint.

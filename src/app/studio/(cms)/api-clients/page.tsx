@@ -210,10 +210,10 @@ export default function StudioApiClientsPage() {
                     )}
                   </TableCell>
                   <TableCell className="font-mono text-[11px] whitespace-nowrap text-verity-ink-faint">
-                    {client.expiresAt ? formatDateTime(client.expiresAt) : "—"}
+                    {client.expiresAt ? formatDateTime(client.expiresAt) : "-"}
                   </TableCell>
                   <TableCell className="font-mono text-[11px] whitespace-nowrap text-verity-ink-faint">
-                    {client.lastUsedAt ? formatDateTime(client.lastUsedAt) : "—"}
+                    {client.lastUsedAt ? formatDateTime(client.lastUsedAt) : "-"}
                   </TableCell>
                   <TableCell className="text-right">
                     {client.status === "ACTIVE" ? (
@@ -245,7 +245,7 @@ export default function StudioApiClientsPage() {
       )}
 
       <p className="font-mono text-[11px] text-verity-ink-faint">
-        Client hanya memiliki scope submit — tidak bisa approve/publish.
+        Client hanya memiliki izin kirim (submit) dan tidak dapat menyetujui atau menerbitkan naskah.
       </p>
 
       {/* Dialog: buat client */}
@@ -310,10 +310,10 @@ export default function StudioApiClientsPage() {
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2 font-serif">
               <KeyRound className="size-4" aria-hidden="true" />
-              Client dibuat — simpan secret Anda
+              Client dibuat: simpan secret Anda
             </DialogTitle>
             <DialogDescription>
-              Simpan sekarang — secret tidak akan ditampilkan lagi. Gunakan format header{" "}
+              Simpan sekarang karena secret tidak akan ditampilkan lagi. Gunakan format header{" "}
               <span className="font-mono">Authorization: Bearer &lt;clientId&gt;.&lt;secret&gt;</span>.
             </DialogDescription>
           </DialogHeader>

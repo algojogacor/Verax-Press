@@ -165,7 +165,7 @@ function ComplaintCard({ complaint }: { complaint: ComplaintDTO }) {
 
       <p className="mt-2 font-mono text-[11px] text-verity-ink-faint">
         {complaint.senderName} · {complaint.senderEmail} · {formatDateTime(complaint.createdAt)} ·
-        Tenggat: {complaint.deadline ? formatDateTime(complaint.deadline) : "—"}
+        Tenggat: {complaint.deadline ? formatDateTime(complaint.deadline) : "-"}
       </p>
 
       <p className="mt-3 border-l-2 border-verity-rule pl-3 text-sm leading-relaxed text-verity-ink-soft">

@@ -1,27 +1,65 @@
-// Verax Press regression test suite — covers all critical business rules and canonical contracts.
+// Verax Press regression test suite: covers all critical business rules and canonical contracts.
 // Canonical contracts follow docs/api-contract.md and Technical Architecture TA §5-10.
 // Requires the dev server running on port 3000.
 // Run with: bun test
 import { test, describe, beforeAll, afterAll, expect } from 'bun:test'
-import { seedTestFixtures, cleanupTestData, getTestDb, BASE } from './lib/test-db'
+import fs from 'node:fs'
+import path from 'node:path'
+import { spawn, execSync, type ChildProcess } from 'node:child_process'
+import { seedTestFixtures, cleanupTestData, getTestDb, BASE, DB_URL, assertApprovedTestDatabase } from './lib/test-db'
 import { loginAs, get, postJson, patchJson, submitAi, createArticle, transition, apiAuthHeader } from './lib/http'
 
 let chief: Awaited<ReturnType<typeof loginAs>>
 let editor: Awaited<ReturnType<typeof loginAs>>
 let author: Awaited<ReturnType<typeof loginAs>>
+let testServerProcess: ChildProcess | null = null
 
-const isServerRunning = await fetch(`${BASE}/api/auth/csrf`, { signal: AbortSignal.timeout(600) })
-  .then((r) => r.ok)
-  .catch(() => false)
-
-const suiteDescribe = isServerRunning ? describe : describe.skip
-
-if (!isServerRunning) {
-  console.log('\nℹ️ Local dev server on port 3000 not running — HTTP E2E tests skipped (run `bun run dev` to enable).')
-}
+const suiteDescribe = describe
 
 beforeAll(async () => {
-  if (!isServerRunning) return
+  assertApprovedTestDatabase(DB_URL)
+
+  let isServerRunning = await fetch(`${BASE}/api/auth/csrf`, { signal: AbortSignal.timeout(600) })
+    .then((r) => r.ok)
+    .catch(() => false)
+
+  if (!isServerRunning) {
+    const serverScript = path.resolve('.next/standalone/server.js')
+    if (!fs.existsSync(serverScript)) {
+      execSync('bun run build', { stdio: 'pipe' })
+    }
+
+    const childEnv = { ...process.env };
+    delete childEnv.TURSO_DATABASE_URL;
+    delete childEnv.TURSO_AUTH_TOKEN;
+    childEnv.PORT = '3088';
+    childEnv.DATABASE_URL = DB_URL;
+    childEnv.AUTH_SECRET = 'verax-dev-secret-change-me-in-production';
+    childEnv.NEXTAUTH_URL = BASE;
+
+    testServerProcess = spawn('node', [serverScript], {
+      env: childEnv,
+      stdio: 'pipe',
+    })
+
+    const start = Date.now()
+    while (Date.now() - start < 15000) {
+      try {
+        const res = await fetch(`${BASE}/api/auth/csrf`, { signal: AbortSignal.timeout(600) })
+        if (res.ok) {
+          isServerRunning = true
+          break
+        }
+      } catch {}
+      await new Promise((r) => setTimeout(r, 250))
+    }
+
+    if (!isServerRunning) {
+      if (testServerProcess) testServerProcess.kill()
+      throw new Error(`CRITICAL: Failed to launch isolated test server on ${BASE} within 15s`)
+    }
+  }
+
   await cleanupTestData()
   await seedTestFixtures()
   chief = await loginAs('chief')
@@ -30,8 +68,11 @@ beforeAll(async () => {
 })
 
 afterAll(async () => {
-  if (isServerRunning) {
-    await cleanupTestData()
+  await cleanupTestData()
+  if (testServerProcess) {
+    try {
+      testServerProcess.kill()
+    } catch {}
   }
 })
 
@@ -62,6 +103,32 @@ suiteDescribe('Authentication & Authorization', () => {
   test('author can list articles (own only)', async () => {
     const res = await get('/api/cms/articles', author)
     expect(res.status).toBe(200)
+  })
+
+  test('chief can access complaints register (200)', async () => {
+    const res = await get('/api/cms/complaints', chief)
+    expect(res.status).toBe(200)
+  })
+
+  test('editor with grant can access complaints register (200)', async () => {
+    const res = await get('/api/cms/complaints', editor)
+    expect(res.status).toBe(200)
+  })
+
+  test('editor without grant cannot access complaints register (403)', async () => {
+    const editorNoGrant = await loginAs('editor-nogrant')
+    const res = await get('/api/cms/complaints', editorNoGrant)
+    expect(res.status).toBe(403)
+  })
+
+  test('author cannot access complaints register (403)', async () => {
+    const res = await get('/api/cms/complaints', author)
+    expect(res.status).toBe(403)
+  })
+
+  test('unauthenticated request to complaints register → 401', async () => {
+    const res = await get('/api/cms/complaints')
+    expect(res.status).toBe(401)
   })
 })
 
@@ -440,6 +507,63 @@ suiteDescribe('Complaint submission', () => {
       }),
     })
     expect(res.status).toBe(422)
+  })
+
+  test('concurrent public complaint submissions generate unique refCodes over HTTP', async () => {
+    const promises = Array.from({ length: 5 }).map(async (_, idx) => {
+      const res = await fetch(`${BASE}/api/public/complaints`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'X-Forwarded-For': `10.88.99.${idx + 10}`,
+        },
+        body: JSON.stringify({
+          type: 'KELUHAN',
+          senderName: `Concurrent HTTP Sender ${idx}`,
+          senderEmail: `concurrent-http-${idx}@example.com`,
+          message: `This is concurrent test complaint message number ${idx} with sufficient length.`,
+        }),
+      })
+      expect(res.status).toBe(201)
+      const data = (await res.json()) as { refCode: string }
+      return data.refCode
+    })
+    const refCodes = await Promise.all(promises)
+    const unique = new Set(refCodes)
+    expect(unique.size).toBe(5)
+  })
+
+  test('editor with grant can update complaint decision (200)', async () => {
+    // 1. Submit public complaint
+    const postRes = await fetch(`${BASE}/api/public/complaints`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'X-Forwarded-For': '10.77.88.99',
+      },
+      body: JSON.stringify({
+        type: 'KELUHAN',
+        senderName: 'Uji Keputusan',
+        senderEmail: 'keputusan@example.com',
+        message: 'Pengaduan publik untuk diuji keputusannya oleh editor.',
+      }),
+    })
+    expect(postRes.status).toBe(201)
+    const { complaintId } = (await postRes.json()) as { complaintId: string }
+
+    // 2. Editor with grant updates status and decision
+    const patchRes = await patchJson(`/api/cms/complaints/${complaintId}`, {
+      status: 'RESOLVED',
+      decision: 'Keluhan telah ditindaklanjuti dan diselesaikan oleh redaksi.',
+    }, editor)
+    expect(patchRes.status).toBe(200)
+
+    // 3. Author cannot patch complaint (403)
+    const authorRes = await patchJson(`/api/cms/complaints/${complaintId}`, {
+      status: 'REJECTED',
+      decision: 'Coba tolak',
+    }, author)
+    expect(authorRes.status).toBe(403)
   })
 })
 

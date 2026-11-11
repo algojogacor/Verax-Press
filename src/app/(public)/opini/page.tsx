@@ -70,7 +70,9 @@ export default async function OpinionPage() {
           </p>
         ) : (
           <>
-            <FeaturedArticleCard article={articles[0]} />
+            <div className="max-w-3xl">
+              <FeaturedArticleCard article={articles[0]} />
+            </div>
             {articles.length > 1 ? (
               <div className="mt-10 grid gap-x-12 gap-y-8 border-t border-verity-rule pt-8 sm:grid-cols-2 lg:grid-cols-3">
                 {articles.slice(1).map((article) => (

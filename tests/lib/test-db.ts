@@ -1,15 +1,34 @@
-// Test database setup — seeds test fixtures into the SAME database the dev server uses.
+// Test database setup: seeds test fixtures into an approved isolated test database.
 // Cleans up test-created rows before/after the run. Test user accounts use @verity.test emails
 // to avoid collision with dev seed accounts.
 import { PrismaClient } from '@prisma/client'
 import { hashPassword } from '@/lib/password'
 import { hashClientSecret } from '@/lib/api-key'
 
-const DB_URL = process.env.DATABASE_URL || 'file:../db/custom.db'
+import path from 'node:path'
+
+export function assertApprovedTestDatabase(url: string): void {
+  const normalized = url.toLowerCase()
+  if (
+    normalized.includes('turso') ||
+    normalized.includes('libsql://') ||
+    normalized.includes('.turso.io') ||
+    normalized.includes('custom.db') ||
+    !normalized.includes('test')
+  ) {
+    throw new Error(
+      `SAFETY FATAL: Refusing to run tests or execute destructive actions against non-test database! Resolved URL: ${url}`
+    )
+  }
+}
+
+export const TEST_DB_PATH = path.resolve('db/isolated-test.db').replace(/\\/g, '/')
+export const DB_URL = process.env.TEST_DATABASE_URL || `file:${TEST_DB_PATH}`
 
 let testDb: PrismaClient | null = null
 
 export function getTestDb(): PrismaClient {
+  assertApprovedTestDatabase(DB_URL)
   if (!testDb) {
     testDb = new PrismaClient({
       datasources: { db: { url: DB_URL } },
@@ -25,6 +44,21 @@ export const TEST_AGENT_CLIENT_ID = `vrtc_testagent_${Date.now().toString(36)}`
 // Seed test fixtures (idempotent — upsert). Does NOT delete dev data.
 export async function seedTestFixtures(): Promise<void> {
   const db = getTestDb()
+
+  // Seed editorial desks
+  const desks = [
+    { slug: 'hukum-keadilan', name: 'Hukum & Keadilan', description: 'Regulasi, peradilan, penegakan hukum.', sortOrder: 1 },
+    { slug: 'teknologi-kebijakan', name: 'Teknologi & Kebijakan', description: 'AI, inovasi digital, regulasi teknologi.', sortOrder: 2 },
+    { slug: 'nasional-publik', name: 'Nasional & Publik', description: 'Kebijakan pemerintah, sosial, ekonomi.', sortOrder: 3 },
+  ]
+  for (const desk of desks) {
+    await db.desk.upsert({
+      where: { slug: desk.slug },
+      update: { name: desk.name, description: desk.description, sortOrder: desk.sortOrder, isActive: true },
+      create: { ...desk, isActive: true },
+    })
+  }
+
   const chiefHash = hashPassword(CHIEF_PW)
   const editorHash = hashPassword(EDITOR_PW)
   const authorHash = hashPassword(AUTHOR_PW)
@@ -69,17 +103,53 @@ export async function seedTestFixtures(): Promise<void> {
       status: 'ACTIVE',
     },
   })
+  await db.staffUser.upsert({
+    where: { email: 'editor-nogrant@verity.test' },
+    update: {
+      passwordHash: editorHash,
+      role: 'EDITOR',
+      status: 'ACTIVE',
+      name: 'Editor No Grant',
+      canManageComplaints: false,
+    },
+    create: {
+      email: 'editor-nogrant@verity.test',
+      name: 'Editor No Grant',
+      passwordHash: editorHash,
+      role: 'EDITOR',
+      status: 'ACTIVE',
+      canManageComplaints: false,
+    },
+  })
+  await db.staffUser.upsert({
+    where: { email: 'editor-inactive@verity.test' },
+    update: {
+      passwordHash: editorHash,
+      role: 'EDITOR',
+      status: 'SUSPENDED',
+      name: 'Inactive Editor',
+      canManageComplaints: true,
+    },
+    create: {
+      email: 'editor-inactive@verity.test',
+      name: 'Inactive Editor',
+      passwordHash: editorHash,
+      role: 'EDITOR',
+      status: 'SUSPENDED',
+      canManageComplaints: true,
+    },
+  })
 
-  await db.apiClient.create({
-    data: {
+  await db.apiClient.upsert({
+    where: { clientId: TEST_AGENT_CLIENT_ID },
+    update: {},
+    create: {
       clientId: TEST_AGENT_CLIENT_ID,
       secretHash: hashClientSecret(API_SECRET),
       scopes: 'submit',
       status: 'ACTIVE',
       name: 'Test Agent (per-run)',
     },
-  }).catch(() => {
-    // Already exists in this process — reuse.
   })
 }
 
@@ -105,9 +175,10 @@ export const CANONICAL_SEED_SLUGS = [
 // Clean up all test-created rows (articles, submissions, complaints, etc.) but NOT the
 // test user accounts or api_client (those are stable fixtures). Call after the run.
 export async function cleanupTestData(): Promise<void> {
+  assertApprovedTestDatabase(DB_URL)
   const db = getTestDb()
 
-  // Find all test-created articles — strictly excluding canonical seed slugs
+  // Find all test-created articles: strictly excluding canonical seed slugs
   const testArticles = await db.article.findMany({
     where: {
       slug: { notIn: CANONICAL_SEED_SLUGS },
@@ -118,10 +189,12 @@ export async function cleanupTestData(): Promise<void> {
         { title: { startsWith: 'AI Submission' } },
         { title: { startsWith: 'AI Ingestion' } },
         { title: { startsWith: 'Unauthorized Ingestion' } },
+        { title: { startsWith: 'Verifikasi Integritas' } },
         { slug: { startsWith: 'ai-submission-' } },
         { slug: { startsWith: 'idempotency-' } },
         { slug: { startsWith: 'test-article-' } },
         { slug: { startsWith: 'public-visibility-' } },
+        { slug: { startsWith: 'smoke-test-' } },
       ],
     },
     select: { id: true },
@@ -141,6 +214,7 @@ export async function cleanupTestData(): Promise<void> {
     where: {
       OR: [
         { senderEmail: { contains: 'test@example' } },
+        { senderEmail: { contains: '@example.org' } },
         { articleId: { in: testArticleIds } },
       ],
     },
@@ -172,6 +246,17 @@ export async function cleanupTestData(): Promise<void> {
     })
   }
 
+  // Clean test media assets
+  await db.mediaAsset.deleteMany({
+    where: {
+      OR: [
+        { title: { startsWith: 'Banner Investigasi' } },
+        { title: { startsWith: 'Dokumen Verifikasi' } },
+        { url: { contains: 'smoke-test' } },
+      ],
+    },
+  })
+
   // Clean test-originated audit events.
   await db.auditEvent.deleteMany({
     where: {
@@ -187,4 +272,4 @@ export const API_SECRET = 'test-api-secret-for-regression-suite-0123456789'
 export const CHIEF_PW = 'chief-test-password-123'
 export const EDITOR_PW = 'editor-test-password-123'
 export const AUTHOR_PW = 'author-test-password-123'
-export const BASE = 'http://localhost:3000'
+export const BASE = process.env.TEST_BASE_URL || 'http://localhost:3088'

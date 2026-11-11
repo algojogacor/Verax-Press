@@ -53,6 +53,8 @@ export interface SessionUser {
   name: string;
   email: string;
   role: Role;
+  canRiskEdit?: boolean;
+  canManageComplaints?: boolean;
 }
 
 export interface DeskDTO {

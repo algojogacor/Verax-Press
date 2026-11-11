@@ -182,24 +182,27 @@ export function ComplaintForm() {
         <FieldError message={errors.type} />
       </div>
 
-      <div className="space-y-2">
-        <Label htmlFor="complaint-article" className="text-[13px] text-verity-ink">
-          Artikel terkait <OptionalMark />
+      <div className="space-y-1.5">
+        <Label htmlFor="complaint-article" className="text-[13px] font-medium text-verity-ink">
+          Tautan atau judul artikel terkait <OptionalMark />
         </Label>
         <Input
           id="complaint-article"
           value={articleSlug}
           onChange={(event) => setArticleSlug(event.target.value)}
-          placeholder="slug-artikel (kosongkan jika tidak terkait artikel tertentu)"
-          className="h-11"
+          placeholder="Misal: https://verax-press.vercel.app/artikel/... atau judul berita terkait"
+          className="h-11 bg-card"
           autoComplete="off"
         />
+        <p className="font-serif text-[12px] text-verity-ink-faint">
+          Sebutkan judul atau tempel tautan artikel yang ingin Anda persoalkan. Kosongkan jika keluhan bersifat umum.
+        </p>
       </div>
 
       <div className="grid gap-5 sm:grid-cols-2">
-        <div className="space-y-2">
-          <Label htmlFor="complaint-name" className="text-[13px] text-verity-ink">
-            Nama <RequiredMark />
+        <div className="space-y-1.5">
+          <Label htmlFor="complaint-name" className="text-[13px] font-medium text-verity-ink">
+            Nama lengkap <RequiredMark />
           </Label>
           <Input
             id="complaint-name"
@@ -208,15 +211,15 @@ export function ComplaintForm() {
               setSenderName(event.target.value);
               clearError("senderName");
             }}
-            placeholder="Nama lengkap"
-            className="h-11"
+            placeholder="Nama lengkap sesuai identitas"
+            className="h-11 bg-card"
             autoComplete="name"
           />
           <FieldError message={errors.senderName} />
         </div>
-        <div className="space-y-2">
-          <Label htmlFor="complaint-email" className="text-[13px] text-verity-ink">
-            Email <RequiredMark />
+        <div className="space-y-1.5">
+          <Label htmlFor="complaint-email" className="text-[13px] font-medium text-verity-ink">
+            Alamat email <RequiredMark />
           </Label>
           <Input
             id="complaint-email"
@@ -227,31 +230,31 @@ export function ComplaintForm() {
               clearError("senderEmail");
             }}
             placeholder="nama@contoh.com"
-            className="h-11"
+            className="h-11 bg-card"
             autoComplete="email"
           />
           <FieldError message={errors.senderEmail} />
         </div>
       </div>
 
-      <div className="space-y-2">
-        <Label htmlFor="complaint-phone" className="text-[13px] text-verity-ink">
-          Telepon <OptionalMark />
+      <div className="space-y-1.5">
+        <Label htmlFor="complaint-phone" className="text-[13px] font-medium text-verity-ink">
+          Nomor telepon atau WhatsApp <OptionalMark />
         </Label>
         <Input
           id="complaint-phone"
           type="tel"
           value={senderPhone}
           onChange={(event) => setSenderPhone(event.target.value)}
-          placeholder="Nomor yang dapat dihubungi"
-          className="h-11"
+          placeholder="0812-xxxx-xxxx (untuk konfirmasi cepat redaksi)"
+          className="h-11 bg-card"
           autoComplete="tel"
         />
       </div>
 
-      <div className="space-y-2">
-        <Label htmlFor="complaint-message" className="text-[13px] text-verity-ink">
-          Isi permohonan <RequiredMark />
+      <div className="space-y-1.5">
+        <Label htmlFor="complaint-message" className="text-[13px] font-medium text-verity-ink">
+          Uraian permohonan <RequiredMark />
         </Label>
         <Textarea
           id="complaint-message"
@@ -260,18 +263,22 @@ export function ComplaintForm() {
             setMessage(event.target.value);
             clearError("message");
           }}
-          placeholder="Jelaskan permohonan Anda: artikel yang dipersoalkan, bagian mana yang dipersoalkan, dan apa yang Anda minta."
-          className="min-h-32"
+          placeholder="Jelaskan permohonan Anda: bagian mana yang dipersoalkan, fakta yang sebenarnya menurut Anda, serta bukti pendukung yang relevan."
+          className="min-h-32 bg-card"
           aria-required="true"
         />
         <FieldError message={errors.message} />
       </div>
 
-      <div className="flex flex-wrap items-center gap-4 pt-1">
-        <Button type="submit" disabled={isSubmitting} className="h-11 rounded-[2px] px-6">
+      <div className="flex flex-wrap items-center gap-4 pt-2">
+        <Button
+          type="submit"
+          disabled={isSubmitting}
+          className="h-11 rounded-xs bg-verity-ink px-6 font-medium text-verity-paper transition-colors hover:bg-black"
+        >
           {isSubmitting ? "Mengirim…" : "Kirim Permohonan"}
         </Button>
-        <p className="font-mono text-[11px] text-verity-ink-faint">Kolom bertanda * wajib diisi.</p>
+        <p className="font-mono text-[11px] text-verity-ink-faint">Tanda bintang (*) menandakan kolom wajib.</p>
       </div>
     </form>
   );

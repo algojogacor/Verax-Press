@@ -81,48 +81,60 @@ export function MediaUploader() {
 
       <div className="grid gap-4 md:grid-cols-2">
         <div className="space-y-1.5">
-          <Label htmlFor="mfile" className="text-[12px]">Berkas gambar *</Label>
+          <Label htmlFor="mfile" className="font-mono text-[11px] uppercase tracking-[0.1em] text-verity-ink">
+            Berkas Gambar *
+          </Label>
           <input
             id="mfile"
             type="file"
             accept="image/jpeg,image/png,image/webp"
             onChange={(e) => setFile(e.target.files?.[0] ?? null)}
-            className="block w-full text-[12px] text-verity-ink border border-verity-rule rounded-md p-2 bg-verity-paper file:mr-3 file:rounded file:border-0 file:bg-verity-paper-soft file:px-2 file:py-1 file:text-[11px]"
+            className="block w-full text-[12px] text-verity-ink border border-verity-rule bg-verity-paper p-1.5 focus:border-verity-ink focus:outline-hidden file:mr-3 file:border file:border-verity-rule-strong file:bg-verity-paper-soft file:px-3 file:py-1 file:font-mono file:text-[11px] file:uppercase file:tracking-wider file:text-verity-ink file:hover:bg-card file:cursor-pointer cursor-pointer"
           />
-          <p className="text-[10px] text-verity-ink-faint">JPEG/PNG/WebP · maks 5 MB · validasi konten berkas.</p>
+          <p className="font-mono text-[10px] text-verity-ink-faint">
+            Format: JPEG, PNG, WebP · Maksimal 5 MB · Validasi integritas berkas.
+          </p>
         </div>
         <div className="space-y-1.5">
-          <Label htmlFor="mtitle" className="text-[12px]">Judul (opsional)</Label>
-          <Input id="mtitle" value={title} onChange={(e) => setTitle(e.target.value)} className="h-9 text-[13px]" placeholder="Nama internal aset" />
+          <Label htmlFor="mtitle" className="font-mono text-[11px] uppercase tracking-[0.1em] text-verity-ink">
+            Judul Aset (opsional)
+          </Label>
+          <Input id="mtitle" value={title} onChange={(e) => setTitle(e.target.value)} className="h-9 text-[13px] border-verity-rule bg-verity-paper" placeholder="Nama internal aset" />
         </div>
         <div className="space-y-1.5">
-          <Label htmlFor="mcreator" className="text-[12px]">Pembuat / kredit *</Label>
-          <Input id="mcreator" value={creator} onChange={(e) => setCreator(e.target.value)} className="h-9 text-[13px]" placeholder="Nama fotografer/ilustrator" />
+          <Label htmlFor="mcreator" className="font-mono text-[11px] uppercase tracking-[0.1em] text-verity-ink">
+            Pembuat / Kredit Fotografer *
+          </Label>
+          <Input id="mcreator" value={creator} onChange={(e) => setCreator(e.target.value)} className="h-9 text-[13px] border-verity-rule bg-verity-paper" placeholder="Nama fotografer atau ilustrator" />
         </div>
         <div className="space-y-1.5">
-          <Label htmlFor="mlicense" className="text-[12px]">Lisensi / izin</Label>
-          <Input id="mlicense" value={license} onChange={(e) => setLicense(e.target.value)} className="h-9 text-[13px]" placeholder="mis. CC BY 4.0, izin tertulis" />
+          <Label htmlFor="mlicense" className="font-mono text-[11px] uppercase tracking-[0.1em] text-verity-ink">
+            Lisensi / Izin Penggunaan
+          </Label>
+          <Input id="mlicense" value={license} onChange={(e) => setLicense(e.target.value)} className="h-9 text-[13px] border-verity-rule bg-verity-paper" placeholder="mis. CC BY 4.0, Arsip Redaksi, Izin Tertulis" />
         </div>
         <div className="space-y-1.5 md:col-span-2">
-          <Label htmlFor="mcaption" className="text-[12px]">Keterangan (caption) *</Label>
-          <Input id="mcaption" value={caption} onChange={(e) => setCaption(e.target.value)} className="h-9 text-[13px]" placeholder="Deskripsi yang akan tampil di bawah gambar" />
+          <Label htmlFor="mcaption" className="font-mono text-[11px] uppercase tracking-[0.1em] text-verity-ink">
+            Keterangan Gambar (Caption) *
+          </Label>
+          <Input id="mcaption" value={caption} onChange={(e) => setCaption(e.target.value)} className="h-9 text-[13px] border-verity-rule bg-verity-paper" placeholder="Deskripsi faktual yang akan tampil di bawah gambar" />
         </div>
       </div>
 
-      <label className="flex items-center gap-2 text-[12px] text-verity-ink-soft">
-        <input
-          type="checkbox"
-          checked={isSynthetic}
-          onChange={(e) => setIsSynthetic(e.target.checked)}
-          className="rounded border-verity-rule"
-        />
-        Gambar dibuat/bantuan AI (ditandai; tidak untuk dokumentasi peristiwa)
-      </label>
+      <div className="pt-2 border-t border-verity-rule/60 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+        <label className="flex items-center gap-2.5 text-[12px] text-verity-ink cursor-pointer select-none">
+          <input
+            type="checkbox"
+            checked={isSynthetic}
+            onChange={(e) => setIsSynthetic(e.target.checked)}
+            className="size-4 rounded-xs border-verity-rule-strong text-verity-accent focus:ring-verity-accent"
+          />
+          <span>Gambar dibuat atau dibantu AI (ditandai transparan; bukan dokumentasi peristiwa)</span>
+        </label>
 
-      <div className="flex justify-end">
-        <Button type="submit" disabled={pending} className="h-9 text-[13px]">
-          {pending ? <Loader2 className="h-3.5 w-3.5 animate-spin mr-1.5" /> : <Upload className="h-3.5 w-3.5 mr-1.5" />}
-          Unggah
+        <Button type="submit" disabled={pending} className="h-9 px-5 text-[12px] font-medium uppercase tracking-[0.08em] bg-verity-ink text-verity-paper hover:bg-verity-ink/90">
+          {pending ? <Loader2 className="size-3.5 animate-spin mr-1.5" /> : <Upload className="size-3.5 mr-1.5" />}
+          Unggah Aset
         </Button>
       </div>
     </form>

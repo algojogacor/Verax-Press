@@ -9,14 +9,18 @@ function cookieHeader(cookies: string[]): string {
   return cookies.map((c) => c.split(';')[0]).join('; ')
 }
 
-export async function loginAs(role: 'chief' | 'editor' | 'author'): Promise<TestClient> {
-  const email =
-    role === 'chief'
-      ? 'chief@verity.test'
-      : role === 'editor'
-        ? 'editor@verity.test'
-        : 'author@verity.test'
-  const pw = role === 'chief' ? CHIEF_PW : role === 'editor' ? EDITOR_PW : AUTHOR_PW
+export async function loginAs(
+  role: 'chief' | 'editor' | 'author' | 'editor-nogrant' | 'editor-inactive'
+): Promise<TestClient> {
+  const emailMap: Record<string, string> = {
+    chief: 'chief@verity.test',
+    editor: 'editor@verity.test',
+    author: 'author@verity.test',
+    'editor-nogrant': 'editor-nogrant@verity.test',
+    'editor-inactive': 'editor-inactive@verity.test',
+  };
+  const email = emailMap[role] ?? `${role}@verity.test`;
+  const pw = role === 'chief' ? CHIEF_PW : role === 'author' ? AUTHOR_PW : EDITOR_PW;
   const jar: string[] = []
   // Get CSRF token.
   const csrfRes = await fetch(`${BASE}/api/auth/csrf`)

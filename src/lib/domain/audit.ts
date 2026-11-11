@@ -1,4 +1,5 @@
 // Audit append-only helper (TA §6 audit_events). Tidak pernah menyimpan secret/token.
+import type { Prisma } from "@prisma/client";
 import { db } from "@/lib/db";
 
 export interface AuditInput {
@@ -13,9 +14,13 @@ export interface AuditInput {
   metadata?: Record<string, unknown>;
 }
 
-export async function writeAudit(input: AuditInput): Promise<void> {
+export async function writeAudit(
+  input: AuditInput,
+  client?: Prisma.TransactionClient | typeof db,
+): Promise<void> {
+  const prisma = client ?? db;
   try {
-    await db.auditEvent.create({
+    await prisma.auditEvent.create({
       data: {
         actorType: input.actorType,
         actorId: input.actorId ?? null,
@@ -29,7 +34,8 @@ export async function writeAudit(input: AuditInput): Promise<void> {
       },
     });
   } catch (error) {
-    // Audit tidak boleh menjatuhkan operasi utama; catat ke stderr untuk observability.
+    // Audit tidak boleh menjatuhkan operasi utama kecuali dalam transaksi ketat.
     console.error("[audit] gagal menulis audit event", input.action, error);
+    if (client) throw error;
   }
 }

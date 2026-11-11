@@ -1,9 +1,9 @@
-// GET  /api/studio/articles — daftar artikel (role-scoped + filter).
-// POST /api/studio/articles — buat artikel baru (article:create).
+// GET  /api/studio/articles: daftar artikel (role-scoped + filter).
+// POST /api/studio/articles: buat artikel baru (article:create).
 import { NextResponse } from "next/server";
 import { z } from "zod";
 import { db } from "@/lib/db";
-import { ApiError, jsonError, ok, parseJsonBody, requireSession } from "@/lib/api";
+import { ApiError, jsonError, ok, parseJsonBody, requireSession, requireStaffPermission } from "@/lib/api";
 import { articleListInclude, createArticleVersion, toArticleListItem } from "@/lib/domain/serializers";
 import { userHasPermission } from "@/lib/domain/permissions";
 import { articleContentSchema, serializeContent } from "@/lib/domain/content";
@@ -65,10 +65,7 @@ const createSchema = z.object({
 
 export async function POST(request: Request) {
   try {
-    const user = await requireSession();
-    if (!userHasPermission({ role: user.role, canRiskEdit: false, canManageComplaints: false }, "article:create")) {
-      throw new ApiError(403, "FORBIDDEN", "Role Anda tidak dapat membuat artikel.");
-    }
+    const user = await requireStaffPermission("article:create");
     const body = await parseJsonBody(request, createSchema);
 
     const desk = await db.desk.findUnique({ where: { slug: body.deskSlug } });

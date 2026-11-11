@@ -217,22 +217,26 @@ export function toApiClientDTO(client: ApiClient): ApiClientDTO {
 }
 
 /** Buat versi baru artikel (dipanggil saat konten berubah atau aksi editorial). */
-export async function createArticleVersion(input: {
-  articleId: string;
-  title: string;
-  deck: string | null;
-  contentJson: string;
-  versionType: VersionType;
-  changeReason?: string | null;
-  createdById?: string | null;
-  createdByLabel?: string | null;
-}): Promise<void> {
-  const last = await db.articleVersion.findFirst({
+export async function createArticleVersion(
+  input: {
+    articleId: string;
+    title: string;
+    deck: string | null;
+    contentJson: string;
+    versionType: VersionType;
+    changeReason?: string | null;
+    createdById?: string | null;
+    createdByLabel?: string | null;
+  },
+  client?: Prisma.TransactionClient | typeof db,
+): Promise<void> {
+  const prisma = client ?? db;
+  const last = await prisma.articleVersion.findFirst({
     where: { articleId: input.articleId },
     orderBy: { versionNo: "desc" },
     select: { versionNo: true },
   });
-  await db.articleVersion.create({
+  await prisma.articleVersion.create({
     data: {
       articleId: input.articleId,
       versionNo: (last?.versionNo ?? 0) + 1,

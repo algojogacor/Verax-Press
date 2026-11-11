@@ -1,10 +1,9 @@
-// PATCH /api/studio/complaints/[id] — status & keputusan keluhan (complaint:manage).
+// PATCH /api/studio/complaints/[id]: status dan keputusan keluhan (complaint:manage).
 import { NextResponse } from "next/server";
 import { z } from "zod";
 import { db } from "@/lib/db";
-import { ApiError, jsonError, ok, parseJsonBody, requireSession } from "@/lib/api";
+import { ApiError, jsonError, ok, parseJsonBody, requireStaffPermission } from "@/lib/api";
 import { toComplaintDTO } from "@/lib/domain/serializers";
-import { userHasPermission } from "@/lib/domain/permissions";
 import { writeAudit } from "@/lib/domain/audit";
 
 type Params = { params: Promise<{ id: string }> };
@@ -18,10 +17,7 @@ const ALLOWED_STATUS_FLOWS: Record<string, string[]> = {
 
 export async function PATCH(request: Request, { params }: Params) {
   try {
-    const user = await requireSession();
-    if (!userHasPermission({ role: user.role, canRiskEdit: false, canManageComplaints: false }, "complaint:manage")) {
-      throw new ApiError(403, "FORBIDDEN", "Anda tidak memiliki izin complaint:manage.");
-    }
+    const user = await requireStaffPermission("complaint:manage");
     const { id } = await params;
     const body = await parseJsonBody(
       request,

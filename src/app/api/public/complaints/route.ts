@@ -1,10 +1,10 @@
-// POST /api/public/complaints — formulir keluhan/hak jawab/hak koreksi publik.
+// POST /api/public/complaints: formulir keluhan/hak jawab/hak koreksi publik.
 // Rate-limited per IP. refCode dibuat server-side. Deadline tetap NULL (LEGAL REVIEW REQUIRED).
 import { NextResponse } from "next/server";
 import { z } from "zod";
 import { db } from "@/lib/db";
 import { jsonError, ok, parseJsonBody } from "@/lib/api";
-import { makeComplaintRefCode } from "@/lib/domain/slug";
+import { createComplaintWithRetry } from "@/lib/domain/complaint";
 import { writeAudit } from "@/lib/domain/audit";
 import { rateLimit, sweepRateLimits } from "@/lib/rate-limit";
 import { COMPLAINT_TYPES } from "@/lib/domain/constants";
@@ -51,20 +51,13 @@ export async function POST(request: Request) {
       }
     }
 
-    const year = new Date().getFullYear();
-    const sequence = (await db.complaint.count({ where: { refCode: { startsWith: `KEL-${year}-` } } })) + 1;
-
-    const complaint = await db.complaint.create({
-      data: {
-        refCode: makeComplaintRefCode(year, sequence),
-        type: body.type,
-        articleId,
-        senderName: body.senderName || "Publik",
-        senderEmail: body.senderEmail,
-        senderPhone: body.senderPhone ?? null,
-        message: messageText,
-        status: "RECEIVED",
-      },
+    const complaint = await createComplaintWithRetry(db, {
+      type: body.type,
+      articleId,
+      senderName: body.senderName,
+      senderEmail: body.senderEmail,
+      senderPhone: body.senderPhone,
+      message: messageText,
     });
 
     await writeAudit({

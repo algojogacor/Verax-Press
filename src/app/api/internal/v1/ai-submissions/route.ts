@@ -120,96 +120,106 @@ export async function POST(request: Request) {
       );
     }
 
-    // 5) Buat artikel DRAFT + sumber (UNVERIFIED) + aset + submission.
+    // 5) Buat artikel DRAFT + sumber (UNVERIFIED) + aset + submission secara atomik.
     const contentJson = serializeContent(body.content);
     const slug = await uniqueArticleSlug(body.title);
 
-    const article = await db.article.create({
-      data: {
-        slug,
-        title: body.title,
-        deck: body.deck ?? null,
-        deskId: desk.id,
-        format: body.format,
-        status: "DRAFT",
-        contentJson,
-        origin: "INGESTION_API",
-        byline: "Redaksi Verax Press", // byline final diputuskan manusia di CMS (TA §9.1)
-        aiInvolvement: body.aiInvolvement,
-        aiDisclosureNote: body.aiUsageNote ?? null,
-        createdById: null,
-      },
-    });
-
-    await createArticleVersion({
-      articleId: article.id,
-      title: article.title,
-      deck: article.deck,
-      contentJson,
-      versionType: "ingestion",
-      createdByLabel: `api-client:${client.name}`,
-    });
-
-    for (const source of body.sources) {
-      await db.sourceReference.create({
+    const { submission, article } = await db.$transaction(async (tx) => {
+      const article = await tx.article.create({
         data: {
-          articleId: article.id,
-          title: source.title,
-          publisher: source.publisher ?? null,
-          url: source.url,
-          sourceType: source.sourceType,
-          publishedAt: source.publishedAt ? new Date(source.publishedAt) : null,
-          accessedAt: source.accessedAt ? new Date(source.accessedAt) : new Date(),
-          supports: source.supports ?? null,
-          isKeySource: source.isKeySource ?? false, // petunjuk agent; final ditetapkan editor
-          verificationStatus: "UNVERIFIED", // deklarasi agent ≠ verifikasi (TA §6.1)
+          slug,
+          title: body.title,
+          deck: body.deck ?? null,
+          deskId: desk.id,
+          format: body.format,
+          status: "DRAFT",
+          contentJson,
+          origin: "INGESTION_API",
+          byline: "Redaksi Verax Press", // byline final diputuskan manusia di CMS (TA §9.1)
+          aiInvolvement: body.aiInvolvement,
+          aiDisclosureNote: body.aiUsageNote ?? null,
+          createdById: null,
         },
       });
-    }
 
-    if (body.images?.length) {
-      for (const image of body.images) {
-        await db.mediaAsset.create({
+      await createArticleVersion(
+        {
+          articleId: article.id,
+          title: article.title,
+          deck: article.deck,
+          contentJson,
+          versionType: "ingestion",
+          createdByLabel: `api-client:${client.name}`,
+        },
+        tx,
+      );
+
+      for (const source of body.sources) {
+        await tx.sourceReference.create({
           data: {
             articleId: article.id,
-            url: image.url,
-            creator: image.creator ?? null,
-            license: image.license ?? null,
-            permissionEvidence: image.permissionEvidence ?? null,
-            caption: image.caption ?? null,
-            uploadedByLabel: `api-client:${client.name}`,
+            title: source.title,
+            publisher: source.publisher ?? null,
+            url: source.url,
+            sourceType: source.sourceType,
+            publishedAt: source.publishedAt ? new Date(source.publishedAt) : null,
+            accessedAt: source.accessedAt ? new Date(source.accessedAt) : new Date(),
+            supports: source.supports ?? null,
+            isKeySource: source.isKeySource ?? false, // petunjuk agent; final ditetapkan editor
+            verificationStatus: "UNVERIFIED", // deklarasi agent tidak sama dengan verifikasi (TA §6.1)
           },
         });
       }
-    }
 
-    const submission = await db.submission.create({
-      data: {
-        origin: "INGESTION_API",
-        articleId: article.id,
-        agentId: body.agentId,
-        status: "SUBMITTED",
-        aiInvolvementDeclared: body.aiInvolvement,
-        aiUsageNote: body.aiUsageNote ?? null,
-        verificationNotes: body.verificationNotes ?? null,
-        idempotencyKey: body.idempotencyKey,
-        payloadHash,
-        tagsJson: body.tags ? JSON.stringify(body.tags) : null,
-      },
+      if (body.images?.length) {
+        for (const image of body.images) {
+          await tx.mediaAsset.create({
+            data: {
+              articleId: article.id,
+              url: image.url,
+              creator: image.creator ?? null,
+              license: image.license ?? null,
+              permissionEvidence: image.permissionEvidence ?? null,
+              caption: image.caption ?? null,
+              uploadedByLabel: `api-client:${client.name}`,
+            },
+          });
+        }
+      }
+
+      const submission = await tx.submission.create({
+        data: {
+          origin: "INGESTION_API",
+          articleId: article.id,
+          agentId: body.agentId,
+          status: "SUBMITTED",
+          aiInvolvementDeclared: body.aiInvolvement,
+          aiUsageNote: body.aiUsageNote ?? null,
+          verificationNotes: body.verificationNotes ?? null,
+          idempotencyKey: body.idempotencyKey,
+          payloadHash,
+          tagsJson: body.tags ? JSON.stringify(body.tags) : null,
+        },
+      });
+
+      await writeAudit(
+        {
+          actorType: "API_CLIENT",
+          actorId: client.id,
+          actorLabel: client.name,
+          action: "submission.ingested",
+          targetType: "SUBMISSION",
+          targetId: submission.id,
+          correlationId: body.idempotencyKey,
+          metadata: { articleId: article.id, agentId: body.agentId, aiInvolvement: body.aiInvolvement },
+        },
+        tx,
+      );
+
+      return { submission, article };
     });
 
-    await writeAudit({
-      actorType: "API_CLIENT",
-      actorId: client.id,
-      actorLabel: client.name,
-      action: "submission.ingested",
-      targetType: "SUBMISSION",
-      targetId: submission.id,
-      correlationId: body.idempotencyKey,
-      metadata: { articleId: article.id, agentId: body.agentId, aiInvolvement: body.aiInvolvement },
-    });
-
-    // 6) Receipt saja — tanpa informasi privat lain (TA §9.2).
+    // 6) Receipt saja: tanpa informasi privat lain (TA §9.2).
     return ok(
       {
         submissionId: submission.id,
