@@ -190,7 +190,7 @@ export function ComplaintForm() {
           id="complaint-article"
           value={articleSlug}
           onChange={(event) => setArticleSlug(event.target.value)}
-          placeholder="Misal: https://verax-press.vercel.app/artikel/... atau judul berita terkait"
+          placeholder="Misal: https://veraxpress.vercel.app/artikel/... atau judul berita terkait"
           className="h-11 bg-card"
           autoComplete="off"
         />

@@ -566,7 +566,7 @@ Authorization: Bearer vrtc_a1b2c3d4e5f60718.vrtk_1029384756abcdef1029384756abcde
 
 Lingkungan:
 - Base URL Integrasi: ${baseUrl}
-- Production: https://verax-press.vercel.app
+- Production: https://veraxpress.vercel.app
 - Development: http://localhost:3000
 
 ## 3. Spesifikasi Skema Payload Naskah (IngestionPayload)

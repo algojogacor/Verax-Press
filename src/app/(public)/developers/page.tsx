@@ -150,7 +150,7 @@ Content-Type: application/json`}
                   <tbody className="divide-y divide-verity-rule font-mono text-verity-ink-soft">
                     <tr>
                       <td className="px-4 py-2.5 font-sans font-medium text-verity-ink">Produksi</td>
-                      <td className="px-4 py-2.5"><code>https://verax-press.vercel.app</code></td>
+                      <td className="px-4 py-2.5"><code>https://veraxpress.vercel.app</code></td>
                       <td className="px-4 py-2.5 font-sans">Kredensial terisolasi, basis data Turso Cloud Singapura</td>
                     </tr>
                     <tr>
