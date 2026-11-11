@@ -42,7 +42,7 @@ export async function POST(request: Request, { params }: Params) {
       throw new ApiError(403, "FORBIDDEN", "Sumber tidak dapat diubah pada status artikel ini.");
     }
 
-    const isEditorPlus = user.role === "CHIEF_EDITOR" || user.role === "EDITOR";
+    const isChiefEditor = user.role === "CHIEF_EDITOR";
 
     await db.sourceReference.create({
       data: {
@@ -54,7 +54,7 @@ export async function POST(request: Request, { params }: Params) {
         publishedAt: body.publishedAt ? new Date(body.publishedAt) : null,
         accessedAt: body.accessedAt ? new Date(body.accessedAt) : new Date(),
         supports: body.supports ?? null,
-        isKeySource: isEditorPlus ? (body.isKeySource ?? false) : false, // penanda kunci hanya editor
+        isKeySource: isChiefEditor ? (body.isKeySource ?? false) : false, // penanda kunci hanya editor
         verificationStatus: "UNVERIFIED", // selalu; hanya editor yang mengubah via PATCH
       },
     });

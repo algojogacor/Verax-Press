@@ -11,7 +11,7 @@ import type {
   VersionType,
 } from "@/types/verity";
 
-export const ROLES: Role[] = ["CHIEF_EDITOR", "EDITOR", "INTERNAL_AUTHOR", "VOLUNTEER"];
+export const ROLES: Role[] = ["CHIEF_EDITOR", "WRITER"];
 
 export const ARTICLE_STATUSES: ArticleStatus[] = [
   "DRAFT",
@@ -29,7 +29,10 @@ export const ARTICLE_STATUSES: ArticleStatus[] = [
 
 export const ARTICLE_FORMATS: ArticleFormat[] = ["NEWS", "OPINION", "ANALYSIS", "EXPLAINER", "FEATURE", "INTERVIEW"];
 
-/** Format Berita hanya diproduksi ruang redaksi internal, tertutup bagi kontributor luar atau agen AI. */
+/** Seluruh format artikel jurnalistik didukung untuk intake ingestion agen AI, tetap dengan status awal DRAFT dan sumber UNVERIFIED. */
+export const INGESTION_ALLOWED_FORMATS: ArticleFormat[] = ARTICLE_FORMATS;
+
+/** Format Berita (NEWS) diproduksi ruang redaksi internal atau agen AI, tertutup bagi kontributor relawan eksternal. */
 export const CONTRIBUTOR_ALLOWED_FORMATS: ArticleFormat[] = [
   "OPINION",
   "ANALYSIS",
@@ -56,10 +59,8 @@ export const COMPLAINT_TYPES: ComplaintType[] = [
 export const CONTRIBUTION_ROLES: ContributionRole[] = ["AUTHOR", "EDITOR", "REPORTER", "REVIEWER", "VISUAL"];
 
 export const ROLE_LABELS: Record<Role, string> = {
-  CHIEF_EDITOR: "Chief Editor",
-  EDITOR: "Editor",
-  INTERNAL_AUTHOR: "Internal Author",
-  VOLUNTEER: "Volunteer",
+  CHIEF_EDITOR: "Pemimpin Redaksi",
+  WRITER: "Penulis",
 };
 
 export const STATUS_LABELS: Record<ArticleStatus, string> = {
@@ -158,3 +159,33 @@ export const OPINION_DISCLAIMER =
 /** Catatan proses standar untuk ai_involvement=substantive (Piagam Redaksi §4.3). */
 export const AI_SUBSTANTIVE_NOTE_DEFAULT =
   "Draf awal artikel ini disusun dengan bantuan AI, lalu diperiksa terhadap sumber dan disunting oleh redaksi.";
+
+export const API_CLIENT_ENVIRONMENTS = ["DEVELOPMENT", "PREVIEW", "PRODUCTION"] as const;
+
+export function getPublicBaseUrl(): string {
+  if (typeof process !== "undefined" && process.env.VERAX_PUBLIC_BASE_URL) {
+    return process.env.VERAX_PUBLIC_BASE_URL.replace(/\/+$/, "");
+  }
+  if (typeof process !== "undefined" && process.env.NEXT_PUBLIC_SITE_URL) {
+    return process.env.NEXT_PUBLIC_SITE_URL.replace(/\/+$/, "");
+  }
+  if (typeof process !== "undefined" && process.env.VERCEL_ENV === "production") {
+    return "https://verax-press.vercel.app";
+  }
+  if (typeof process !== "undefined" && process.env.VERCEL_URL) {
+    return `https://${process.env.VERCEL_URL.replace(/\/+$/, "")}`;
+  }
+  return "http://localhost:3000";
+}
+
+export function getSystemEnvironment(): "production" | "preview" | "development" {
+  if (typeof process !== "undefined") {
+    if (process.env.VERCEL_ENV === "production" || process.env.NODE_ENV === "production") {
+      return "production";
+    }
+    if (process.env.VERCEL_ENV === "preview") {
+      return "preview";
+    }
+  }
+  return "development";
+}

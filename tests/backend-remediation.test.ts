@@ -1,4 +1,5 @@
 // Isolated backend remediation tests covering Phase A.1, A.2, and A.3
+// Updated for Phase 1: Two-role staff model (CHIEF_EDITOR, WRITER) and username requirements.
 import { describe, it, expect, beforeAll, afterAll } from "bun:test";
 import fs from "node:fs";
 import path from "node:path";
@@ -59,75 +60,48 @@ async function evaluateStaffPermission(
 
 describe("Phase A.1: Authoritative Complaint Permission Enforcement", () => {
   let chiefId: string;
-  let editorGrantedId: string;
-  let editorUngrantedId: string;
+  let writerId: string;
   let inactiveStaffId: string;
-  let authorId: string;
 
   beforeAll(async () => {
-    // 1. Chief Editor
+    // 1. Chief Editor (has all permissions)
     const chief = await testPrisma.staffUser.create({
       data: {
+        username: "chief-test",
         email: "chief-test@verity.test",
         name: "Chief Editor Test",
         role: "CHIEF_EDITOR",
         status: "ACTIVE",
         passwordHash: "hash-test",
-        canManageComplaints: false, // Chief always has permission by role
       },
     });
     chiefId = chief.id;
 
-    // 2. Editor with canManageComplaints = true
-    const editorGranted = await testPrisma.staffUser.create({
+    // 2. Writer (restricted author role, cannot manage complaints)
+    const writer = await testPrisma.staffUser.create({
       data: {
-        email: "editor-granted@verity.test",
-        name: "Editor With Grant",
-        role: "EDITOR",
+        username: "writer-test",
+        email: "writer-test@verity.test",
+        name: "Writer Test",
+        role: "WRITER",
         status: "ACTIVE",
         passwordHash: "hash-test",
-        canManageComplaints: true,
       },
     });
-    editorGrantedId = editorGranted.id;
+    writerId = writer.id;
 
-    // 3. Editor with canManageComplaints = false
-    const editorUngranted = await testPrisma.staffUser.create({
-      data: {
-        email: "editor-ungranted@verity.test",
-        name: "Editor Without Grant",
-        role: "EDITOR",
-        status: "ACTIVE",
-        passwordHash: "hash-test",
-        canManageComplaints: false,
-      },
-    });
-    editorUngrantedId = editorUngranted.id;
-
-    // 4. Inactive staff account
+    // 3. Inactive staff account
     const inactiveStaff = await testPrisma.staffUser.create({
       data: {
-        email: "inactive-editor@verity.test",
-        name: "Inactive Editor",
-        role: "EDITOR",
+        username: "inactive-staff",
+        email: "inactive-staff@verity.test",
+        name: "Inactive Staff",
+        role: "CHIEF_EDITOR",
         status: "SUSPENDED",
         passwordHash: "hash-test",
-        canManageComplaints: true,
       },
     });
     inactiveStaffId = inactiveStaff.id;
-
-    // 5. Unauthorized role (Author)
-    const author = await testPrisma.staffUser.create({
-      data: {
-        email: "author-test@verity.test",
-        name: "Author Test",
-        role: "INTERNAL_AUTHOR",
-        status: "ACTIVE",
-        passwordHash: "hash-test",
-      },
-    });
-    authorId = author.id;
   });
 
   it("1. Chief Editor with permission is accepted (200)", async () => {
@@ -136,38 +110,25 @@ describe("Phase A.1: Authoritative Complaint Permission Enforcement", () => {
     expect(res.staff?.role).toBe("CHIEF_EDITOR");
   });
 
-  it("2. Editor with canManageComplaints = true is accepted (200)", async () => {
-    const res = await evaluateStaffPermission(testPrisma, editorGrantedId, "complaint:manage");
-    expect(res.status).toBe(200);
-    expect(res.staff?.role).toBe("EDITOR");
-    expect(res.staff?.canManageComplaints).toBe(true);
-  });
-
-  it("3. Editor with canManageComplaints = false is rejected (403)", async () => {
-    const res = await evaluateStaffPermission(testPrisma, editorUngrantedId, "complaint:manage");
+  it("2. Writer attempting restricted permission is rejected (403)", async () => {
+    const res = await evaluateStaffPermission(testPrisma, writerId, "complaint:manage");
     expect(res.status).toBe(403);
     expect(res.code).toBe("FORBIDDEN");
   });
 
-  it("4. Inactive staff account is rejected (403)", async () => {
+  it("3. Inactive staff account is rejected (403)", async () => {
     const res = await evaluateStaffPermission(testPrisma, inactiveStaffId, "complaint:manage");
     expect(res.status).toBe(403);
     expect(res.message).toContain("dinonaktifkan");
   });
 
-  it("5. Unauthenticated request is rejected (401)", async () => {
+  it("4. Unauthenticated request is rejected (401)", async () => {
     const res = await evaluateStaffPermission(testPrisma, null, "complaint:manage");
     expect(res.status).toBe(401);
     expect(res.code).toBe("UNAUTHORIZED");
   });
 
-  it("6. Unauthorized role is rejected (403)", async () => {
-    const res = await evaluateStaffPermission(testPrisma, authorId, "complaint:manage");
-    expect(res.status).toBe(403);
-    expect(res.code).toBe("FORBIDDEN");
-  });
-
-  it("7. Missing permission profile (user deleted from DB) is rejected (403)", async () => {
+  it("5. Missing permission profile (user deleted from DB) is rejected (403)", async () => {
     const res = await evaluateStaffPermission(testPrisma, "non-existent-user-id", "complaint:manage");
     expect(res.status).toBe(403);
     expect(res.message).toContain("Profil staf tidak ditemukan");
@@ -207,6 +168,7 @@ describe("Phase A.3: Multi-operation Transaction Rollback & Atomicity", () => {
     // 0. Create staff user for approval
     const chief = await testPrisma.staffUser.create({
       data: {
+        username: "tx-chief",
         email: "tx-chief@verity.test",
         name: "Chief Transaction",
         role: "CHIEF_EDITOR",

@@ -42,6 +42,30 @@ export async function loginAs(
   return { cookies: cookieHeader(jar) }
 }
 
+export async function loginWithCredentials(
+  identifier: string,
+  password: string
+): Promise<{ success: boolean; client: TestClient }> {
+  const jar: string[] = []
+  const csrfRes = await fetch(`${BASE}/api/auth/csrf`)
+  const setCookies = csrfRes.headers.getSetCookie?.() ?? []
+  jar.push(...setCookies)
+  const { csrfToken } = (await csrfRes.json()) as { csrfToken: string }
+  const loginRes = await fetch(`${BASE}/api/auth/callback/credentials`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/x-www-form-urlencoded',
+      Cookie: cookieHeader(jar),
+    },
+    body: new URLSearchParams({ csrfToken, email: identifier, password }).toString(),
+    redirect: 'manual',
+  })
+  const loginCookies = loginRes.headers.getSetCookie?.() ?? []
+  jar.push(...loginCookies)
+  const hasSession = loginCookies.some((c) => c.includes('session-token'))
+  return { success: hasSession, client: { cookies: cookieHeader(jar) } }
+}
+
 export async function apiAuthHeader(): Promise<string> {
   return `Bearer ${TEST_AGENT_CLIENT_ID}.${API_SECRET}`
 }
@@ -79,6 +103,16 @@ export async function patchJson(
       ...(client ? { Cookie: client.cookies } : {}),
     },
     body: JSON.stringify(body),
+  })
+}
+
+export async function deleteReq(
+  path: string,
+  client?: TestClient,
+): Promise<Response> {
+  return fetch(`${BASE}${path}`, {
+    method: 'DELETE',
+    headers: client ? { Cookie: client.cookies } : {},
   })
 }
 

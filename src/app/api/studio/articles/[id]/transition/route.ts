@@ -51,11 +51,8 @@ export async function POST(request: Request, { params }: Params) {
       .map((c) => c.person.staffUserId)
       .filter((s): s is string => Boolean(s));
     const own = isOwnerOf(article, user.id) || authorStaffIds.includes(user.id);
-    if (user.role === "INTERNAL_AUTHOR" && !own) {
+    if (user.role === "WRITER" && !own) {
       throw new ApiError(403, "FORBIDDEN", "Anda hanya dapat mengubah naskah milik Anda.");
-    }
-    if (user.role === "VOLUNTEER") {
-      throw new ApiError(403, "FORBIDDEN", "Volunteer tidak memiliki akses transisi editorial.");
     }
 
     const rule = getRule(action, article.status as never);

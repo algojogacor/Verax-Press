@@ -110,9 +110,9 @@ suiteDescribe('Authentication & Authorization', () => {
     expect(res.status).toBe(200)
   })
 
-  test('editor with grant can access complaints register (200)', async () => {
+  test('writer (editor) cannot access complaints register (403)', async () => {
     const res = await get('/api/cms/complaints', editor)
-    expect(res.status).toBe(200)
+    expect(res.status).toBe(403)
   })
 
   test('editor without grant cannot access complaints register (403)', async () => {
@@ -216,7 +216,7 @@ suiteDescribe('Source verification gate', () => {
     const verifyRes = await patchJson(`/api/cms/articles/${art.id}/sources/${srcId}`, {
       verificationStatus: 'VERIFIED',
       verificationNote: 'Dicek ke sumber primer resmi.',
-    }, editor)
+    }, chief)
     expect(verifyRes.status).toBe(200)
 
     // Advance to approval then publish
@@ -266,8 +266,8 @@ suiteDescribe('Approval & publication restrictions', () => {
     const sources = detail.sources ?? detail.article?.sources ?? []
     await patchJson(`/api/cms/articles/${art.id}/sources/${sources[0].id}`, {
       verificationStatus: 'VERIFIED',
-      verificationNote: 'Diverifikasi langsung oleh editor.',
-    }, editor)
+      verificationNote: 'Diverifikasi langsung oleh chief editor.',
+    }, chief)
 
     await transition(chief, art.id, 'SUBMIT_FOR_APPROVAL')
     const { status } = await transition(chief, art.id, 'PUBLISH')
@@ -388,27 +388,27 @@ suiteDescribe('Idempotency', () => {
 // 7. Internal Editorial Note Privacy
 // ============================================================================
 suiteDescribe('Internal editorial note privacy', () => {
-  test('editor can add internal note (authorVisible=false)', async () => {
+  test('chief can add internal note (authorVisible=false)', async () => {
     const art = await createArticle(chief)
     const res = await postJson(`/api/cms/articles/${art.id}/comments`, {
       body: 'Internal note: verify this claim against public record',
       authorVisible: false,
-    }, editor)
+    }, chief)
     expect([200, 201]).toContain(res.status)
   })
 
   test('author can read author-visible comments but NOT internal notes', async () => {
     const art = await createArticle(author)
-    // Add an internal note (editor only).
+    // Add an internal note (chief).
     await postJson(`/api/cms/articles/${art.id}/comments`, {
       body: 'SECRET internal editorial assessment',
       authorVisible: false,
-    }, editor)
-    // Add an author-visible comment.
+    }, chief)
+    // Add an author-visible comment (chief).
     await postJson(`/api/cms/articles/${art.id}/comments`, {
       body: 'Please revise paragraph 2 with additional context',
       authorVisible: true,
-    }, editor)
+    }, chief)
 
     // Author fetches comments.
     const res = await get(`/api/cms/articles/${art.id}/comments`, author)
@@ -447,7 +447,7 @@ suiteDescribe('Public article visibility', () => {
     await patchJson(`/api/cms/articles/${art.id}/sources/${sources[0].id}`, {
       verificationStatus: 'VERIFIED',
       verificationNote: 'Diverifikasi publik',
-    }, editor)
+    }, chief)
 
     await transition(chief, art.id, 'SUBMIT_FOR_APPROVAL')
     const pub = await transition(chief, art.id, 'PUBLISH')
@@ -533,7 +533,7 @@ suiteDescribe('Complaint submission', () => {
     expect(unique.size).toBe(5)
   })
 
-  test('editor with grant can update complaint decision (200)', async () => {
+  test('chief can update complaint decision (200), writer cannot (403)', async () => {
     // 1. Submit public complaint
     const postRes = await fetch(`${BASE}/api/public/complaints`, {
       method: 'POST',
@@ -551,14 +551,14 @@ suiteDescribe('Complaint submission', () => {
     expect(postRes.status).toBe(201)
     const { complaintId } = (await postRes.json()) as { complaintId: string }
 
-    // 2. Editor with grant updates status and decision
+    // 2. Chief updates status and decision (200)
     const patchRes = await patchJson(`/api/cms/complaints/${complaintId}`, {
       status: 'RESOLVED',
       decision: 'Keluhan telah ditindaklanjuti dan diselesaikan oleh redaksi.',
-    }, editor)
+    }, chief)
     expect(patchRes.status).toBe(200)
 
-    // 3. Author cannot patch complaint (403)
+    // 3. Writer cannot patch complaint (403)
     const authorRes = await patchJson(`/api/cms/complaints/${complaintId}`, {
       status: 'REJECTED',
       decision: 'Coba tolak',
@@ -576,7 +576,7 @@ suiteDescribe('Correction record visibility', () => {
     expect(res.status).toBe(200)
   })
 
-  test('editor with complaint grant can create correction record', async () => {
+  test('chief can create correction record (201), writer cannot (403)', async () => {
     const art = await createArticle(chief, {
       sources: [{ title: 'Sumber Dokumen Resmi Koreksi', url: 'https://example.com/c', sourceType: 'PRIMARY', isKeySource: true }],
     })
@@ -589,16 +589,25 @@ suiteDescribe('Correction record visibility', () => {
     await patchJson(`/api/cms/articles/${art.id}/sources/${sources[0].id}`, {
       verificationStatus: 'VERIFIED',
       verificationNote: 'Diverifikasi untuk koreksi',
-    }, editor)
+    }, chief)
 
     await transition(chief, art.id, 'SUBMIT_FOR_APPROVAL')
     await transition(chief, art.id, 'PUBLISH')
 
-    const res = await postJson('/api/cms/corrections', {
+    // Writer cannot create correction record (403)
+    const writerRes = await postJson('/api/cms/corrections', {
       articleId: art.id,
       summary: 'Correction: factual error in publication year',
       publicNote: 'The publication year was corrected from 2025 to 2026 based on official gazette.',
     }, editor)
+    expect(writerRes.status).toBe(403)
+
+    // Chief can create correction record (201)
+    const res = await postJson('/api/cms/corrections', {
+      articleId: art.id,
+      summary: 'Correction: factual error in publication year',
+      publicNote: 'The publication year was corrected from 2025 to 2026 based on official gazette.',
+    }, chief)
     expect(res.status).toBe(201)
   })
 
@@ -638,11 +647,27 @@ suiteDescribe('Canonical Negative Validation Tests', () => {
     expect(res.status).toBe(422)
   })
 
-  test('AI submission attempting format NEWS is rejected (422 FORMAT_REJECTED)', async () => {
+  test('AI submission attempting format NEWS is accepted as DRAFT (201)', async () => {
+    const res = await submitAi({
+      title: 'AI Ingestion News Format Permitted Test',
+      desk: 'teknologi-kebijakan',
+      format: 'NEWS',
+      content: [{ type: 'paragraph', text: 'Teks berita pemantauan teknologi terverifikasi.' }],
+      sources: [{ title: 'Source', url: 'https://example.com/s', sourceType: 'SECONDARY' }],
+      aiInvolvement: 'assistive',
+      agentId: 'agent-d2',
+      idempotencyKey: 'itest-news-' + Date.now(),
+    })
+    expect(res.status).toBe(201)
+    const data = (await res.json()) as { status: string; articleId: string }
+    expect(data.status).toBe('DRAFT')
+  })
+
+  test('AI submission with invalid format enum is rejected (422 FORMAT_REJECTED)', async () => {
     const res = await submitAi({
       title: 'AI Ingestion Disallowed Format Test',
       desk: 'teknologi-kebijakan',
-      format: 'NEWS', // Hard rule: format NEWS only from newsroom (D2 LOCKED)
+      format: 'UNSUPPORTED_FORMAT_XYZ',
       content: [{ type: 'paragraph', text: 'Illegal format text.' }],
       sources: [{ title: 'Source', url: 'https://example.com/s', sourceType: 'SECONDARY' }],
       aiInvolvement: 'assistive',

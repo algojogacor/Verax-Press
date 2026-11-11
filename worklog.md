@@ -448,3 +448,309 @@ Dijalankan 9 Nov 2026 (sesi build-2). Transkrip lengkap: `scripts/acceptance-tes
   3. **Deployment Vercel Produksi:** Menjalankan perintah `vercel --prod --yes` yang memicu build produksi resmi di Washington D.C. (iad1). Kompilasi Next.js 16.1.3 Turbopack selesai dalam 27 detik dan berhasil meng-generate seluruh 26 rute publik dan studio CMS.
   4. **Pemberian Alias Domain Produksi:** Deployment `dpl_7xjTvLH7S2tvmyKL2sDEJVYsuXZm` berhasil dipromosikan ke domain resmi: `https://verax-press.vercel.app`.
   5. **Verifikasi Produksi Langsung:** Probe HTTP terhadap `https://verax-press.vercel.app` mengembalikan HTTP 200 OK dengan status clean-slate otentik ("Belum ada artikel terbit"). Login meja redaksi studio di `https://verax-press.vercel.app/studio/login` aktif melayani autentikasi akun Pemimpin Redaksi.
+
+## 31. Verax Press: Fase 1 Migrasi Role, Struktur Akun, dan Permission Matrix (11 Nov 2026)
+
+- **Status:** Selesai dan terverifikasi penuh (Status Resmi: IMPLEMENTATION COMPLETE).
+- **Laporan Audit Teknis:** `docs/superpowers/audits/2026-11-11-fase-1-role-permission-report.md`.
+- **Objektif:**
+  - Menyederhanakan struktur peran redaksi menjadi dua peran resmi: `CHIEF_EDITOR` dan `WRITER`.
+  - Menghapus dependensi pada peran lama (`EDITOR`, `INTERNAL_AUTHOR`, dan referensi `VOLUNTEER` sebagai staf).
+  - Menghapus kolom hibah kewenangan khusus `canRiskEdit` dan `canManageComplaints`.
+  - Memisahkan identitas semantik `username` (wajib, unik, case-insensitive) dan `email` kontak (opsional, unik).
+  - Membangun model dan alur kriptografis `StaffInvitation` (token acak 32-byte, hash SHA-256 di basis data, masa aktif 7 hari, sekali pakai).
+  - Menyiapkan fondasi model `Contributor` dan `ContributorApplication` yang terisolasi dari tabel staf untuk persiapan Fase 2.
+  - Membangun antarmuka Studio CMS Meja Redaksi `/studio/staff` ("Tim Redaksi") khusus Pemimpin Redaksi (Overview metrik 4 kartu, tab Daftar Anggota dengan pencarian/filter/sortir/paginasi, tab Undangan Aktivasi, dialog Undang Penulis, dialog Edit Profil, dialog Penangguhan).
+  - Membangun halaman publik aktivasi `/studio/invitasi/[token]` untuk verifikasi token dan pembuatan kata sandi Penulis baru.
+  - Menegakkan proteksi mutlak pada sisi server agar akun Pemimpin Redaksi aktif terakhir tidak dapat ditangguhkan atau dihapus (`LAST_CHIEF_CANNOT_BE_SUSPENDED`).
+- **Tindakan Teknis yang Dilakukan:**
+  1. **Skema Prisma & Migrasi SQL (`prisma/schema.prisma`):** Menambahkan `username` pada `StaffUser`, menjadikan `email` opsional, mendefinisikan model `StaffInvitation` dan `ContributorApplication`. Berkas migrasi dibuat di `prisma/migrations/20261111120000_fase_1_role_and_staff_migration/migration.sql` dan dieksekusi via `scripts/migrate-role-and-staff.ts` dengan penonaktifan foreign key sementara dan verifikasi `PRAGMA integrity_check: ok`.
+  2. **Domain & Permission Helpers:** Memperbarui `src/types/verity.ts`, `src/lib/domain/permissions.ts`, `src/lib/domain/workflow.ts`, `src/lib/domain/serializers.ts`, `src/lib/domain/constants.ts`, dan `src/lib/api.ts`.
+  3. **Rute API Studio CMS & Publik:** Memperbarui otorisasi role-scoped pada `/api/studio/articles`, `/api/studio/dashboard`, `/api/studio/media`, `/api/studio/complaints`, `/api/studio/corrections`. Mengimplementasikan endpoint `/api/studio/staff` (GET, PATCH), `/api/studio/staff/invitations` (GET, POST, revoke, resend), serta endpoint publik `/api/public/invitations/[token]` (GET, accept POST).
+  4. **Antarmuka Pengguna Studio CMS:** Mengimplementasikan `/studio/staff` dan `/studio/invitasi/[token]` dengan kepatuhan penuh terhadap standar tipografi dan salinan Verax Press (`anti-ai-writing`).
+  5. **Pengujian Menyeluruh:** Membuat suite pengujian baru `tests/staff-management.test.ts` (13 pengujian) yang mencakup seluruh skenario wajib, memutakhirkan `tests/backend-remediation.test.ts` dan `tests/regression.test.ts`, serta memperbarui `scripts/smoke-test.ts`.
+- **Hasil Verifikasi:**
+  - `bun test`: 89 lulus dari 89 pengujian lintas 10 berkas (217 asersi lulus, 0 gagal).
+  - `scripts/smoke-test.ts`: 32 pemeriksaan lulus 100%, isolasi Turso Cloud Production strictly untouched (zero leakage).
+  - `bun run typecheck`: Bersih 0 galat tipe.
+  - `bun run lint`: Bersih 0 galat dan 0 peringatan.
+  - `bun run build`: 29/29 rute Next.js 16.1.3 Turbopack terkompilasi bersih ke dalam bundel standalone.
+
+## 32. Verax Press: Fase 2 Sistem Volunteer: Pengajuan, Aktivasi, dan Portal Kontributor (11 Nov 2026)
+
+- **Status:** Selesai dan terverifikasi penuh (Status Resmi: IMPLEMENTATION COMPLETE).
+- **Laporan Audit Teknis:** `docs/superpowers/audits/2026-11-11-fase-2-volunteer-report.md`.
+- **Objektif:**
+  - Memisahkan identitas kontributor eksternal (`Contributor`) dari staf redaksi (`StaffUser`).
+  - Membangun formulir pendaftaran terbuka untuk calon relawan di `/kontributor/daftar` dengan konfirmasi kelayakan usia 18+ (`adultConfirmedAt`) dan persetujuan pedoman kontributor.
+  - Membangun modul persetujuan permohonan relawan di `/studio/applications` khusus Pemimpin Redaksi, dilengkapi ringkasan metrik 4 kartu, filter status, dialog keputusan (terima dengan token aktivasi kriptografis SHA-256 masa berlaku 7 hari, atau tolak dengan catatan alasan), dan tab tata kelola status kontributor terdaftar (penangguhan dan reaktivasi).
+  - Membangun halaman aktivasi publik di `/kontributor/aktivasi/[token]` untuk penetapan nama pengguna unik dan kata sandi baru (minimal 8 karakter).
+  - Membangun portal mandiri kontributor di `/kontributor/portal` mencakup dasbor metrik, pembuatan naskah baru format non-berita (OPINION, ANALYSIS, EXPLAINER, FEATURE, INTERVIEW; format NEWS ditolak pada level server), editor naskah draf/revisi, penambahan rujukan sumber primer, alur pengajuan tinjauan editorial (`SUBMIT_REVIEW`), penarikan naskah mandiri (`WITHDRAW`), pengiriman ulang pascarevisi (`RESUBMIT_REVIEW`), pelacakan riwayat telaah redaksi, dan penyuntingan profil publik byline.
+  - Mengisolasi hak akses kontributor dari perimeter Studio CMS staf dan mengunci data naskah antar-kontributor (`contributorId === user.id`).
+- **Tindakan Teknis yang Dilakukan:**
+  1. **Skema Prisma dan Migrasi SQL (`prisma/schema.prisma`):**
+     - Memperbarui model `Contributor` dengan kolom `lastLoginAt`, relasi `articles`, dan relasi `application`.
+     - Merekonstruksi model `ContributorApplication` dengan kolom minat tulisan, contoh artikel, konfirmasi usia 18+, persetujuan pedoman, relasi pemutus (`decidedById`), catatan keputusan, dan token undangan relasi 1-to-1.
+     - Membuat model `ContributorInvitation` dengan token ter-hash SHA-256 (32 byte CSPRNG), stempel kedaluwarsa, stempel diterima, dan stempel dicabut.
+     - Menambahkan kolom `contributorId` pada model `Article`.
+     - Mengubah kolom `reviewerId` pada model `EditorialReview` menjadi nullable agar pengajuan naskah awal relawan tidak membutuhkan penelaah manusia.
+     - Berkas migrasi resmi disimpan di `prisma/migrations/20261111180000_fase_2_volunteer_and_contributor_migration/migration.sql` dan diterapkan ke `db/custom.db` serta `db/isolated-test.db` dengan integritas referensial 100% konsisten.
+  2. **Domain, Workflow, dan Otorisasi:**
+     - Menambahkan helper `requireContributorSession()` pada `src/lib/api.ts`.
+     - Memperbarui `src/lib/auth.ts` untuk memproses autentikasi kontributor eksternal dengan pembedaan klaim sesi `accountType: "CONTRIBUTOR"` vs `"STAFF"` serta pemblokiran akun kontributor berstatus `SUSPENDED`.
+     - Menambahkan aksi `WITHDRAW` dari status `PENDING_REVIEW` pada `src/lib/domain/workflow.ts` serta mendaftarkan peran `CONTRIBUTOR` pada aturan alur kerja.
+     - Memperbarui `src/lib/domain/permissions.ts` untuk memvalidasi kepemilikan naskah kontributor dan mencegah akses lintas akun.
+     - Menambahkan serializer DTO kontributor pada `src/lib/domain/serializers.ts`.
+     - Mengunci rute `/studio/applications` (khusus `CHIEF_EDITOR`) dan `/kontributor/portal/*` (khusus `CONTRIBUTOR`) pada `src/middleware.ts`.
+  3. **Rute API:**
+     - Endpoint Publik: `POST /api/public/contributor/apply`, `GET /api/public/contributor/invitations/[token]`, `POST /api/public/contributor/invitations/[token]/accept`.
+     - Endpoint Studio Pemimpin Redaksi: `GET /api/studio/applications`, `GET /api/studio/applications/[id]`, `POST /api/studio/applications/[id]/decide`, `GET /api/studio/volunteers`, `PATCH /api/studio/volunteers/[id]`.
+     - Endpoint Portal Kontributor: `GET /api/contributor/dashboard`, `GET & POST /api/contributor/articles`, `GET & PATCH /api/contributor/articles/[id]`, `POST /api/contributor/articles/[id]/transition`, `POST & DELETE /api/contributor/articles/[id]/sources*`, `GET & PATCH /api/contributor/profile`.
+  4. **Antarmuka Pengguna (UI):**
+     - Memperbarui halaman `/pedoman-kontributor` dengan tautan langsung ke formulir pendaftaran.
+     - Membuat halaman pendaftaran di `/kontributor/daftar`, aktivasi akun di `/kontributor/aktivasi/[token]`, dan halaman masuk di `/kontributor/login`.
+     - Membangun antarmuka modul Studio `/studio/applications` dengan tab permohonan masuk dan tab kontributor aktif.
+     - Membangun portal kontributor terintegrasi di `/kontributor/portal`, `/kontributor/portal/naskah/baru`, `/kontributor/portal/naskah/[id]`, dan `/kontributor/portal/profil`.
+  5. **Pengujian dan Verifikasi:**
+     - Membuat berkas uji `tests/volunteer-flow.test.ts` memuat 27 skenario pengujian komprehensif (seluruh 27 lulus 100%).
+     - Memperbarui `tests/backend-remediation.test.ts`, `tests/regression.test.ts`, dan `tests/workflow.test.ts`.
+- **Hasil Verifikasi:**
+  - `bun test`: 116 lulus dari 116 pengujian lintas 11 berkas (315 asersi lulus, 0 gagal).
+  - `bun run typecheck`: Bersih 0 galat tipe.
+  - `bun run lint`: Bersih 0 galat dan 0 peringatan.
+  - `scripts/smoke-test.ts`: 32 pemeriksaan lulus 100%, Turso Cloud Production strictly untouched (zero leakage).
+  - `bun run build`: 41/41 rute Next.js 16.1.3 Turbopack terkompilasi bersih ke dalam bundel standalone.
+
+## 33. Verax Press: Fase 3 Developer Portal dan AI Agent Integration Infrastructure (11 Nov 2026)
+
+- **Status:** Selesai dan terverifikasi penuh (Status Resmi: IMPLEMENTATION COMPLETE).
+- **Laporan Audit Teknis:** `docs/superpowers/audits/2026-11-11-fase-3-developer-portal-ai-agent-report.md`.
+- **Objektif:**
+  - Membangun portal pengembang resmi di Meja Redaksi Studio (`/studio/api-clients`) khusus Pemimpin Redaksi dengan 5 modul: Ringkasan Metrik Aktual, Tata Kelola Klien & Rotasi Kredensial, Spesifikasi Mesin, Log Permintaan, dan API Playground.
+  - Menetapkan siklus hidup kredensial aman: pembuatan kredensial, tampilan kunci rahasia sekali tampil (one-time secret display), penyimpanan hash kriptografis SHA-256 konstan-waktu, rotasi kredensial dengan masa tenggang (grace period), pencabutan kredensial, dan isolasi lingkungan (Development, Preview, Production).
+  - Menetapkan protokol autentikasi seragam: `Authorization: Bearer <CLIENT_ID>.<CLIENT_SECRET>`.
+  - Membangun dokumentasi mesin berbasis satu sumber kebenaran (Single Source of Truth): `/openapi.json` (OpenAPI 3.1.0), `/.well-known/verax-agent.json` (metadata penemuan mandiri), `/llms.txt`, `/llms-full.txt`, serta panduan pengembang publik `/developers`.
+  - Memperkeras endpoint ingestion (`POST /api/internal/v1/ai-submissions`) dengan validasi format naskah non-berita (larangan mutlak format NEWS bagi agen AI), status awal wajib DRAFT, sumber rujukan wajib UNVERIFIED, pelacakan kepemilikan submission (`apiClientId`), korelasi Request ID (`x-request-id`), idempotensi berbasis SHA-256 payload, dan isolasi pemantauan status naskah (`GET /api/internal/v1/ai-submissions/[submissionId]`).
+  - Membangun endpoint validasi draf murni tanpa efek samping (`POST /api/internal/v1/ai-submissions/validate`) dan endpoint kapabilitas sistem (`GET /api/internal/v1/capabilities`).
+  - Mengimplementasikan pencatatan log telemetri tersanitasi ke tabel `ApiRequestLog` dan proxy pengujian aman di sisi server untuk API Playground tanpa mengekspos secret ke peramban.
+- **Tindakan Teknis yang Dilakukan:**
+  1. **Skema Prisma dan Migrasi SQL (`prisma/schema.prisma`):**
+     - Memperbarui model `ApiClient` dengan kolom `description`, `ownerName`, `environment`, dan relasi ke `credentials`, `submissions`, serta `requestLogs`.
+     - Membuat model `ApiClientCredential` untuk mendukung rotasi kunci dan masa tenggang transisi.
+     - Membuat model `ApiRequestLog` untuk mencatat durasi, status HTTP, alamat IP tersanitasi, submission ID, kode galat, dan Request ID.
+     - Menambahkan kolom `apiClientId` dan indeks terkait pada model `Submission`.
+     - Berkas migrasi disimpan di `prisma/migrations/20261111220000_fase_3_developer_portal_and_ai_agent/migration.sql` dan diterapkan ke basis data SQLite lokal (`db/custom.db` dan `db/isolated-test.db`) dengan integritas referensial 100% konsisten.
+  2. **Domain, Validasi, dan Keamanan:**
+     - Membuat modul `src/lib/domain/ingestion.ts` sebagai acuan validasi terpadu naskah ingestion dan dry-run.
+     - Membuat modul `src/lib/domain/api-docs.ts` sebagai sumber kebenaran spesifikasi OpenAPI, discovery metadata, dan teks LLM.
+     - Membuat utilitas `src/lib/request-logger.ts` untuk pembangkitan Request ID dan sanitasi data log.
+     - Memperbarui `src/lib/api-key.ts` untuk memverifikasi token Bearer, masa aktif kredensial, masa tenggang, dan token proxy in-memory internal.
+     - Menambahkan DTO dan serializer di `src/types/verity.ts` dan `src/lib/domain/serializers.ts`.
+  3. **Rute API Integrasi:**
+     - `POST /api/internal/v1/ai-submissions`: Pengiriman draf naskah resmi dengan idempotensi dan log permintaan.
+     - `POST /api/internal/v1/ai-submissions/validate`: Validasi skema naskah dry-run tanpa persistensi.
+     - `GET /api/internal/v1/ai-submissions/[submissionId]`: Pemantauan status editorial dengan isolasi kepemilikan ketat antar-klien.
+     - `GET /api/internal/v1/capabilities`: Metadata rubrik aktif dan batasan format.
+     - `GET /openapi.json`: Spesifikasi OpenAPI 3.1.0 terstruktur.
+     - `GET /.well-known/verax-agent.json`: Metadata penemuan standar agen cerdas.
+     - `GET /llms.txt` & `GET /llms-full.txt`: Panduan konteks agen AI bebas tanda pisah terlarang.
+     - `GET & POST /api/studio/api-clients`: Daftar klien dan pembuatan kredensial baru.
+     - `POST /api/studio/api-clients/[id]/rotate`: Rotasi kunci dengan masa tenggang.
+     - `POST /api/studio/api-clients/[id]/revoke-credential`: Pencabutan kunci spesifik.
+     - `GET /api/studio/api-clients/logs`: Pencarian dan paginasi log telemetri.
+     - `GET /api/studio/api-clients/overview`: Metrik ringkasan aktual dari basis data.
+     - `POST /api/studio/api-clients/playground/run`: Proxy pengujian server-side tanpa kebocoran secret.
+  4. **Antarmuka Pengguna (UI):**
+     - Membangun portal terpadu di `/studio/api-clients` mencakup 5 tab fungsional lengkap dengan dialog rotasi, dialog kunci sekali tampil, inspeksi log, dan editor JSON playground.
+     - Menyelaraskan urutan menu sidebar Studio CMS menjadi: Dashboard, Artikel, Tim Redaksi, Pengajuan Volunteer, Media, Keluhan, Audit, API & Integrasi.
+     - Membangun halaman dokumentasi publik di `/developers`.
+  5. **Pengujian dan Verifikasi:**
+     - Membuat suite pengujian baru `tests/developer-portal.test.ts` (25 pengujian komprehensif, seluruh 25 lulus 100%).
+     - Menjalankan uji regresi penuh: seluruh 141 pengujian pada 12 berkas uji lulus 100%.
+- **Hasil Verifikasi:**
+  - `bun test`: 141 lulus dari 141 pengujian lintas 12 berkas (428 asersi lulus, 0 gagal).
+  - `bun run typecheck`: Bersih 0 galat tipe.
+  - `bun run lint`: Bersih 0 galat dan 0 peringatan.
+  - `scripts/smoke-test.ts`: 32 pemeriksaan lulus 100%, Turso Cloud Production strictly untouched (zero leakage).
+  - `bun run build`: 51/51 rute Next.js 16.1.3 Turbopack terkompilasi bersih ke dalam bundel standalone.
+
+## 34. Koreksi Scope Fase 3: Pengizinan Format NEWS untuk Integrasi Agen AI
+- **Tanggal:** 2026-11-11
+- **Deskripsi:** Menyesuaikan batasan format naskah pada Content Ingestion API agar format `NEWS` dapat dikirimkan oleh agen kecerdasan buatan, sesuai dengan rancangan awal sistem tanpa membatasi variasi tulisan hanya pada opini atau analisis. Seluruh prinsip editorial Verax Press tetap dipertahankan secara utuh tanpa kompromi.
+- **Prinsip Editorial yang Dipertahankan:**
+  1. Agen kecerdasan buatan tidak memiliki endpoint maupun izin untuk menerbitkan artikel secara mandiri.
+  2. Seluruh naskah yang dikirimkan oleh agen kecerdasan buatan (termasuk format `NEWS`) selalu masuk dengan status awal `DRAFT`.
+  3. Seluruh rujukan sumber dari agen kecerdasan buatan selalu berstatus awal `UNVERIFIED` hingga diperiksa dan diverifikasi secara manual oleh redaktur manusia.
+  4. Hak persetujuan dan penerbitan tetap eksklusif berada di tangan Pemimpin Redaksi (`CHIEF_EDITOR`).
+  5. Byline artikel tetap mengikuti identitas resmi redaksi ("Redaksi Verax Press"), tanpa keberadaan entitas AI Writer di dalam CMS Studio.
+  6. Rubrik artikel tetap menggunakan desk aktif yang sudah ada (`hukum-keadilan`, `teknologi-kebijakan`, `nasional-publik`).
+- **Komponen yang Disesuaikan:**
+  1. `src/lib/domain/constants.ts`: Menambahkan konstanta `INGESTION_ALLOWED_FORMATS` yang mencakup seluruh format `ARTICLE_FORMATS` (termasuk `NEWS`), sementara `CONTRIBUTOR_ALLOWED_FORMATS` tetap membatasi kontributor relawan eksternal agar tidak menulis berita langsung.
+  2. `src/lib/domain/ingestion.ts`: Memperbarui fungsi `validateIngestionPayload` agar menerima format `NEWS` dan menolak format yang tidak terdaftar dengan kode galat `FORMAT_REJECTED`.
+  3. `src/app/api/internal/v1/capabilities/route.ts`: Menyajikan format `NEWS` pada daftar `allowedFormats` endpoint kapabilitas.
+  4. `src/lib/domain/api-docs.ts`: Memperbarui enum format pada OpenAPI 3.1.0, mengosongkan batasan `disallowedFormats` pada metadata `/.well-known/verax-agent.json`, serta memperbarui panduan mesin di `/llms.txt` dan `/llms-full.txt`.
+  5. `src/app/(public)/developers/page.tsx`: Memperbarui informasi ketentuan format dan tabel kode galat pada dokumentasi publik.
+  6. `src/app/studio/(cms)/api-clients/page.tsx`: Menambahkan opsi pemuatan contoh payload berita bertipe `NEWS` pada antarmuka Playground integrasi Studio CMS.
+  7. `tests/developer-portal.test.ts` & `tests/regression.test.ts`: Menyesuaikan skenario pengujian dry-run dan intake agar memastikan format `NEWS` diterima dengan status `DRAFT` dan sumber `UNVERIFIED`, serta memastikan penolakan tetap berlaku untuk format di luar spesifikasi.
+- **Hasil Verifikasi:**
+  - `bun test`: 144 lulus dari 144 pengujian lintas 12 berkas uji (438 asersi lulus, 0 gagal).
+  - `bun run typecheck`: Bersih 0 galat tipe TypeScript.
+  - `bun run lint`: Bersih 0 galat dan 0 peringatan ESLint.
+  - `scripts/smoke-test.ts`: 32 pemeriksaan lulus 100%, data produksi Turso Cloud aman tanpa kebocoran (0 leakage).
+  - `bun run build`: 51 rute Next.js 16.1.3 Turbopack terkompilasi sukses.
+
+## 35. Verax Press: Audit Pasca-Implementasi Fase 1, 2, dan 3 (11 Nov 2026)
+- **Status:** Audit Selesai dan Laporan Disetujui Pengguna.
+- **Laporan Audit Teknis:** `docs/superpowers/audits/2026-11-11-audit-pasca-implementasi-report.md`.
+- **Objektif:**
+  - Melakukan verifikasi independen dan berorientasi adversarial terhadap seluruh hasil implementasi Fase 1 (Role & Permission), Fase 2 (Volunteer System), dan Fase 3 (Developer Portal & AI Agent Integration).
+  - Menguji kebenaran klaim status selesai melalui eksekusi pengujian otomatis, validasi skema basis data, inspeksi izin akses API, penelusuran kriptografi token, dan audit visual lintas viewport (desktop, tablet, mobile).
+- **Hasil Pemeriksaan:**
+  - **Tool Otomatis:** `bun run typecheck`, `bun run lint`, `bun test` (144 pengujian, 438 asersi), dan `bun run build` (51 rute Next.js Turbopack) lulus tanpa kesalahan. Tidak ditemukan pembungkaman tipe (`@ts-ignore`) atau linting.
+  - **Keamanan Inti:** RBAC, isolasi draf kepemilikan penulis/relawan di level kueri SQL, sanitasi log token, dan hashing SHA-256 kredensial terbukti berfungsi 100%.
+  - **Temuan Masalah (7 Temuan):**
+    1. FINDING-001 [Tinggi]: Navigasi tab Developer Portal di Studio (`/studio/api-clients`) terpotong pada layar ponsel 390px karena ketiadaan `overflow-x-auto`.
+    2. FINDING-002 [Sedang]: Contoh desk liputan pada OpenAPI dan `/llms-full.txt` menyebutkan `ekonomi-lingkungan` yang tidak terdaftar di sistem.
+    3. FINDING-003 [Sedang]: Inkonsistensi penamaan variabel lingkungan URL publik (`VERAX_BASE_URL` vs `VERAX_PUBLIC_BASE_URL`) dan sisa baris komentar kredensial peran lama di `.env.example`.
+    4. FINDING-004 [Sedang]: Skrip migrasi peran tidak menghentikan eksekusi saat mendeteksi role `VOLUNTEER` pada `StaffUser`.
+    5. FINDING-005 [Sedang]: Residu deklarasi izin `canRiskEdit` dan `canManageComplaints` pada tipe TypeScript dan handler dashboard.
+    6. FINDING-006 [Rendah]: Ketidakcocokan nilai default pada migrasi awal SQLite dan ketiadaan berkas `migration_lock.toml`.
+    7. FINDING-007 [Rendah]: Ketidaksinkronan teks laporan Fase 3 terkait format `NEWS` yang telah diperluas pada entri log 34.
+- **Tindakan Lanjutan:**
+  - Dilanjutkan dengan eksekusi perbaikan dan pembersihan akun test pada entri log 36.
+
+## 36. Verax Press: Tahap 2 Eksekusi Perbaikan Audit dan Pembersihan Data Test (11 Nov 2026)
+- **Status:** Selesai dan terverifikasi penuh (Status Resmi: AUDIT REMEDIATION COMPLETE).
+- **Berkas Audit Terkait:** `docs/superpowers/audits/2026-11-11-audit-pasca-implementasi-report.md`.
+- **Objektif:**
+  - Menyelesaikan seluruh temuan audit FINDING-001 hingga FINDING-007 sesuai rencana prioritas Bagian 5 laporan audit.
+  - Menutup celah pengujian otomatis (test coverage gaps) untuk 4 skenario kritis yang belum diuji.
+  - Membersihkan seluruh akun staf test seed dari basis data development (`db/custom.db`) dan memastikan akun resmi `pemredVP` menjadi satu-satunya akun staf aktif.
+  - Memastikan nol regresi, nol galat tipe, nol peringatan linting, serta integritas relasional 100% konsisten.
+- **Tindakan Teknis Perbaikan Temuan Audit:**
+  1. **FINDING-001 (Regresi Tab Mobile Developer Portal):**
+     - Berkas: `src/app/studio/(cms)/api-clients/page.tsx`
+     - Perubahan: Membungkus `<TabsList>` dengan container `w-full overflow-x-auto pb-1` serta menambahkan kelas `inline-flex w-max min-w-full sm:min-w-0 sm:w-auto shrink-0` pada trigger tab. Seluruh 5 tab kini dapat digeser dan diakses penuh pada layar ponsel 390px.
+     - Bukti visual: `docs/superpowers/audits/audit-evidence/studio-api-clients-mobile-390.png` telah diperbarui dan diverifikasi.
+  2. **FINDING-002 (Inkonsistensi Desk Fiktif di Dokumentasi):**
+     - Berkas: `src/lib/domain/api-docs.ts`
+     - Perubahan: Mengganti contoh desk `ekonomi-lingkungan` pada skema OpenAPI 3.1.0 dan `/llms-full.txt` dengan desk resmi `nasional-publik`. Pemeriksaan `Get-ChildItem` membuktikan string `ekonomi-lingkungan` telah bersih dari seluruh direktori `src/`.
+  3. **FINDING-003 (Penamaan Variabel Lingkungan & Residu Kredensial):**
+     - Berkas: `src/app/(public)/developers/page.tsx`, `.env.example`
+     - Perubahan: Menyelaraskan contoh kode cURL dan Python di `/developers` agar merujuk ke `VERAX_PUBLIC_BASE_URL`. Mendaftarkan variabel tersebut pada `.env.example`, serta menghapus baris komentar kredensial peran lama (`VERITY_SEED_PASSWORD_EDITOR` dan `VERITY_SEED_PASSWORD_AUTHOR`).
+  4. **FINDING-005 (Pembersihan Residu Hak Akses canRiskEdit & canManageComplaints):**
+     - Berkas: `src/types/verity.ts`, `src/lib/domain/permissions.ts`, `src/app/api/studio/dashboard/route.ts`, `src/app/studio/(cms)/complaints/page.tsx`, `src/app/studio/(cms)/layout.tsx`, `src/app/studio/(cms)/page.tsx`
+     - Perubahan: Menghapus properti residu `canRiskEdit` dan `canManageComplaints` dari `SessionUser`, `userHasPermission`, dan pemalsuan nilai boolean pada handler dashboard. Mengganti pengecekan pada modul keluhan dengan wewenang jabatan langsung (`user.role === 'CHIEF_EDITOR'`). Pencarian menyeluruh memastikan nol hasil pemakaian di seluruh `src/`.
+  5. **FINDING-004 (Pengaman Keras Skrip Migrasi Role):**
+     - Berkas: `scripts/migrate-role-and-staff.ts`
+     - Perubahan: Mengganti `console.warn` menjadi pelemparan eksepsi keras `throw new Error(...)` yang membatalkan migrasi dan keluar dengan kode non-nol saat mendeteksi akun staf dengan role `VOLUNTEER`. Diverifikasi dengan skrip uji terisolasi.
+  6. **FINDING-006 (Penyelarasan Skema Migrasi & Lockfile):**
+     - Berkas: `prisma/migrations/migration_lock.toml`, `prisma/schema.prisma`, `prisma/migrations/20261111230000_fase_4_align_defaults/migration.sql`
+     - Perubahan: Menambahkan `migration_lock.toml` dengan provider `sqlite`. Menambahkan `@default(now())` pada `ContributorApplication.adultConfirmedAt` di `schema.prisma`. Membuat migrasi baru untuk menyelaraskan nilai default dan indeks tanpa mengubah migrasi lama. Eksekusi `bunx prisma migrate diff` menghasilkan `No difference detected` (zero drift).
+  7. **FINDING-007 (Addendum Dokumentasi Ruang Lingkup Format Berita AI):**
+     - Berkas: `docs/superpowers/audits/2026-11-11-fase-3-developer-portal-ai-agent-report.md`
+     - Perubahan: Menambahkan catatan addendum resmi di akhir laporan Fase 3 yang mendokumentasikan perluasan dukungan format `NEWS` terkurasi untuk AI Agent sesuai catatan kerja entri 34.
+  8. **Peningkatan Kredensial API:**
+     - Berkas: `src/lib/api-key.ts`, `src/app/api/internal/v1/ai-submissions/route.ts`, `src/app/api/internal/v1/ai-submissions/validate/route.ts`, `src/app/api/internal/v1/ai-submissions/[submissionId]/route.ts`
+     - Perubahan: Menambahkan fungsi `verifyApiClientDetailed` yang membedakan penolakan kredensial kedaluwarsa dengan kode HTTP 401 `CREDENTIAL_EXPIRED`.
+- **Penutupan Kesenjangan Pengujian Otomatis (Test Coverage Gaps):**
+  - Membuat suite pengujian baru `tests/audit-remediation.test.ts` (4 pengujian, seluruhnya lulus 100%):
+    1. Pengujian penolakan HTTP 401 `CREDENTIAL_EXPIRED` untuk kunci API yang telah melewati `expiresAt`.
+    2. Pengujian pembatasan laju permintaan (rate limiter) pada beban konkurensi paralel (20 permintaan simultan via `Promise.all` dengan kuota 5) membuktikan 5 diterima, 15 ditolak dengan `remaining: 0` tanpa kebocoran kuota.
+    3. Pengujian penolakan akses portal kontributor mandiri (HTTP 403 `FORBIDDEN`) seketika setelah status kontributor diubah menjadi `SUSPENDED` pada sesi peramban yang sedang aktif.
+    4. Pengujian isolasi komentar internal naskah: Penulis (`WRITER`) ditolak dengan HTTP 403 saat membaca atau menambahkan komentar pada artikel milik penulis lain, sementara penulis pemilik naskah diizinkan.
+- **Pembersihan Akun Test dan Data Uji (Bagian III):**
+  - **Cadangan Data:** Dibuat cadangan sebelum pembersihan di `db/custom.db.pre-cleanup-1794404536538.bak` dan `db/isolated-test.db.pre-cleanup-20261111.bak`.
+  - **Skrip Pembersihan Terkelola:** Dibuat dan dijalankan `scripts/cleanup-test-accounts.ts`.
+  - **Inisialisasi & Verifikasi Akun Asli:** Akun resmi Pemimpin Redaksi `pemredVP` (Arya Rizky Ardhi Pratama, `pemred@veraxpress.org`, role `CHIEF_EDITOR`, status `ACTIVE`) dipastikan aktif dan menjadi pemilik sah seluruh artikel contoh redaksi.
+  - **Penghapusan Akun Test:** 4 akun seed development telah dihapus bersih dari tabel `StaffUser` dan `Person`:
+    1. `chief@verity.test` (username: `chief`, "Chief Test")
+    2. `editor@verity.test` (username: `editor`, "Editor Test")
+    3. `penulis@verity.test` (username: `penulis`, "Alya Rahmadani")
+    4. `author@verity.test` (username: `author`, "Author Test")
+  - **Pembersihan Klien API Test:** 10 klien API per-run pengujian dibersihkan; menyisakan klien demo resmi `vrtc_demo_agent`.
+  - **Atribusi Editorial:** 16 artikel contoh yang ada di basis data tetap utuh dengan atribusi dipindahkan secara sah ke akun `pemredVP`.
+  - **Integritas Relasional:** Evaluasi `PRAGMA integrity_check` mengembalikan `ok` dan `PRAGMA foreign_key_check` mengembalikan 0 pelanggaran.
+  - **Bukti Visual Pasca-Pembersihan:** Tangkapan layar antarmuka `/studio/staff` disimpan di `docs/superpowers/audits/audit-evidence/studio-staff-post-cleanup.png` membuktikan Meja Redaksi hanya menampilkan 1 anggota staf aktif (`pemredVP`).
+- **Hasil Verifikasi Penuh:**
+  - `bun run typecheck`: Bersih 0 galat tipe TypeScript.
+  - `bun run lint`: Bersih 0 peringatan dan 0 galat ESLint.
+  - `bun test`: 148 lulus dari 148 pengujian lintas 13 berkas uji (455 asersi lulus, 0 gagal).
+  - `scripts/smoke-test.ts`: 32 pemeriksaan menyeluruh lulus 100%, data produksi Turso Cloud aman tanpa kebocoran (0 leakage).
+  - `bun run build`: 51/51 rute Next.js 16.1.3 Turbopack terkompilasi bersih tanpa peringatan.
+
+## 37. Verax Press: Pembersihan Data Uji Lanjutan dan Verifikasi Clean Slate Otentik (11 Nov 2026)
+- **Status:** Selesai dan terverifikasi penuh (Status Resmi: CLEAN SLATE VERIFIED).
+- **Objektif:**
+  - Mengklarifikasi asal-usul dan status klien API `vrtc_demo_agent` serta 16 artikel contoh.
+  - Menjalankan pembersihan putaran kedua untuk menghapus seluruh artikel contoh dan klien API dari basis data pengembangan (`db/custom.db`).
+  - Menghasilkan kondisi clean slate murni: 0 artikel, 0 klien API, 0 log permintaan API uji, dan 1 akun staf resmi (`pemredVP`).
+  - Melakukan verifikasi regresi penuh dan pengujian visual halaman studio.
+- **Klarifikasi Temuan Data Uji:**
+  1. **Klien API vrtc_demo_agent:**
+     - Asal-usul: Dibuat oleh skrip pembenihan awal (`prisma/seed.ts`, baris 1009-1020) dan dipertahankan dalam skrip pembersihan lama (`scripts/clean-slate/reset-local-sqlite.ts`, baris 63) sebagai contoh klien integrasi pada masa awal perancangan API Ingestion.
+     - Alasan Dipertahankan Sebelumnya: Pengecualian statis (`WHERE clientId != 'vrtc_demo_agent'`) pada skrip warisan disalahartikan sebagai data perlengkapan sistem resmi.
+     - Riwayat Pemakaian: Hanya menggunakan kredensial pengujian lokal bawaan (`vrtk_demo_dev_secret_local_only` dan nilai acak pada `.env.local`). Kredensial tidak pernah dipakai oleh agen eksternal sungguhan atau di luar pengujian otomatis.
+  2. **16 Artikel Contoh:**
+     - Karakteristik Konten: 12 artikel berasal dari pembenihan (`prisma/seed.ts`) yang dibuat sebagai materi peraga tata letak antarmuka publik dan pengujian pengurai JSON blok terstruktur. Sisanya merupakan naskah draf uji alur kerja redaksi. Seluruh artikel ini bukan laporan jurnalisme riil yang diniatkan untuk dipertahankan.
+     - Status Publikasi: 11 artikel berstatus `PUBLISHED`, 1 `CORRECTED`, 1 `PENDING_APPROVAL`, 1 `FACT_CHECK`, dan 3 `DRAFT`. Artikel yang berstatus `PUBLISHED` sebelumnya dapat diakses pada rute publik development lokal.
+- **Tindakan Teknis yang Dilakukan:**
+  1. **Pembuatan Cadangan Basis Data:**
+     - Membuat cadangan sebelum eksekusi pada `db/custom.db.pre-round2-cleanup-20261111.bak` dan cadangan terstempel waktu `db/custom.db.pre-round2-cleanup-1794406319345.bak`.
+  2. **Eksekusi Skrip Pembersihan (`scripts/cleanup-articles-and-demo-client.ts`):**
+     - Menghapus 1 klien API (`vrtc_demo_agent`), 1 kredensial aktif, dan seluruh catatan log permintaan uji.
+     - Menghapus 17 artikel (16 artikel contoh dan 1 naskah uji audit) beserta seluruh entitas anak relasionalnya: `ArticleVersion`, `SourceReference`, `EditorialReview`, `ReviewComment`, `ArticleContribution`, `CorrectionRecord`, dan `Submission`.
+     - Memutuskan relasi artikel pada tabel keluhan (`Complaint.articleId = NULL`) untuk menjaga integritas pengujian ombudsman publik.
+     - Membukukan catatan audit `editorial.clean_slate_executed` atas nama `pemredVP`.
+  3. **Pemeriksaan Integritas Basis Data:**
+     - `PRAGMA foreign_key_check`: Bersih (0 pelanggaran).
+     - `PRAGMA integrity_check`: Status `ok`.
+     - Ringkasan baris data tabel utama pada `db/custom.db`:
+       - `StaffUser`: Tepat 1 akun aktif (`pemredVP_official`, Pemimpin Redaksi).
+       - `Article`: 0 naskah.
+       - `ApiClient`: 0 klien.
+       - `ApiClientCredential`: 0 kredensial.
+       - `ApiRequestLog`: 0 catatan log.
+       - `Submission`: 0 pengajuan.
+       - `Contributor`: 0 kontributor.
+       - `ContributorApplication`: 0 permohonan.
+  4. **Pengujian Regresi Menyeluruh:**
+     - `bun run typecheck`: Lulus tanpa galat tipe (0 errors).
+     - `bun run lint`: Lulus tanpa peringatan maupun galat ESLint (0 errors, 0 warnings).
+     - `bun test`: 148 pengujian lintas 13 berkas lulus 100% (455 asersi lulus).
+     - `bun run build`: 51 rute Next.js 16.1.3 Turbopack terkompilasi optimal.
+     - `bun run scripts/smoke-test.ts`: 32 pengujian alur redaksi lulus 100% pada basis data pengujian terisolasi, dengan perlindungan nol kebocoran ke Turso Cloud Production.
+  5. **Verifikasi Visual Antarmuka Studio:**
+     - Menjalankan server lokal terhadap `db/custom.db` dan masuk menggunakan akun resmi Pemimpin Redaksi `pemredVP`.
+     - Mengambil bukti visual beresolusi 1440px desktop dan 390px ponsel:
+       - `docs/superpowers/audits/audit-evidence/studio-dashboard-clean-slate-desktop-1440.png`: Menampilkan ringkasan "0 naskah terpantau" dan "Belum ada naskah yang terpantau."
+       - `docs/superpowers/audits/audit-evidence/studio-articles-clean-slate-desktop-1440.png`: Menampilkan daftar artikel dengan pesan status kosong "Tidak ada naskah yang cocok dengan filter ini."
+       - `docs/superpowers/audits/audit-evidence/studio-api-clients-clean-slate-desktop-1440.png`: Menampilkan metrik 0 Klien Integrasi, 0 Permintaan Hari Ini, tab "Klien API (0)", dan wadah status kosong "Belum Ada Klien API" dengan tombol aksi "Buat Klien Pertama".
+
+
+
+
+
+## 38. Verax Press: Migrasi Skema Produksi Turso Cloud dan Peluncuran Rilis (11 Nov 2026)
+- **Status:** Selesai dan terverifikasi penuh (Status Resmi: PRODUCTION MIGRATED & DEPLOYMENT READY).
+- **Objektif:**
+  - Menerapkan skema kanonis Fase 1 hingga Fase 4 ke basis data produksi Turso Cloud (`libsql://verax-aryarizkyap.aws-ap-southeast-1.turso.io`) atas persetujuan pemilik sistem.
+  - Memastikan keselarasan 100% antara skema produksi Turso Cloud dan skema lokal Prisma `prisma/schema.prisma`.
+  - Mengonfirmasi akun resmi Pemimpin Redaksi `pemredVP` aktif di Turso Cloud dengan kredensial utuh.
+  - Melakukan pendorongan komit (*git push*) ke remote GitHub `main` dan memicu rilis Vercel Produksi.
+- **Tindakan Teknis yang Dilakukan:**
+  1. **Migrasi Skema Turso Cloud (`scripts/migrate-turso-clean-slate.ts`):**
+     - Mengekstrak DDL 21 tabel dan 50 indeks dari `db/custom.db`.
+     - Menghapus tabel skema lama Turso secara berurutan dengan penanganan dependensi foreign key.
+     - Membuat 21 tabel kanonis baru: `StaffUser` (dengan kolom `username`), `Contributor`, `Desk`, `Person`, `MediaAsset`, `ApiClient`, `ApiClientCredential`, `ApiRequestLog`, `StaffInvitation`, `ContributorApplication`, `ContributorInvitation`, `Article`, `ArticleVersion`, `ArticleContribution`, `SourceReference`, `EditorialReview`, `ReviewComment`, `Submission`, `Complaint`, `CorrectionRecord`, dan `AuditEvent`.
+     - Membangun seluruh 50 indeks basis data yang diperlukan.
+     - Menyemai 3 desk editorial resmi (`hukum-keadilan`, `teknologi-kebijakan`, `nasional-publik`).
+     - Menyemai akun resmi Pemimpin Redaksi `pemredVP` (`pemredVP_official`, `pemred@veraxpress.org`, role `CHIEF_EDITOR`, status `ACTIVE`) beserta relasi baris nama `Person`.
+     - Membukukan catatan audit `system.production_schema_migrated` pada tabel `AuditEvent`.
+  2. **Verifikasi Integritas Produksi:**
+     - `PRAGMA foreign_key_check`: 0 pelanggaran.
+     - `PRAGMA integrity_check`: `ok`.
+     - Probe kueri `pemredVP` mengembalikan identitas lengkap dengan status `ACTIVE`.
+     - Penghitungan baris tabel produksi: 1 `StaffUser`, 1 `Person`, 3 `Desk`, 0 `Article`, 0 `ApiClient`, 0 `ContributorApplication`, 0 `StaffInvitation`.
+  3. **Verifikasi Smoke Test Pra-Rilis:**
+     - 32/32 pemeriksaan smoke test lulus 100% dengan isolasi ketat terhadap basis data pengujian lokal.

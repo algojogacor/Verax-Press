@@ -1,6 +1,6 @@
 // Serializer Prisma → DTO (kontrak API). Dipakai semua route studio agar konsisten.
 
-import type { ApiClient, AuditEvent, Prisma } from "@prisma/client";
+import type { ApiClient, ApiClientCredential, ApiRequestLog, AuditEvent, Prisma } from "@prisma/client";
 import { db } from "@/lib/db";
 import { allowedTransitionsFrom, TRANSITION_LABELS, canExecuteRule } from "@/lib/domain/workflow";
 import { canVerifySources } from "@/lib/domain/access-helpers";
@@ -14,6 +14,8 @@ import type {
   ComplaintType,
   CorrectionDTO,
   ApiClientDTO,
+  ApiClientCredentialDTO,
+  ApiRequestLogDTO,
   CommentDTO,
   ReviewDTO,
   SessionUser,
@@ -27,12 +29,16 @@ import type {
   SourceType,
   VerificationStatus,
   VersionType,
+  Role,
+  ContributorApplicationDTO,
+  ContributorInvitationDTO,
+  ContributorUserDTO,
 } from "@/types/verity";
 
 export const articleListInclude = {
   desk: true,
   sources: { select: { isKeySource: true, verificationStatus: true } },
-  contributions: { include: { person: { select: { staffUserId: true } } } },
+  contributions: { include: { person: { select: { staffUserId: true, contributorId: true } } } },
 } satisfies Prisma.ArticleInclude;
 
 export type ArticleWithList = Prisma.ArticleGetPayload<{ include: typeof articleListInclude }>;
@@ -50,7 +56,10 @@ export type ArticleWithDetail = Prisma.ArticleGetPayload<{ include: typeof artic
 
 export function isOwnerOf(article: ArticleWithList | ArticleWithDetail, userId: string): boolean {
   if (article.createdById === userId) return true;
-  return article.contributions.some((c) => c.person.staffUserId === userId);
+  if ("contributorId" in article && (article as any).contributorId === userId) return true;
+  return article.contributions.some(
+    (c) => c.person.staffUserId === userId || (c.person as any).contributorId === userId
+  );
 }
 
 export function toArticleListItem(article: ArticleWithList, user: SessionUser): ArticleListItemDTO {
@@ -89,7 +98,7 @@ export function toArticleDetail(article: ArticleWithDetail, user: SessionUser): 
       requiresReason: rule.requiresReason,
     }));
 
-  const canSeeInternalNotes = user.role === "CHIEF_EDITOR" || user.role === "EDITOR";
+  const canSeeInternalNotes = user.role === "CHIEF_EDITOR";
   const visibleComments = article.comments.filter((c) => canSeeInternalNotes || c.authorVisible);
 
   return {
@@ -142,7 +151,7 @@ export function toArticleDetail(article: ArticleWithDetail, user: SessionUser): 
     reviews: article.reviews.map(
       (r): ReviewDTO => ({
         id: r.id,
-        reviewerName: r.reviewer.name,
+        reviewerName: r.reviewer?.name ?? "Penulis / Kontributor",
         fromStatus: r.fromStatus as ArticleStatus,
         toStatus: r.toStatus as ArticleStatus,
         decision: r.decision,
@@ -203,16 +212,63 @@ export function toAuditDTO(event: AuditEvent): AuditEventDTO {
   };
 }
 
-export function toApiClientDTO(client: ApiClient): ApiClientDTO {
+export function toApiClientCredentialDTO(cred: ApiClientCredential): ApiClientCredentialDTO {
+  return {
+    id: cred.id,
+    apiClientId: cred.apiClientId,
+    name: cred.name,
+    keyPrefix: cred.keyPrefix,
+    status: cred.status as "ACTIVE" | "GRACE_PERIOD" | "REVOKED" | "EXPIRED",
+    expiresAt: cred.expiresAt?.toISOString() ?? null,
+    gracePeriodEndsAt: cred.gracePeriodEndsAt?.toISOString() ?? null,
+    lastUsedAt: cred.lastUsedAt?.toISOString() ?? null,
+    revokedAt: cred.revokedAt?.toISOString() ?? null,
+    createdAt: cred.createdAt.toISOString(),
+  };
+}
+
+export function toApiRequestLogDTO(
+  log: ApiRequestLog & { apiClient?: { name: string } | null }
+): ApiRequestLogDTO {
+  return {
+    id: log.id,
+    apiClientId: log.apiClientId,
+    clientName: log.apiClient?.name ?? null,
+    requestId: log.requestId,
+    method: log.method,
+    endpoint: log.endpoint,
+    statusCode: log.statusCode,
+    durationMs: log.durationMs,
+    ipAddress: log.ipAddress,
+    userAgent: log.userAgent,
+    submissionId: log.submissionId,
+    errorCode: log.errorCode,
+    errorMessage: log.errorMessage,
+    createdAt: log.createdAt.toISOString(),
+  };
+}
+
+export function toApiClientDTO(
+  client: ApiClient & {
+    credentials?: ApiClientCredential[];
+    _count?: { requestLogs?: number; credentials?: number };
+  }
+): ApiClientDTO {
   return {
     id: client.id,
     clientId: client.clientId,
     name: client.name,
+    description: client.description ?? null,
+    ownerName: client.ownerName ?? null,
+    environment: (client.environment as "DEVELOPMENT" | "PREVIEW" | "PRODUCTION") ?? "DEVELOPMENT",
     scopes: client.scopes,
     status: client.status,
     expiresAt: client.expiresAt?.toISOString() ?? null,
     lastUsedAt: client.lastUsedAt?.toISOString() ?? null,
     createdAt: client.createdAt.toISOString(),
+    credentials: client.credentials?.map(toApiClientCredentialDTO),
+    totalRequests: client._count?.requestLogs,
+    activeCredentialsCount: client.credentials?.filter((c) => c.status === "ACTIVE").length,
   };
 }
 
@@ -249,4 +305,142 @@ export async function createArticleVersion(
       createdByLabel: input.createdByLabel ?? null,
     },
   });
+}
+
+
+export function toStaffUserDTO(user: {
+  id: string;
+  username: string;
+  email: string | null;
+  name: string;
+  role: string;
+  status: string;
+  lastLoginAt: Date | null;
+  createdAt: Date;
+  updatedAt: Date;
+  person?: { bio: string | null } | null;
+}) {
+  return {
+    id: user.id,
+    username: user.username,
+    email: user.email,
+    name: user.name,
+    role: user.role as Role,
+    status: user.status as "ACTIVE" | "SUSPENDED",
+    lastLoginAt: user.lastLoginAt?.toISOString() ?? null,
+    createdAt: user.createdAt.toISOString(),
+    updatedAt: user.updatedAt.toISOString(),
+    bio: user.person?.bio ?? null,
+  };
+}
+
+export function toStaffInvitationDTO(invitation: {
+  id: string;
+  username: string;
+  name: string;
+  email: string | null;
+  role: string;
+  expiresAt: Date;
+  acceptedAt: Date | null;
+  revokedAt: Date | null;
+  invitedBy?: { name: string } | null;
+  createdAt: Date;
+}) {
+  return {
+    id: invitation.id,
+    username: invitation.username,
+    name: invitation.name,
+    email: invitation.email,
+    role: invitation.role,
+    expiresAt: invitation.expiresAt.toISOString(),
+    acceptedAt: invitation.acceptedAt?.toISOString() ?? null,
+    revokedAt: invitation.revokedAt?.toISOString() ?? null,
+    invitedByName: invitation.invitedBy?.name ?? "Pemimpin Redaksi",
+    createdAt: invitation.createdAt.toISOString(),
+  };
+}
+
+export function toContributorApplicationDTO(app: {
+  id: string;
+  name: string;
+  email: string;
+  bio: string | null;
+  interests: string | null;
+  portfolioUrl: string | null;
+  sampleArticle: string | null;
+  adultConfirmedAt: Date;
+  guidelinesAccepted: boolean;
+  status: string;
+  decidedAt: Date | null;
+  decisionNote: string | null;
+  decidedBy?: { name: string } | null;
+  contributorId: string | null;
+  createdAt: Date;
+}): ContributorApplicationDTO {
+  return {
+    id: app.id,
+    name: app.name,
+    email: app.email,
+    bio: app.bio,
+    interests: app.interests,
+    portfolioUrl: app.portfolioUrl,
+    sampleArticle: app.sampleArticle,
+    adultConfirmedAt: app.adultConfirmedAt.toISOString(),
+    guidelinesAccepted: app.guidelinesAccepted,
+    status: app.status as "PENDING" | "APPROVED" | "REJECTED",
+    decidedAt: app.decidedAt?.toISOString() ?? null,
+    decisionNote: app.decisionNote,
+    decidedByName: app.decidedBy?.name ?? null,
+    contributorId: app.contributorId,
+    createdAt: app.createdAt.toISOString(),
+  };
+}
+
+export function toContributorInvitationDTO(inv: {
+  id: string;
+  email: string;
+  name: string;
+  expiresAt: Date;
+  acceptedAt: Date | null;
+  revokedAt: Date | null;
+  applicationId: string;
+  invitedBy?: { name: string } | null;
+  createdAt: Date;
+}): ContributorInvitationDTO {
+  return {
+    id: inv.id,
+    email: inv.email,
+    name: inv.name,
+    expiresAt: inv.expiresAt.toISOString(),
+    acceptedAt: inv.acceptedAt?.toISOString() ?? null,
+    revokedAt: inv.revokedAt?.toISOString() ?? null,
+    applicationId: inv.applicationId,
+    invitedByName: inv.invitedBy?.name ?? "Redaksi",
+    createdAt: inv.createdAt.toISOString(),
+  };
+}
+
+export function toContributorUserDTO(contributor: {
+  id: string;
+  username: string | null;
+  email: string;
+  status: string;
+  adultConfirmedAt: Date | null;
+  lastLoginAt: Date | null;
+  createdAt: Date;
+  person?: { publicName: string; bio: string | null } | null;
+  _count?: { articles: number };
+}): ContributorUserDTO {
+  return {
+    id: contributor.id,
+    username: contributor.username || "",
+    email: contributor.email,
+    name: contributor.person?.publicName || contributor.username || contributor.email,
+    status: contributor.status as "ACTIVE" | "SUSPENDED",
+    adultConfirmedAt: contributor.adultConfirmedAt?.toISOString() ?? null,
+    lastLoginAt: contributor.lastLoginAt?.toISOString() ?? null,
+    createdAt: contributor.createdAt.toISOString(),
+    bio: contributor.person?.bio ?? null,
+    articleCount: contributor._count?.articles ?? 0,
+  };
 }

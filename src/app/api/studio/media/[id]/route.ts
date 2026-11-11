@@ -11,7 +11,7 @@ export async function DELETE(
 ) {
   try {
     const user = await requireSession();
-    if (user.role !== "CHIEF_EDITOR" && user.role !== "EDITOR") {
+    if (user.role !== "CHIEF_EDITOR") {
       throw new ApiError(403, "FORBIDDEN", "Anda tidak memiliki izin menghapus aset media.");
     }
 

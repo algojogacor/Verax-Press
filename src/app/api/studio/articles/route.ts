@@ -5,7 +5,6 @@ import { z } from "zod";
 import { db } from "@/lib/db";
 import { ApiError, jsonError, ok, parseJsonBody, requireSession, requireStaffPermission } from "@/lib/api";
 import { articleListInclude, createArticleVersion, toArticleListItem } from "@/lib/domain/serializers";
-import { userHasPermission } from "@/lib/domain/permissions";
 import { articleContentSchema, serializeContent } from "@/lib/domain/content";
 import { uniqueArticleSlug } from "@/lib/domain/slug";
 import { writeAudit } from "@/lib/domain/audit";
@@ -26,7 +25,7 @@ export async function GET(request: Request) {
     const url = new URL(request.url);
     const query = listQuerySchema.parse(Object.fromEntries(url.searchParams.entries()));
 
-    const isEditorPlus = user.role === "CHIEF_EDITOR" || user.role === "EDITOR";
+    const isChief = user.role === "CHIEF_EDITOR";
 
     const where: Prisma.ArticleWhereInput = {};
     if (query.status) where.status = query.status;
@@ -34,7 +33,9 @@ export async function GET(request: Request) {
     if (query.format) where.format = query.format;
     if (query.q) where.title = { contains: query.q };
 
-    if (!isEditorPlus || query.scope === "own") {
+    // Penulis hanya dapat melihat naskah miliknya sendiri.
+    // Pemimpin Redaksi dapat melihat semua atau memfilter ke miliknya via scope=own.
+    if (!isChief || query.scope === "own") {
       where.OR = [
         { createdById: user.id },
         { contributions: { some: { person: { staffUserId: user.id }, role: "AUTHOR" } } },
@@ -102,7 +103,7 @@ export async function POST(request: Request) {
     await writeAudit({
       actorType: "STAFF",
       actorId: user.id,
-      actorLabel: user.email,
+      actorLabel: user.username || user.email || user.name,
       action: "article.created",
       targetType: "ARTICLE",
       targetId: article.id,

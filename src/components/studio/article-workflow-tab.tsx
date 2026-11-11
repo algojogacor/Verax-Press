@@ -49,7 +49,7 @@ export function ArticleWorkflowTab({ article }: { article: ArticleDetailDTO }) {
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const { data: session } = useSession();
-  const isEditorPlus = session?.user.role === "CHIEF_EDITOR" || session?.user.role === "EDITOR";
+  const isChiefEditor = session?.user.role === "CHIEF_EDITOR";
 
   const [rows, setRows] = useState<ContributionRow[]>(() =>
     article.contributions.map((contribution) => ({
@@ -159,7 +159,7 @@ export function ArticleWorkflowTab({ article }: { article: ArticleDetailDTO }) {
       </section>
 
       {/* Kredit kontribusi: hanya editor ke atas */}
-      {isEditorPlus ? (
+      {isChiefEditor ? (
         <section aria-label="Kredit kontribusi" className="border border-verity-rule bg-card p-4 sm:p-6">
           <div className="flex flex-wrap items-center justify-between gap-3">
             <div>

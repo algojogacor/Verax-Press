@@ -1,143 +1,251 @@
-// POST /api/internal/v1/ai-submissions — Internal Content Ingestion API (TA §9).
+// POST /api/internal/v1/ai-submissions: Internal Content Ingestion API (Fase 3).
 //
-// - Auth: `Authorization: Bearer vrtc_<clientId>.<secret>` — scope "submit" ONLY.
-// - TIDAK ADA endpoint publish untuk API client di seluruh aplikasi (hard rule #1/#2).
-// - Wajib: ai_involvement, idempotency_key, desk/format valid (format NEWS ditolak),
-//   sumber ber-URL. Format News hanya newsroom (D2 LOCKED).
+// - Autentikasi: `Authorization: Bearer <CLIENT_ID>.<CLIENT_SECRET>` - scope "submit" ONLY.
+// - TIDAK ADA endpoint publish untuk API client di seluruh aplikasi.
+// - Wajib: aiInvolvement, idempotencyKey, desk aktif, format naskah valid, sumber ber-URL.
 // - Idempotent: key sama + payload sama → receipt sama (200); key sama + payload beda → 409.
-// - Response hanya receipt; tanpa data privat. Sumber selalu masuk UNVERIFIED (TA §10).
+// - Status awal artikel selalu DRAFT; sumber selalu masuk berstatus UNVERIFIED.
+// - Dilengkapi pencatatan log permintaan, korelasi Request ID, dan durasi eksekusi.
+
 import { NextResponse } from "next/server";
 import { createHash } from "node:crypto";
-import { z } from "zod";
 import { db } from "@/lib/db";
-import { jsonError, ok, parseJsonBody } from "@/lib/api";
-import { verifyApiClient } from "@/lib/api-key";
+import { verifyApiClientDetailed } from "@/lib/api-key";
 import { rateLimit, sweepRateLimits } from "@/lib/rate-limit";
 import { writeAudit } from "@/lib/domain/audit";
-import { articleContentSchema, serializeContent } from "@/lib/domain/content";
+import { serializeContent } from "@/lib/domain/content";
 import { uniqueArticleSlug } from "@/lib/domain/slug";
 import { createArticleVersion } from "@/lib/domain/serializers";
-import { CONTRIBUTOR_ALLOWED_FORMATS, AI_INVOLVEMENTS, SOURCE_TYPES } from "@/lib/domain/constants";
-
-const ingestionSchema = z.object({
-  title: z.string().min(8).max(200),
-  deck: z.string().max(400).optional(),
-  desk: z.string().min(1).max(60),
-  format: z.string(),
-  content: articleContentSchema,
-  sources: z
-    .array(
-      z.object({
-        title: z.string().min(3).max(300),
-        publisher: z.string().max(200).optional(),
-        url: z.string().url().max(2_000),
-        sourceType: z.enum(SOURCE_TYPES as [string, ...string[]]).default("SECONDARY"),
-        publishedAt: z.string().optional(),
-        accessedAt: z.string().optional(),
-        supports: z.string().max(600).optional(),
-        isKeySource: z.boolean().optional(),
-      }),
-    )
-    .min(1)
-    .max(40),
-  images: z
-    .array(
-      z.object({
-        url: z.string().url().max(2_000),
-        creator: z.string().max(200).optional(),
-        license: z.string().max(200).optional(),
-        permissionEvidence: z.string().max(600).optional(),
-        caption: z.string().max(500).optional(),
-      }),
-    )
-    .max(20)
-    .optional(),
-  tags: z.array(z.string().min(2).max(40)).max(10).optional(),
-  verificationNotes: z.string().max(3_000).optional(),
-  aiInvolvement: z.enum(AI_INVOLVEMENTS as [string, ...string[]]),
-  aiUsageNote: z.string().max(1_000).optional(),
-  agentId: z.string().min(2).max(120),
-  idempotencyKey: z.string().min(8).max(128),
-});
+import { validateIngestionPayload } from "@/lib/domain/ingestion";
+import { generateRequestId, logApiRequest } from "@/lib/request-logger";
 
 export async function POST(request: Request) {
+  const startTime = Date.now();
+  const requestId = request.headers.get("x-request-id") || generateRequestId();
+  const ipAddress = request.headers.get("x-forwarded-for") || request.headers.get("x-real-ip");
+  const userAgent = request.headers.get("user-agent");
+
   try {
     sweepRateLimits();
 
-    // 1) Autentikasi API client (scope submit-only).
-    const client = await verifyApiClient(request.headers.get("authorization"));
-    if (!client) {
+    // 1. Autentikasi API client (scope submit-only)
+    const proxyToken = request.headers.get("x-verax-proxy-token");
+    const proxyClientId = request.headers.get("x-verax-proxy-client-id");
+    const authRes = await verifyApiClientDetailed(request.headers.get("authorization"), proxyToken, proxyClientId);
+    if (!authRes.client) {
+      const durationMs = Date.now() - startTime;
+      const errorCode = authRes.errorCode || "UNAUTHORIZED";
+      const errorMessage = authRes.errorMessage || "Kredensial API client tidak valid.";
+      await logApiRequest({
+        requestId,
+        method: "POST",
+        endpoint: "/api/internal/v1/ai-submissions",
+        statusCode: 401,
+        durationMs,
+        ipAddress,
+        userAgent,
+        errorCode,
+        errorMessage,
+      });
+
       return NextResponse.json(
-        { error: "Kredensial API client tidak valid.", code: "UNAUTHORIZED" },
-        { status: 401 },
+        {
+          error: errorMessage,
+          code: errorCode,
+          requestId,
+        },
+        {
+          status: 401,
+          headers: { "x-request-id": requestId },
+        },
       );
     }
+    const client = authRes.client;
 
-    // 2) Rate limit per client.
+    // 2. Pembatasan laju permintaan (Rate limit per client: 12 req/menit)
     const limit = rateLimit(`ingest:${client.id}`, 12, 60_000);
     if (!limit.allowed) {
+      const durationMs = Date.now() - startTime;
+      await logApiRequest({
+        requestId,
+        apiClientId: client.id,
+        method: "POST",
+        endpoint: "/api/internal/v1/ai-submissions",
+        statusCode: 429,
+        durationMs,
+        ipAddress,
+        userAgent,
+        errorCode: "RATE_LIMITED",
+        errorMessage: "Terlalu banyak submission.",
+      });
+
       return NextResponse.json(
-        { error: "Terlalu banyak submission. Coba lagi nanti.", code: "RATE_LIMITED" },
-        { status: 429, headers: { "Retry-After": String(limit.retryAfterSeconds) } },
+        {
+          error: "Batas laju permintaan terlampaui. Silakan coba kembali setelah jeda waktu yang ditentukan.",
+          code: "RATE_LIMITED",
+          requestId,
+        },
+        {
+          status: 429,
+          headers: {
+            "Retry-After": String(limit.retryAfterSeconds),
+            "x-request-id": requestId,
+          },
+        },
       );
     }
 
-    // 3) Validasi payload.
-    const body = await parseJsonBody(request, ingestionSchema);
+    // 3. Baca dan parsing JSON
+    let rawBody: unknown;
+    try {
+      rawBody = await request.json();
+    } catch {
+      const durationMs = Date.now() - startTime;
+      await logApiRequest({
+        requestId,
+        apiClientId: client.id,
+        method: "POST",
+        endpoint: "/api/internal/v1/ai-submissions",
+        statusCode: 400,
+        durationMs,
+        ipAddress,
+        userAgent,
+        errorCode: "MALFORMED_JSON",
+        errorMessage: "Format JSON tidak terbaca.",
+      });
 
-    if (!CONTRIBUTOR_ALLOWED_FORMATS.includes(body.format as never)) {
       return NextResponse.json(
-        { error: `Format "${body.format}" tidak diterima. News hanya diproduksi newsroom.`, code: "FORMAT_REJECTED" },
-        { status: 422 },
+        {
+          error: "Payload harus berupa JSON yang valid.",
+          code: "MALFORMED_JSON",
+          requestId,
+        },
+        {
+          status: 400,
+          headers: { "x-request-id": requestId },
+        },
       );
     }
 
-    const desk = await db.desk.findUnique({ where: { slug: body.desk } });
-    if (!desk || !desk.isActive) {
-      return NextResponse.json({ error: "Desk tidak valid.", code: "DESK_REJECTED" }, { status: 422 });
+    // 4. Validasi payload komprehensif
+    const validation = await validateIngestionPayload(rawBody);
+    if (!validation.valid) {
+      const durationMs = Date.now() - startTime;
+      await logApiRequest({
+        requestId,
+        apiClientId: client.id,
+        method: "POST",
+        endpoint: "/api/internal/v1/ai-submissions",
+        statusCode: 422,
+        durationMs,
+        ipAddress,
+        userAgent,
+        errorCode: validation.code,
+        errorMessage: validation.error,
+      });
+
+      return NextResponse.json(
+        {
+          error: validation.error,
+          code: validation.code,
+          details: validation.details,
+          requestId,
+        },
+        {
+          status: 422,
+          headers: { "x-request-id": requestId },
+        },
+      );
     }
 
-    // 4) Idempotency.
-    const payloadForHash = { ...body };
+    const { payload, desk } = validation;
+
+    // 5. Idempotency Check
+    const payloadForHash = { ...payload };
     delete (payloadForHash as { idempotencyKey?: string }).idempotencyKey;
     const payloadHash = createHash("sha256").update(JSON.stringify(payloadForHash)).digest("hex");
 
-    const existing = await db.submission.findUnique({ where: { idempotencyKey: body.idempotencyKey } });
+    const existing = await db.submission.findUnique({
+      where: { idempotencyKey: payload.idempotencyKey },
+    });
+
     if (existing) {
       if (existing.payloadHash === payloadHash) {
-        // Replay idempotent — kembalikan receipt yang sama.
-        return ok({
+        // Replay idempotent — kembalikan receipt yang sama persis
+        const durationMs = Date.now() - startTime;
+        await logApiRequest({
+          requestId,
+          apiClientId: client.id,
+          method: "POST",
+          endpoint: "/api/internal/v1/ai-submissions",
+          statusCode: 200,
+          durationMs,
+          ipAddress,
+          userAgent,
           submissionId: existing.id,
-          articleId: existing.articleId,
-          status: existing.status,
-          receivedAt: existing.submittedAt.toISOString(),
-          idempotentReplay: true,
         });
+
+        return NextResponse.json(
+          {
+            submissionId: existing.id,
+            articleId: existing.articleId,
+            status: existing.status,
+            receivedAt: existing.submittedAt.toISOString(),
+            idempotentReplay: true,
+            requestId,
+          },
+          {
+            status: 200,
+            headers: { "x-request-id": requestId },
+          },
+        );
       }
+
+      const durationMs = Date.now() - startTime;
+      await logApiRequest({
+        requestId,
+        apiClientId: client.id,
+        method: "POST",
+        endpoint: "/api/internal/v1/ai-submissions",
+        statusCode: 409,
+        durationMs,
+        ipAddress,
+        userAgent,
+        errorCode: "IDEMPOTENCY_CONFLICT",
+        errorMessage: "Idempotency key sudah digunakan untuk payload berbeda.",
+      });
+
       return NextResponse.json(
-        { error: "Idempotency key sudah dipakai untuk payload yang berbeda.", code: "IDEMPOTENCY_CONFLICT" },
-        { status: 409 },
+        {
+          error: "Idempotency key sudah digunakan sebelumnya untuk payload yang berbeda.",
+          code: "IDEMPOTENCY_CONFLICT",
+          requestId,
+        },
+        {
+          status: 409,
+          headers: { "x-request-id": requestId },
+        },
       );
     }
 
-    // 5) Buat artikel DRAFT + sumber (UNVERIFIED) + aset + submission secara atomik.
-    const contentJson = serializeContent(body.content);
-    const slug = await uniqueArticleSlug(body.title);
+    // 6. Persistensi Atomik: Article DRAFT + Version + Sources (UNVERIFIED) + Images + Submission
+    const contentJson = serializeContent(payload.content);
+    const slug = await uniqueArticleSlug(payload.title);
 
     const { submission, article } = await db.$transaction(async (tx) => {
       const article = await tx.article.create({
         data: {
           slug,
-          title: body.title,
-          deck: body.deck ?? null,
+          title: payload.title,
+          deck: payload.deck ?? null,
           deskId: desk.id,
-          format: body.format,
+          format: payload.format,
           status: "DRAFT",
           contentJson,
           origin: "INGESTION_API",
-          byline: "Redaksi Verax Press", // byline final diputuskan manusia di CMS (TA §9.1)
-          aiInvolvement: body.aiInvolvement,
-          aiDisclosureNote: body.aiUsageNote ?? null,
+          byline: "Redaksi Verax Press", // Byline final ditetapkan oleh tim editorial manusia
+          aiInvolvement: payload.aiInvolvement,
+          aiDisclosureNote: payload.aiUsageNote ?? null,
           createdById: null,
         },
       });
@@ -154,7 +262,7 @@ export async function POST(request: Request) {
         tx,
       );
 
-      for (const source of body.sources) {
+      for (const source of payload.sources) {
         await tx.sourceReference.create({
           data: {
             articleId: article.id,
@@ -165,14 +273,14 @@ export async function POST(request: Request) {
             publishedAt: source.publishedAt ? new Date(source.publishedAt) : null,
             accessedAt: source.accessedAt ? new Date(source.accessedAt) : new Date(),
             supports: source.supports ?? null,
-            isKeySource: source.isKeySource ?? false, // petunjuk agent; final ditetapkan editor
-            verificationStatus: "UNVERIFIED", // deklarasi agent tidak sama dengan verifikasi (TA §6.1)
+            isKeySource: source.isKeySource ?? false,
+            verificationStatus: "UNVERIFIED", // Selalu UNVERIFIED walau agen mengklaim verifikasi
           },
         });
       }
 
-      if (body.images?.length) {
-        for (const image of body.images) {
+      if (payload.images?.length) {
+        for (const image of payload.images) {
           await tx.mediaAsset.create({
             data: {
               articleId: article.id,
@@ -191,14 +299,15 @@ export async function POST(request: Request) {
         data: {
           origin: "INGESTION_API",
           articleId: article.id,
-          agentId: body.agentId,
+          apiClientId: client.id,
+          agentId: payload.agentId,
           status: "SUBMITTED",
-          aiInvolvementDeclared: body.aiInvolvement,
-          aiUsageNote: body.aiUsageNote ?? null,
-          verificationNotes: body.verificationNotes ?? null,
-          idempotencyKey: body.idempotencyKey,
+          aiInvolvementDeclared: payload.aiInvolvement,
+          aiUsageNote: payload.aiUsageNote ?? null,
+          verificationNotes: payload.verificationNotes ?? null,
+          idempotencyKey: payload.idempotencyKey,
           payloadHash,
-          tagsJson: body.tags ? JSON.stringify(body.tags) : null,
+          tagsJson: payload.tags ? JSON.stringify(payload.tags) : null,
         },
       });
 
@@ -210,8 +319,13 @@ export async function POST(request: Request) {
           action: "submission.ingested",
           targetType: "SUBMISSION",
           targetId: submission.id,
-          correlationId: body.idempotencyKey,
-          metadata: { articleId: article.id, agentId: body.agentId, aiInvolvement: body.aiInvolvement },
+          correlationId: payload.idempotencyKey,
+          metadata: {
+            articleId: article.id,
+            agentId: payload.agentId,
+            aiInvolvement: payload.aiInvolvement,
+            requestId,
+          },
         },
         tx,
       );
@@ -219,18 +333,68 @@ export async function POST(request: Request) {
       return { submission, article };
     });
 
-    // 6) Receipt saja: tanpa informasi privat lain (TA §9.2).
-    return ok(
+    const durationMs = Date.now() - startTime;
+    await logApiRequest({
+      requestId,
+      apiClientId: client.id,
+      method: "POST",
+      endpoint: "/api/internal/v1/ai-submissions",
+      statusCode: 201,
+      durationMs,
+      ipAddress,
+      userAgent,
+      submissionId: submission.id,
+    });
+
+    return NextResponse.json(
       {
         submissionId: submission.id,
         articleId: article.id,
         status: "DRAFT",
         receivedAt: submission.submittedAt.toISOString(),
         idempotentReplay: false,
+        requestId,
       },
-      201,
+      {
+        status: 201,
+        headers: { "x-request-id": requestId },
+      },
     );
   } catch (error) {
-    return jsonError(error);
+    const durationMs = Date.now() - startTime;
+    await logApiRequest({
+      requestId,
+      method: "POST",
+      endpoint: "/api/internal/v1/ai-submissions",
+      statusCode: 500,
+      durationMs,
+      ipAddress,
+      userAgent,
+      errorCode: "INTERNAL_ERROR",
+      errorMessage: error instanceof Error ? error.message : "Internal error",
+    });
+
+    console.error("[Ingestion API] Galat internal:", error);
+    return NextResponse.json(
+      {
+        error: "Terjadi galat pada pemrosesan internal server.",
+        code: "INTERNAL_ERROR",
+        requestId,
+      },
+      {
+        status: 500,
+        headers: { "x-request-id": requestId },
+      },
+    );
   }
+}
+
+export async function GET() {
+  return NextResponse.json(
+    {
+      error: "Metode GET tidak diizinkan pada endpoint ini. Gunakan POST untuk mengirim naskah.",
+      code: "METHOD_NOT_ALLOWED",
+    },
+    { status: 405 },
+  );
 }

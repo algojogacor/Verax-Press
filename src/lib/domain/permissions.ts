@@ -1,5 +1,5 @@
-// Permission matrix server-side (TA §5.1). UI hiding TIDAK menggantikan layer ini —
-// semua route API memanggil helper di file ini. Least privilege.
+// Permission matrix server-side. UI hiding TIDAK menggantikan layer ini.
+// Semua route API memanggil helper di file ini. Least privilege.
 import type { Article } from "@prisma/client";
 import type { Role } from "@/types/verity";
 
@@ -10,101 +10,93 @@ export type Permission =
   | "article:review"
   | "source:verify"
   | "source:manage"
-  | "article:publish" // Chief Editor only (Tahap A)
+  | "article:publish" // Chief Editor only
   | "article:risk_edit"
   | "complaint:manage"
   | "correction:create"
   | "audit:read"
   | "audit:read_article"
   | "apiclient:manage"
-  | "staff:list";
+  | "staff:list"
+  | "staff:manage";
 
-const EDITOR_PLUS: Role[] = ["CHIEF_EDITOR", "EDITOR"];
-const ALL_AUTHORS: Role[] = ["CHIEF_EDITOR", "EDITOR", "INTERNAL_AUTHOR"];
-
-/** Permission berbasis role murni (tanpa grant eksplisit). */
+/** Permission berbasis role murni (Chief Editor vs Writer). */
 export function roleHasPermission(role: Role, permission: Permission): boolean {
   switch (permission) {
     case "article:create":
-      return ALL_AUTHORS.includes(role);
+      return role === "CHIEF_EDITOR" || role === "WRITER";
     case "article:read_internal":
     case "article:edit_internal":
-      return ALL_AUTHORS.includes(role); // scope own/all dicek via helper lain
+      return role === "CHIEF_EDITOR" || role === "WRITER"; // scope own/all dicek via canReadArticle / canEditArticleContent
+    case "source:manage":
+      return role === "CHIEF_EDITOR" || role === "WRITER"; // penulis boleh menambah sumber di naskahnya; verifikasi tetap chief editor
+    case "audit:read_article":
+      return role === "CHIEF_EDITOR" || role === "WRITER"; // penulis hanya membaca jejak naskahnya
     case "article:review":
     case "source:verify":
-    case "audit:read_article":
-      return EDITOR_PLUS.includes(role);
-    case "source:manage":
-      return ALL_AUTHORS.includes(role); // penulis boleh menambah sumber di naskahnya; verifikasi tetap editor
     case "article:publish":
-    case "audit:read":
-    case "apiclient:manage":
-    case "staff:list":
-      return role === "CHIEF_EDITOR";
     case "article:risk_edit":
     case "complaint:manage":
     case "correction:create":
-      // "By explicit grant" untuk Editor; Chief Editor selalu boleh (TA §5.1).
+    case "audit:read":
+    case "apiclient:manage":
+    case "staff:list":
+    case "staff:manage":
       return role === "CHIEF_EDITOR";
     default:
       return false;
   }
 }
 
-/** Grant eksplisit per user (mewujudkan kolom "By explicit grant" di matrix). Role disimpan sebagai String di Prisma. */
+/** Helper kompatibilitas userHasPermission. */
 export function userHasPermission(
-  user: { role: string; canRiskEdit: boolean; canManageComplaints: boolean },
+  user: { role: string },
   permission: Permission,
 ): boolean {
-  if (permission === "article:risk_edit") {
-    return user.role === "CHIEF_EDITOR" || (user.role === "EDITOR" && user.canRiskEdit);
-  }
-  if (permission === "complaint:manage" || permission === "correction:create") {
-    return user.role === "CHIEF_EDITOR" || (user.role === "EDITOR" && user.canManageComplaints);
-  }
   return roleHasPermission(user.role as Role, permission);
 }
 
 /** Kepemilikan: pembuat naskah atau tercatat sebagai kontributor AUTHOR. */
 export function isArticleOwner(
-  article: Pick<Article, "createdById">,
+  article: { createdById?: string | null; contributorId?: string | null },
   userId: string,
   authorStaffIds: string[] = [],
 ): boolean {
-  if (article.createdById === userId) return true;
+  if (article.createdById && article.createdById === userId) return true;
+  if (article.contributorId && article.contributorId === userId) return true;
   return authorStaffIds.includes(userId);
 }
 
 /**
- * Visibilitas artikel internal: Editor/Chief melihat semua; Internal Author hanya miliknya;
- * Volunteer tidak melihat apa pun secara default.
+ * Visibilitas artikel internal:
+ * Chief Editor melihat semua; Writer hanya miliknya sendiri.
  */
 export function canReadArticle(
-  user: { id: string; role: string },
-  article: Pick<Article, "createdById">,
+  user: { id: string; role?: string; accountType?: "STAFF" | "CONTRIBUTOR" },
+  article: { createdById?: string | null; contributorId?: string | null },
   authorStaffIds: string[] = [],
 ): boolean {
-  if (user.role === "CHIEF_EDITOR" || user.role === "EDITOR") return true;
-  if (user.role === "INTERNAL_AUTHOR") {
+  if (user.role === "CHIEF_EDITOR") return true;
+  if (user.accountType === "CONTRIBUTOR" || user.role === "WRITER") {
     return isArticleOwner(article, user.id, authorStaffIds);
   }
-  return false; // VOLUNTEER: no default access
+  return false;
 }
 
 /**
  * Boleh mengubah konten artikel pada status tertentu:
- * - Author: hanya naskah sendiri di DRAFT / REVISION_NEEDED.
- * - Editor/Chief: semua status non-terminal (termasuk perbaikan editorial saat review/fact-check).
+ * - Writer: hanya naskah sendiri pada status DRAFT atau REVISION_NEEDED.
+ * - Chief Editor: semua status non-terminal.
  */
 export function canEditArticleContent(
-  user: { id: string; role: string },
-  article: Pick<Article, "createdById" | "status">,
+  user: { id: string; role?: string; accountType?: "STAFF" | "CONTRIBUTOR" },
+  article: { createdById?: string | null; contributorId?: string | null; status: string },
   authorStaffIds: string[] = [],
 ): boolean {
   const terminal = ["PUBLISHED", "REJECTED", "WITHDRAWN", "CORRECTED", "RETRACTED", "ARCHIVED"];
-  if (terminal.includes(article.status)) return false; // perubahan pasca-terbit lewat jalur koreksi
-  if (user.role === "CHIEF_EDITOR" || user.role === "EDITOR") return true;
-  if (user.role === "INTERNAL_AUTHOR") {
+  if (terminal.includes(article.status)) return false;
+  if (user.role === "CHIEF_EDITOR") return true;
+  if (user.accountType === "CONTRIBUTOR" || user.role === "WRITER") {
     const own = isArticleOwner(article, user.id, authorStaffIds);
     return own && (article.status === "DRAFT" || article.status === "REVISION_NEEDED");
   }

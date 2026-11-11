@@ -1,5 +1,5 @@
-// NextAuth v4: khusus staf redaksi (CMS /studio). Kontributor eksternal (Tahap B)
-// akan memakai auth terpisah sesuai arsitektur; API client TIDAK login lewat sini.
+// NextAuth v4: autentikasi staf redaksi (CMS /studio).
+// Membedakan tipe akun internal (STAFF) dan kontributor eksternal (CONTRIBUTOR).
 
 import type { NextAuthOptions } from "next-auth";
 import CredentialsProvider from "next-auth/providers/credentials";
@@ -45,6 +45,8 @@ export const authOptions: NextAuthOptions = {
           (await db.staffUser.findFirst({
             where: {
               OR: [
+                { username: identifier },
+                { username: identifier.toLowerCase() },
                 { email: identifier },
                 { email: identifier.toLowerCase() },
               ],
@@ -54,35 +56,94 @@ export const authOptions: NextAuthOptions = {
             await db.$queryRaw<
               Array<{
                 id: string;
-                email: string;
+                username: string;
+                email: string | null;
                 name: string;
                 role: string;
                 status: string;
                 passwordHash: string;
               }>
-            >`SELECT id, email, name, role, status, passwordHash FROM StaffUser WHERE email = ${identifier} COLLATE NOCASE LIMIT 1`
+            >`SELECT id, username, email, name, role, status, passwordHash FROM StaffUser WHERE (username = ${identifier} COLLATE NOCASE OR (email IS NOT NULL AND email = ${identifier} COLLATE NOCASE)) LIMIT 1`
           )[0];
 
-        // Pesan error generik + delay ringan via verify tetap konstan waktu.
-        if (!user) return null;
-        if (user.status !== "ACTIVE") return null;
-        if (!verifyPassword(credentials.password, user.passwordHash)) return null;
+        // 1. Jika ditemukan akun StaffUser
+        if (user) {
+          if (user.status !== "ACTIVE") return null;
+          if (!verifyPassword(credentials.password, user.passwordHash)) return null;
 
-        await db.staffUser.update({ where: { id: user.id }, data: { lastLoginAt: new Date() } });
+          await db.staffUser.update({ where: { id: user.id }, data: { lastLoginAt: new Date() } });
+          await writeAudit({
+            actorType: "STAFF",
+            actorId: user.id,
+            actorLabel: user.username || user.email || user.name,
+            action: "auth.login",
+            targetType: "AUTH",
+            targetId: user.id,
+          });
+
+          return {
+            id: user.id,
+            name: user.name,
+            username: user.username,
+            email: user.email,
+            role: (ROLES.includes(user.role as Role) ? user.role : "WRITER") as Role,
+            accountType: "STAFF" as const,
+          };
+        }
+
+        // 2. Jika tidak ditemukan pada StaffUser, cari di Contributor (Volunteer eksternal)
+        const contributor =
+          (await db.contributor.findFirst({
+            where: {
+              OR: [
+                { username: identifier },
+                { username: identifier.toLowerCase() },
+                { email: identifier },
+                { email: identifier.toLowerCase() },
+              ],
+            },
+            include: { person: true },
+          })) ??
+          (
+            await db.$queryRaw<
+              Array<{
+                id: string;
+                username: string | null;
+                email: string;
+                status: string;
+                passwordHash: string;
+              }>
+            >`SELECT id, username, email, status, passwordHash FROM Contributor WHERE (username = ${identifier} COLLATE NOCASE OR (email IS NOT NULL AND email = ${identifier} COLLATE NOCASE)) LIMIT 1`
+          )[0];
+
+        if (!contributor) return null;
+        if (contributor.status !== "ACTIVE") return null;
+        if (!verifyPassword(credentials.password, contributor.passwordHash)) return null;
+
+        await db.contributor.update({ where: { id: contributor.id }, data: { lastLoginAt: new Date() } });
         await writeAudit({
-          actorType: "STAFF",
-          actorId: user.id,
-          actorLabel: user.email,
-          action: "auth.login",
+          actorType: "CONTRIBUTOR",
+          actorId: contributor.id,
+          actorLabel: contributor.username || contributor.email,
+          action: "auth.contributor_login",
           targetType: "AUTH",
-          targetId: user.id,
+          targetId: contributor.id,
         });
 
+        const person =
+          "person" in contributor && (contributor as any).person
+            ? (contributor as any).person
+            : await db.person.findUnique({ where: { contributorId: contributor.id } });
+
+        const publicName = person?.publicName || contributor.username || contributor.email;
+
         return {
-          id: user.id,
-          name: user.name,
-          email: user.email,
-          role: (ROLES.includes(user.role as Role) ? user.role : "VOLUNTEER") as Role,
+          id: contributor.id,
+          name: publicName,
+          username: contributor.username || "",
+          email: contributor.email,
+          role: "WRITER" as Role,
+          accountType: "CONTRIBUTOR" as const,
         };
       },
     }),
@@ -91,14 +152,18 @@ export const authOptions: NextAuthOptions = {
     async jwt({ token, user }) {
       if (user) {
         token.id = user.id as string;
-        token.role = (user as unknown as { role: Role }).role ?? "VOLUNTEER";
+        token.role = (user as unknown as { role: Role }).role ?? "WRITER";
+        token.username = (user as unknown as { username: string }).username ?? "";
+        token.accountType = (user as unknown as { accountType: "STAFF" | "CONTRIBUTOR" }).accountType ?? "STAFF";
       }
       return token;
     },
     async session({ session, token }) {
       if (session.user) {
         session.user.id = (token.id as string) ?? "";
-        session.user.role = (token.role as Role) ?? "VOLUNTEER";
+        session.user.role = (token.role as Role) ?? "WRITER";
+        session.user.username = (token.username as string) ?? "";
+        session.user.accountType = (token.accountType as "STAFF" | "CONTRIBUTOR") ?? "STAFF";
       }
       return session;
     },
@@ -110,18 +175,24 @@ declare module "next-auth" {
     user: {
       id: string;
       name: string;
-      email: string;
+      username: string;
+      email: string | null;
       role: Role;
+      accountType: "STAFF" | "CONTRIBUTOR";
     };
   }
   interface User {
+    username?: string;
     role?: Role;
+    accountType?: "STAFF" | "CONTRIBUTOR";
   }
 }
 
 declare module "next-auth/jwt" {
   interface JWT {
     id?: string;
+    username?: string;
     role?: Role;
+    accountType?: "STAFF" | "CONTRIBUTOR";
   }
 }

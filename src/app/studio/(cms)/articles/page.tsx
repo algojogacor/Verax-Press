@@ -40,8 +40,8 @@ export default function StudioArticlesPage() {
   const router = useRouter();
   const { data: session } = useSession();
   const role = session?.user?.role;
-  const isEditorPlus = role === "CHIEF_EDITOR" || role === "EDITOR";
-  const canCreate = role !== "VOLUNTEER" && role != null;
+  const isChiefEditor = role === "CHIEF_EDITOR";
+  const canCreate = role != null;
 
   const [status, setStatus] = useState<string>(STATUS_FILTER_ALL);
   const [search, setSearch] = useState("");
@@ -117,7 +117,7 @@ export default function StudioArticlesPage() {
           </div>
         </div>
 
-        {isEditorPlus ? (
+        {isChiefEditor ? (
           <div className="flex items-center gap-2 pb-1">
             <Switch
               id="filter-scope"

@@ -17,6 +17,8 @@ import {
   LogOut,
   Menu,
   ScrollText,
+  UserCheck,
+  Users,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
@@ -31,9 +33,9 @@ interface DashboardData {
     canPublish: boolean;
     canReview: boolean;
     canVerifySources: boolean;
-    canManageComplaints: boolean;
     canManageApiClients: boolean;
     canReadAudit: boolean;
+    canManageStaff?: boolean;
   };
 }
 
@@ -50,17 +52,16 @@ function StudioNav({ onNavigate }: { onNavigate?: () => void }) {
   const { data } = useDashboardPermissions();
 
   const isChief = data?.user.role === "CHIEF_EDITOR";
-  const canManageComplaints = data?.permissions.canManageComplaints ?? false;
 
   const items = [
     { href: "/studio", label: "Dashboard", icon: LayoutDashboard },
     { href: "/studio/articles", label: "Artikel", icon: FileText },
+    ...(isChief ? [{ href: "/studio/staff", label: "Tim Redaksi", icon: Users }] : []),
+    ...(isChief ? [{ href: "/studio/applications", label: "Pengajuan Volunteer", icon: UserCheck }] : []),
     { href: "/studio/media", label: "Media", icon: ImageIcon },
-    ...(canManageComplaints
-      ? [{ href: "/studio/complaints", label: "Keluhan", icon: ClipboardList }]
-      : []),
+    ...(isChief ? [{ href: "/studio/complaints", label: "Keluhan", icon: ClipboardList }] : []),
     ...(isChief ? [{ href: "/studio/audit", label: "Audit", icon: ScrollText }] : []),
-    ...(isChief ? [{ href: "/studio/api-clients", label: "Klien API", icon: KeyRound }] : []),
+    ...(isChief ? [{ href: "/studio/api-clients", label: "API & Integrasi", icon: KeyRound }] : []),
   ];
 
   return (
@@ -127,64 +128,75 @@ export default function CmsLayout({ children }: { children: React.ReactNode }) {
     }
   }, [status, router]);
 
-  if (status !== "authenticated") {
+  if (status === "loading") {
     return (
-      <div className="flex min-h-screen items-center justify-center">
-        <Loader2 className="size-5 animate-spin text-verity-ink-faint" aria-label="Memuat" />
+      <div className="flex min-h-screen items-center justify-center bg-verity-paper text-verity-ink">
+        <Loader2 className="size-5 animate-spin" aria-hidden="true" />
+        <span className="ml-2 font-mono text-xs uppercase tracking-[0.14em]">Memuat Studio</span>
       </div>
     );
   }
 
   return (
-    <div className="flex min-h-screen bg-verity-paper">
-      {/* Sidebar desktop */}
-      <aside className="hidden w-60 shrink-0 flex-col border-r border-verity-rule bg-card md:flex">
-        <div className="border-b border-verity-rule p-4">
-          <p className="pl-[0.3em] font-serif text-base font-semibold tracking-[0.24em] text-verity-ink">VERAX PRESS</p>
-          <p className="mt-0.5 font-mono text-[10px] uppercase tracking-[0.16em] text-verity-ink-faint">
-            Studio Redaksi
-          </p>
+    <div className="min-h-screen bg-verity-paper text-verity-ink">
+      {/* Topbar mobile */}
+      <header className="flex h-14 items-center justify-between border-b border-verity-rule px-4 md:hidden">
+        <div className="flex items-center gap-3">
+          <Sheet open={mobileOpen} onOpenChange={setMobileOpen}>
+            <SheetTrigger asChild>
+              <Button variant="ghost" size="sm" aria-label="Buka menu studio">
+                <Menu className="size-5" aria-hidden="true" />
+              </Button>
+            </SheetTrigger>
+            <SheetContent side="left" className="w-64 p-0 bg-verity-paper">
+              <SheetHeader className="border-b border-verity-rule p-4 text-left">
+                <SheetTitle className="font-serif text-lg font-semibold tracking-tight text-verity-ink">
+                  Verax Press
+                </SheetTitle>
+                <p className="font-mono text-[11px] uppercase tracking-[0.12em] text-verity-ink-soft">
+                  Ruang Redaksi
+                </p>
+              </SheetHeader>
+              <div className="p-3">
+                <StudioNav onNavigate={() => setMobileOpen(false)} />
+              </div>
+              <div className="mt-auto">
+                <UserFooter onNavigate={() => setMobileOpen(false)} />
+              </div>
+            </SheetContent>
+          </Sheet>
+          <span className="font-serif text-lg font-semibold tracking-tight text-verity-ink">
+            Verax Press
+          </span>
         </div>
-        <div className="flex-1 overflow-y-auto p-3">
-          <StudioNav />
-        </div>
-        <UserFooter />
-      </aside>
+        <span className="font-mono text-[11px] uppercase tracking-[0.14em] text-verity-ink-soft">
+          Studio
+        </span>
+      </header>
 
-      <div className="flex min-w-0 flex-1 flex-col">
-        {/* Topbar mobile */}
-        <header className="sticky top-0 z-20 flex items-center justify-between border-b border-verity-rule bg-card px-4 py-3 md:hidden">
-          <div className="flex items-center gap-3">
-            <Sheet open={mobileOpen} onOpenChange={setMobileOpen}>
-              <SheetTrigger asChild>
-                <Button variant="outline" size="icon" aria-label="Buka menu navigasi">
-                  <Menu className="size-4" aria-hidden="true" />
-                </Button>
-              </SheetTrigger>
-              <SheetContent side="left" className="w-72 border-verity-rule bg-card p-0">
-                <SheetHeader className="border-b border-verity-rule px-4 py-3 text-left">
-                  <SheetTitle className="pl-[0.24em] font-serif text-base font-semibold tracking-[0.24em] text-verity-ink">
-                    VERAX PRESS
-                  </SheetTitle>
-                </SheetHeader>
-                <div className="flex h-[calc(100%-4rem)] flex-col">
-                  <div className="flex-1 overflow-y-auto p-3">
-                    <StudioNav onNavigate={() => setMobileOpen(false)} />
-                  </div>
-                  <UserFooter onNavigate={() => setMobileOpen(false)} />
-                </div>
-              </SheetContent>
-            </Sheet>
-            <p className="pl-[0.24em] font-serif text-sm font-semibold tracking-[0.24em] text-verity-ink">
-              VERAX PRESS
-            </p>
+      {/* Grid desktop: sidebar tetap + konten fleksibel */}
+      <div className="md:grid md:grid-cols-[15rem_minmax(0,1fr)]">
+        <aside className="hidden border-r border-verity-rule md:flex md:min-h-screen md:flex-col md:justify-between">
+          <div>
+            <div className="border-b border-verity-rule p-5">
+              <Link
+                href="/studio"
+                className="font-serif text-xl font-semibold tracking-tight text-verity-ink hover:text-verity-accent"
+              >
+                Verax Press
+              </Link>
+              <p className="mt-1 font-mono text-[11px] uppercase tracking-[0.14em] text-verity-ink-soft">
+                Ruang Redaksi
+              </p>
+            </div>
+            <div className="p-3">
+              <StudioNav />
+            </div>
           </div>
-          <p className="font-mono text-[10px] uppercase tracking-[0.16em] text-verity-ink-faint">
-            Studio
-          </p>
-        </header>
+          <UserFooter />
+        </aside>
 
-        <main className="mx-auto w-full max-w-6xl flex-1 p-4 sm:p-6">{children}</main>
+        <main className="min-w-0 p-4 sm:p-6 lg:p-8">{children}</main>
       </div>
     </div>
   );

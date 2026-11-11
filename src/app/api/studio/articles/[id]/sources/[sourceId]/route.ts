@@ -45,19 +45,19 @@ export async function PATCH(request: Request, { params }: Params) {
       throw new ApiError(403, "FORBIDDEN", "Anda tidak memiliki akses ke artikel ini.");
     }
 
-    const isEditorPlus = user.role === "CHIEF_EDITOR" || user.role === "EDITOR";
+    const isChief = user.role === "CHIEF_EDITOR";
 
-    // Verifikasi sumber: hanya editor/chief (source:verify) sesuai acceptance criteria TA §12.1.
+    // Verifikasi sumber: hanya Pemimpin Redaksi (source:verify).
     if (body.verificationStatus !== undefined || body.verificationNote !== undefined) {
-      if (!isEditorPlus) {
-        throw new ApiError(403, "FORBIDDEN", "Hanya editor yang dapat mengubah status verifikasi sumber.");
+      if (!isChief) {
+        throw new ApiError(403, "FORBIDDEN", "Hanya Pemimpin Redaksi yang dapat mengubah status verifikasi sumber.");
       }
     }
-    // Penandaan sumber kunci: hanya editor/chief (TA §10).
-    if (body.isKeySource !== undefined && !isEditorPlus) {
-      throw new ApiError(403, "FORBIDDEN", "Penandaan sumber kunci hanya dapat dilakukan editor.");
+    // Penandaan sumber kunci: hanya Pemimpin Redaksi.
+    if (body.isKeySource !== undefined && !isChief) {
+      throw new ApiError(403, "FORBIDDEN", "Penandaan sumber kunci hanya dapat dilakukan Pemimpin Redaksi.");
     }
-    // Perubahan metadata lain mengikuti aturan edit konten.
+    // Perubahan metadata lain mengikuti aturan edit konten (penulis boleh menyunting sumber di draf miliknya).
     const metadataFields = ["title", "publisher", "url", "sourceType", "publishedAt", "accessedAt", "supports"] as const;
     const touchesMetadata = metadataFields.some((f) => body[f] !== undefined);
     if (touchesMetadata && !canEditArticleContent(user, article, authorStaffIds)) {
@@ -86,7 +86,7 @@ export async function PATCH(request: Request, { params }: Params) {
       await writeAudit({
         actorType: "STAFF",
         actorId: user.id,
-        actorLabel: user.email,
+        actorLabel: user.username || user.email || user.name,
         action: "source.verified",
         targetType: "SOURCE",
         targetId: sourceId,
@@ -97,7 +97,7 @@ export async function PATCH(request: Request, { params }: Params) {
       await writeAudit({
         actorType: "STAFF",
         actorId: user.id,
-        actorLabel: user.email,
+        actorLabel: user.username || user.email || user.name,
         action: "source.updated",
         targetType: "SOURCE",
         targetId: sourceId,
@@ -136,7 +136,7 @@ export async function DELETE(_request: Request, { params }: Params) {
     await writeAudit({
       actorType: "STAFF",
       actorId: user.id,
-      actorLabel: user.email,
+      actorLabel: user.username || user.email || user.name,
       action: "source.deleted",
       targetType: "SOURCE",
       targetId: sourceId,

@@ -42,7 +42,6 @@ const ALLOWED_NEXT: Record<ComplaintStatus, ComplaintStatus[]> = {
 
 interface DashboardPermissionData {
   user: SessionUser;
-  permissions: { canManageComplaints: boolean };
 }
 
 function ComplaintCard({ complaint }: { complaint: ComplaintDTO }) {
@@ -330,7 +329,7 @@ export default function StudioComplaintsPage() {
     staleTime: 30_000,
   });
 
-  const canManage = dashboard?.permissions.canManageComplaints ?? false;
+  const canManage = dashboard?.user.role === "CHIEF_EDITOR";
 
   const params = new URLSearchParams();
   if (statusFilter !== FILTER_ALL) params.set("status", statusFilter);

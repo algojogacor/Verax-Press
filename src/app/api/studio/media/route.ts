@@ -39,7 +39,7 @@ function detectImageMime(buf: Buffer): string | null {
 export async function GET() {
   try {
     const user = await requireSession();
-    if (user.role !== "CHIEF_EDITOR" && user.role !== "EDITOR" && user.role !== "INTERNAL_AUTHOR") {
+    if (user.role !== "CHIEF_EDITOR" && user.role !== "WRITER") {
       throw new ApiError(403, "FORBIDDEN", "Anda tidak memiliki izin melihat media.");
     }
     const assets = await db.mediaAsset.findMany({
@@ -55,7 +55,7 @@ export async function GET() {
 export async function POST(req: Request) {
   try {
     const user = await requireSession();
-    if (user.role !== "CHIEF_EDITOR" && user.role !== "EDITOR" && user.role !== "INTERNAL_AUTHOR") {
+    if (user.role !== "CHIEF_EDITOR" && user.role !== "WRITER") {
       throw new ApiError(403, "FORBIDDEN", "Anda tidak memiliki izin mengunggah media.");
     }
 

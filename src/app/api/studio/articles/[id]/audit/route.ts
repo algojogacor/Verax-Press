@@ -8,7 +8,7 @@ type Params = { params: Promise<{ id: string }> };
 
 export async function GET(_request: Request, { params }: Params) {
   try {
-    await requireRole("CHIEF_EDITOR", "EDITOR");
+    await requireRole("CHIEF_EDITOR");
     const { id } = await params;
     const article = await db.article.findUnique({ where: { id }, select: { id: true } });
     if (!article) throw new ApiError(404, "NOT_FOUND", "Artikel tidak ditemukan.");

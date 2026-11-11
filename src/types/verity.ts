@@ -1,7 +1,7 @@
 // Tipe bersama (kontrak API ↔ UI). Aman untuk client & server.
 // Literal union yang sebenarnya divalidasi di src/lib/domain/* (Zod).
 
-export type Role = "CHIEF_EDITOR" | "EDITOR" | "INTERNAL_AUTHOR" | "VOLUNTEER";
+export type Role = "CHIEF_EDITOR" | "WRITER";
 
 export type ArticleStatus =
   | "DRAFT"
@@ -51,10 +51,100 @@ export type TransitionAction =
 export interface SessionUser {
   id: string;
   name: string;
-  email: string;
+  username: string;
+  email: string | null;
   role: Role;
-  canRiskEdit?: boolean;
-  canManageComplaints?: boolean;
+  accountType?: "STAFF" | "CONTRIBUTOR";
+}
+
+export interface StaffUserDTO {
+  id: string;
+  username: string;
+  email: string | null;
+  name: string;
+  role: Role;
+  status: "ACTIVE" | "SUSPENDED";
+  lastLoginAt: string | null;
+  createdAt: string;
+  updatedAt: string;
+  bio?: string | null;
+}
+
+export interface StaffInvitationDTO {
+  id: string;
+  username: string;
+  name: string;
+  email: string | null;
+  role: string;
+  expiresAt: string;
+  acceptedAt: string | null;
+  revokedAt: string | null;
+  invitedByName: string;
+  createdAt: string;
+}
+
+export interface StaffOverviewDTO {
+  total: number;
+  active: number;
+  suspended: number;
+  pendingInvitations: number;
+}
+
+export interface ContributorApplicationDTO {
+  id: string;
+  name: string;
+  email: string;
+  bio: string | null;
+  interests: string | null;
+  portfolioUrl: string | null;
+  sampleArticle: string | null;
+  adultConfirmedAt: string;
+  guidelinesAccepted: boolean;
+  status: "PENDING" | "APPROVED" | "REJECTED";
+  decidedAt: string | null;
+  decisionNote: string | null;
+  decidedByName: string | null;
+  contributorId: string | null;
+  createdAt: string;
+}
+
+export interface ContributorApplicationOverviewDTO {
+  total: number;
+  pending: number;
+  approved: number;
+  rejected: number;
+}
+
+export interface ContributorInvitationDTO {
+  id: string;
+  email: string;
+  name: string;
+  expiresAt: string;
+  acceptedAt: string | null;
+  revokedAt: string | null;
+  applicationId: string;
+  invitedByName: string;
+  createdAt: string;
+}
+
+export interface ContributorUserDTO {
+  id: string;
+  username: string;
+  email: string;
+  name: string;
+  status: "ACTIVE" | "SUSPENDED";
+  adultConfirmedAt: string | null;
+  lastLoginAt: string | null;
+  createdAt: string;
+  bio: string | null;
+  articleCount?: number;
+}
+
+export interface ContributorOverviewDTO {
+  total: number;
+  active: number;
+  suspended: number;
+  pendingApplications: number;
 }
 
 export interface DeskDTO {
@@ -77,7 +167,7 @@ export interface SourceDTO {
   verificationStatus: VerificationStatus;
   verifiedAt: string | null;
   verificationNote: string | null;
-  canVerify: boolean; // dihitung server: role editor/chief
+  canVerify: boolean; // dihitung server: role chief
 }
 
 export interface VersionDTO {
@@ -180,15 +270,107 @@ export interface AuditEventDTO {
   createdAt: string;
 }
 
+export interface ApiClientCredentialDTO {
+  id: string;
+  apiClientId: string;
+  name: string | null;
+  keyPrefix: string;
+  status: "ACTIVE" | "GRACE_PERIOD" | "REVOKED" | "EXPIRED";
+  expiresAt: string | null;
+  gracePeriodEndsAt: string | null;
+  lastUsedAt: string | null;
+  revokedAt: string | null;
+  createdAt: string;
+}
+
 export interface ApiClientDTO {
   id: string;
   clientId: string;
   name: string;
+  description: string | null;
+  ownerName: string | null;
+  environment: "DEVELOPMENT" | "PREVIEW" | "PRODUCTION";
   scopes: string;
   status: string;
   expiresAt: string | null;
   lastUsedAt: string | null;
   createdAt: string;
+  credentials?: ApiClientCredentialDTO[];
+  totalRequests?: number;
+  activeCredentialsCount?: number;
+}
+
+export interface ApiRequestLogDTO {
+  id: string;
+  apiClientId: string | null;
+  clientName: string | null;
+  requestId: string;
+  method: string;
+  endpoint: string;
+  statusCode: number;
+  durationMs: number;
+  ipAddress: string | null;
+  userAgent: string | null;
+  submissionId: string | null;
+  errorCode: string | null;
+  errorMessage: string | null;
+  createdAt: string;
+}
+
+export interface ApiOverviewMetricsDTO {
+  totalClients: number;
+  activeClients: number;
+  revokedClients: number;
+  requestsToday: number;
+  successfulSubmissionsToday: number;
+  failedSubmissionsToday: number;
+  lastRequestAt: string | null;
+  averageDurationMs: number;
+  environment: string;
+  baseUrl: string;
+}
+
+export interface SubmissionStatusDTO {
+  submissionId: string;
+  articleId: string;
+  submissionStatus: string;
+  editorialStatus: string;
+  format: string;
+  title: string;
+  receivedAt: string;
+  lastUpdatedAt: string;
+  idempotencyKey: string | null;
+  editorialDecision: {
+    status: string;
+    isPublished: boolean;
+  };
+}
+
+export interface CapabilitiesDTO {
+  apiVersion: string;
+  environment: string;
+  capabilities: {
+    submission: boolean;
+    validation: boolean;
+    submissionStatus: boolean;
+    publication: boolean;
+    editorialApproval: boolean;
+  };
+  allowedFormats: string[];
+  desks: { slug: string; name: string }[];
+  documentation: {
+    developers: string;
+    openapi: string;
+    llms: string;
+    llmsFull: string;
+    discovery: string;
+  };
+  limits: {
+    rateLimitPerMinute: number;
+    maxTitleLength: number;
+    maxSourcesCount: number;
+    maxImagesCount: number;
+  };
 }
 
 export interface IngestionReceiptDTO {
@@ -197,4 +379,5 @@ export interface IngestionReceiptDTO {
   status: string;
   receivedAt: string;
   idempotentReplay: boolean;
+  requestId?: string;
 }

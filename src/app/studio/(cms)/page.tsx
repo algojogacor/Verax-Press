@@ -20,7 +20,6 @@ interface DashboardData {
     canPublish: boolean;
     canReview: boolean;
     canVerifySources: boolean;
-    canManageComplaints: boolean;
     canManageApiClients: boolean;
     canReadAudit: boolean;
   };

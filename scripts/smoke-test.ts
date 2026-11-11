@@ -89,16 +89,18 @@ async function runSmokeTest() {
     const canPublishChief = userHasPermission(chief, 'article:publish')
     const canManageComplaintsChief = userHasPermission(chief, 'complaint:manage')
     const canReadAuditChief = userHasPermission(chief, 'audit:read')
-    const canRiskEditChief = userHasPermission(chief, 'article:risk_edit')
+    const canManageStaffChief = userHasPermission(chief, 'staff:manage')
 
-    const author = await db.staffUser.findFirstOrThrow({ where: { role: 'INTERNAL_AUTHOR' } })
+    const author = await db.staffUser.findFirstOrThrow({ where: { role: 'WRITER' } })
     const canPublishAuthor = userHasPermission(author, 'article:publish')
+    const canManageStaffAuthor = userHasPermission(author, 'staff:manage')
 
     check('Chief Editor has article:publish permission', canPublishChief)
     check('Chief Editor has complaint:manage permission', canManageComplaintsChief)
     check('Chief Editor has audit:read permission', canReadAuditChief)
-    check('Chief Editor has article:risk_edit permission', canRiskEditChief)
-    check('Author lacks article:publish permission', !canPublishAuthor)
+    check('Chief Editor has staff:manage permission', canManageStaffChief)
+    check('Writer lacks article:publish permission', !canPublishAuthor)
+    check('Writer lacks staff:manage permission', !canManageStaffAuthor)
 
     // -------------------------------------------------------------------------
     // 3. Newsroom Dashboard
@@ -153,7 +155,7 @@ async function runSmokeTest() {
     console.log('\n--- 6. Editorial Review Transitions ---')
     // Legal transitions
     const submitRule = getRule('SUBMIT_REVIEW', 'DRAFT')
-    const canSubmit = submitRule ? canExecuteRule(submitRule, 'INTERNAL_AUTHOR', true) : false
+    const canSubmit = submitRule ? canExecuteRule(submitRule, 'WRITER', true) : false
     check('State Machine: DRAFT -> PENDING_REVIEW allowed for Author', canSubmit)
     const illegalPublishRule = getRule('PUBLISH', 'DRAFT')
     check('State Machine: DRAFT -> PUBLISHED rejected', !illegalPublishRule)
@@ -172,10 +174,10 @@ async function runSmokeTest() {
     })
 
     // Editor advances PENDING_REVIEW -> FACT_CHECK
-    const editor = await db.staffUser.findFirstOrThrow({ where: { role: 'EDITOR' } })
+    const editor = await db.staffUser.findFirstOrThrow({ where: { role: 'WRITER' } })
     const factCheckRule = getRule('START_FACT_CHECK', 'PENDING_REVIEW')
-    const canFactCheck = factCheckRule ? canExecuteRule(factCheckRule, 'EDITOR', false) : false
-    check('State Machine: PENDING_REVIEW -> FACT_CHECK allowed for Editor', canFactCheck)
+    const canFactCheck = factCheckRule ? canExecuteRule(factCheckRule, 'CHIEF_EDITOR', false) : false
+    check('State Machine: PENDING_REVIEW -> FACT_CHECK allowed for Chief Editor', canFactCheck)
     await db.article.update({ where: { id: article.id }, data: { status: 'FACT_CHECK' } })
 
     // Editor adds review note
@@ -219,15 +221,15 @@ async function runSmokeTest() {
     await db.sourceReference.update({
       where: { id: source.id },
       data: {
-        verificationStatus: 'PRIMARY_VERIFIED',
-        verifiedById: editor.id,
+        verificationStatus: 'VERIFIED',
+        verifiedById: chief.id,
         verifiedAt: new Date(),
       },
     })
     const remainingUnverified = await db.sourceReference.count({
       where: { articleId: article.id, isKeySource: true, verificationStatus: 'UNVERIFIED' },
     })
-    check('Source verification gate unlocked after editor verification', remainingUnverified === 0)
+    check('Source verification gate unlocked after chief verification', remainingUnverified === 0)
 
     // Advance to PENDING_APPROVAL
     await db.article.update({ where: { id: article.id }, data: { status: 'PENDING_APPROVAL' } })
@@ -281,9 +283,9 @@ async function runSmokeTest() {
     console.log('\n--- 10. Article Publication ---')
     const publishRule = getRule('PUBLISH', 'PENDING_APPROVAL')
     const chiefCanPublish = publishRule ? canExecuteRule(publishRule, 'CHIEF_EDITOR', false) : false
-    const editorCanPublish = publishRule ? canExecuteRule(publishRule, 'EDITOR', false) : false
+    const editorCanPublish = publishRule ? canExecuteRule(publishRule, 'WRITER', false) : false
     check('State Machine: PENDING_APPROVAL -> PUBLISHED allowed for CHIEF_EDITOR', chiefCanPublish)
-    check('State Machine: PENDING_APPROVAL -> PUBLISHED rejected for EDITOR', !editorCanPublish)
+    check('State Machine: PENDING_APPROVAL -> PUBLISHED rejected for WRITER', !editorCanPublish)
 
     const publishedAt = new Date()
     const publishedArticle = await db.article.update({

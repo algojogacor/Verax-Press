@@ -90,9 +90,9 @@ export async function PATCH(request: Request, { params }: Params) {
       );
     }
 
-    // Kontribusi terstruktur hanya boleh diatur editor/chief.
-    if (body.contributions && user.role !== "CHIEF_EDITOR" && user.role !== "EDITOR") {
-      throw new ApiError(403, "FORBIDDEN", "Kredit kontribusi hanya dapat diatur editor.");
+    // Kontribusi terstruktur hanya boleh diatur Pemimpin Redaksi.
+    if (body.contributions && user.role !== "CHIEF_EDITOR") {
+      throw new ApiError(403, "FORBIDDEN", "Kredit kontribusi hanya dapat diatur Pemimpin Redaksi.");
     }
 
     const data: Record<string, unknown> = {};
@@ -120,7 +120,7 @@ export async function PATCH(request: Request, { params }: Params) {
 
     // Simpan versi baru bila konten berubah (bukan hanya metadata disclosure).
     if (contentChanged) {
-      const isEditorial = (user.role === "EDITOR" || user.role === "CHIEF_EDITOR") && !own;
+      const isEditorial = user.role === "CHIEF_EDITOR" && !own;
       const versionType: VersionType =
         body.versionType ?? (isEditorial ? "editorial_copyedit" : "author");
       await createArticleVersion({

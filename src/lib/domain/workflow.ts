@@ -1,4 +1,4 @@
-// State machine alur kerja editorial naskah (Tahap A).
+// State machine alur kerja editorial naskah.
 // Transisi HANYA terjadi melalui modul ini; route API tidak boleh menulis status secara langsung.
 // Setiap transisi menghasilkan EditorialReview + AuditEvent (dipanggil di route handler).
 
@@ -8,7 +8,7 @@ export interface TransitionRule {
   action: TransitionAction;
   from: ArticleStatus;
   to: ArticleStatus;
-  /** Role yang boleh melakukan. "AUTHOR" berarti internal author pemilik naskah. */
+  /** Role yang boleh melakukan. "AUTHOR" berarti penulis pemilik naskah. */
   allowedRoles: Array<Role | "AUTHOR">;
   /** Catatan alasan wajib (feedback revisi / alasan tolak / dsb). */
   requiresReason: boolean;
@@ -16,33 +16,34 @@ export interface TransitionRule {
   gate: "NONE" | "PUBLISH";
 }
 
-const EDITOR_RULE_ROLES: Array<Role | "AUTHOR"> = ["CHIEF_EDITOR", "EDITOR"];
-const AUTHOR_RULE_ROLES: Array<Role | "AUTHOR"> = ["CHIEF_EDITOR", "EDITOR", "AUTHOR"];
+const CHIEF_ONLY: Array<Role | "AUTHOR"> = ["CHIEF_EDITOR"];
+const AUTHOR_RULE_ROLES: Array<Role | "AUTHOR"> = ["CHIEF_EDITOR", "AUTHOR"];
 
 export const TRANSITION_RULES: TransitionRule[] = [
   // DRAFT
   { action: "SUBMIT_REVIEW", from: "DRAFT", to: "PENDING_REVIEW", allowedRoles: AUTHOR_RULE_ROLES, requiresReason: false, gate: "NONE" },
   { action: "WITHDRAW", from: "DRAFT", to: "WITHDRAWN", allowedRoles: AUTHOR_RULE_ROLES, requiresReason: true, gate: "NONE" },
-  // PENDING_REVIEW (Editor)
-  { action: "START_FACT_CHECK", from: "PENDING_REVIEW", to: "FACT_CHECK", allowedRoles: EDITOR_RULE_ROLES, requiresReason: false, gate: "NONE" },
-  { action: "REQUEST_REVISION", from: "PENDING_REVIEW", to: "REVISION_NEEDED", allowedRoles: EDITOR_RULE_ROLES, requiresReason: true, gate: "NONE" },
-  { action: "REJECT", from: "PENDING_REVIEW", to: "REJECTED", allowedRoles: EDITOR_RULE_ROLES, requiresReason: true, gate: "NONE" },
-  // FACT_CHECK (Editor)
-  { action: "SUBMIT_FOR_APPROVAL", from: "FACT_CHECK", to: "PENDING_APPROVAL", allowedRoles: EDITOR_RULE_ROLES, requiresReason: false, gate: "NONE" },
-  { action: "REQUEST_REVISION", from: "FACT_CHECK", to: "REVISION_NEEDED", allowedRoles: EDITOR_RULE_ROLES, requiresReason: true, gate: "NONE" },
-  { action: "REJECT", from: "FACT_CHECK", to: "REJECTED", allowedRoles: EDITOR_RULE_ROLES, requiresReason: true, gate: "NONE" },
-  // REVISION_NEEDED (kembali ke author)
+  // PENDING_REVIEW (Chief Editor / Penulis menarik naskah)
+  { action: "START_FACT_CHECK", from: "PENDING_REVIEW", to: "FACT_CHECK", allowedRoles: CHIEF_ONLY, requiresReason: false, gate: "NONE" },
+  { action: "REQUEST_REVISION", from: "PENDING_REVIEW", to: "REVISION_NEEDED", allowedRoles: CHIEF_ONLY, requiresReason: true, gate: "NONE" },
+  { action: "REJECT", from: "PENDING_REVIEW", to: "REJECTED", allowedRoles: CHIEF_ONLY, requiresReason: true, gate: "NONE" },
+  { action: "WITHDRAW", from: "PENDING_REVIEW", to: "WITHDRAWN", allowedRoles: AUTHOR_RULE_ROLES, requiresReason: true, gate: "NONE" },
+  // FACT_CHECK (Chief Editor)
+  { action: "SUBMIT_FOR_APPROVAL", from: "FACT_CHECK", to: "PENDING_APPROVAL", allowedRoles: CHIEF_ONLY, requiresReason: false, gate: "NONE" },
+  { action: "REQUEST_REVISION", from: "FACT_CHECK", to: "REVISION_NEEDED", allowedRoles: CHIEF_ONLY, requiresReason: true, gate: "NONE" },
+  { action: "REJECT", from: "FACT_CHECK", to: "REJECTED", allowedRoles: CHIEF_ONLY, requiresReason: true, gate: "NONE" },
+  // REVISION_NEEDED (kembali ke penulis)
   { action: "RESUBMIT_REVIEW", from: "REVISION_NEEDED", to: "PENDING_REVIEW", allowedRoles: AUTHOR_RULE_ROLES, requiresReason: false, gate: "NONE" },
   { action: "WITHDRAW", from: "REVISION_NEEDED", to: "WITHDRAWN", allowedRoles: AUTHOR_RULE_ROLES, requiresReason: true, gate: "NONE" },
   // PENDING_APPROVAL: HANYA Pemimpin Redaksi (aturan baku: persetujuan akhir terpusat)
-  { action: "PUBLISH", from: "PENDING_APPROVAL", to: "PUBLISHED", allowedRoles: ["CHIEF_EDITOR"], requiresReason: false, gate: "PUBLISH" },
-  { action: "REJECT", from: "PENDING_APPROVAL", to: "REJECTED", allowedRoles: ["CHIEF_EDITOR"], requiresReason: true, gate: "NONE" },
+  { action: "PUBLISH", from: "PENDING_APPROVAL", to: "PUBLISHED", allowedRoles: CHIEF_ONLY, requiresReason: false, gate: "PUBLISH" },
+  { action: "REJECT", from: "PENDING_APPROVAL", to: "REJECTED", allowedRoles: CHIEF_ONLY, requiresReason: true, gate: "NONE" },
   // PUBLISHED (pasca-publikasi; CORRECTED dibuat lewat jalur koreksi dengan CorrectionRecord)
-  { action: "RETRACT", from: "PUBLISHED", to: "RETRACTED", allowedRoles: ["CHIEF_EDITOR"], requiresReason: true, gate: "NONE" },
-  { action: "ARCHIVE", from: "PUBLISHED", to: "ARCHIVED", allowedRoles: ["CHIEF_EDITOR"], requiresReason: false, gate: "NONE" },
+  { action: "RETRACT", from: "PUBLISHED", to: "RETRACTED", allowedRoles: CHIEF_ONLY, requiresReason: true, gate: "NONE" },
+  { action: "ARCHIVE", from: "PUBLISHED", to: "ARCHIVED", allowedRoles: CHIEF_ONLY, requiresReason: false, gate: "NONE" },
   // CORRECTED
-  { action: "RETRACT", from: "CORRECTED", to: "RETRACTED", allowedRoles: ["CHIEF_EDITOR"], requiresReason: true, gate: "NONE" },
-  { action: "ARCHIVE", from: "CORRECTED", to: "ARCHIVED", allowedRoles: ["CHIEF_EDITOR"], requiresReason: false, gate: "NONE" },
+  { action: "RETRACT", from: "CORRECTED", to: "RETRACTED", allowedRoles: CHIEF_ONLY, requiresReason: true, gate: "NONE" },
+  { action: "ARCHIVE", from: "CORRECTED", to: "ARCHIVED", allowedRoles: CHIEF_ONLY, requiresReason: false, gate: "NONE" },
 ];
 
 export function getRule(action: TransitionAction, from: ArticleStatus): TransitionRule | undefined {
@@ -56,12 +57,11 @@ export function allowedTransitionsFrom(from: ArticleStatus): TransitionRule[] {
 /** Apakah role (dengan kepemilikan naskah) boleh mengeksekusi rule? */
 export function canExecuteRule(
   rule: TransitionRule,
-  role: Role,
+  roleOrAccountType: Role | "CONTRIBUTOR",
   isOwner: boolean,
 ): boolean {
-  if (rule.allowedRoles.includes("CHIEF_EDITOR") && role === "CHIEF_EDITOR") return true;
-  if (rule.allowedRoles.includes("EDITOR") && role === "EDITOR") return true;
-  if (rule.allowedRoles.includes("AUTHOR") && role === "INTERNAL_AUTHOR" && isOwner) return true;
+  if (rule.allowedRoles.includes("CHIEF_EDITOR") && roleOrAccountType === "CHIEF_EDITOR") return true;
+  if (rule.allowedRoles.includes("AUTHOR") && (roleOrAccountType === "WRITER" || roleOrAccountType === "CONTRIBUTOR") && isOwner) return true;
   return false;
 }
 

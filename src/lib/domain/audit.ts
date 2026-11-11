@@ -3,7 +3,7 @@ import type { Prisma } from "@prisma/client";
 import { db } from "@/lib/db";
 
 export interface AuditInput {
-  actorType: "STAFF" | "API_CLIENT" | "SYSTEM" | "PUBLIC";
+  actorType: "STAFF" | "CONTRIBUTOR" | "API_CLIENT" | "SYSTEM" | "PUBLIC";
   actorId?: string | null;
   actorLabel?: string | null;
   action: string;

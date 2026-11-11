@@ -65,8 +65,9 @@ export async function seedTestFixtures(): Promise<void> {
 
   await db.staffUser.upsert({
     where: { email: 'chief@verity.test' },
-    update: { passwordHash: chiefHash, role: 'CHIEF_EDITOR', status: 'ACTIVE', name: 'Chief Test' },
+    update: { username: 'chief', passwordHash: chiefHash, role: 'CHIEF_EDITOR', status: 'ACTIVE', name: 'Chief Test' },
     create: {
+      username: 'chief',
       email: 'chief@verity.test',
       name: 'Chief Test',
       passwordHash: chiefHash,
@@ -77,70 +78,71 @@ export async function seedTestFixtures(): Promise<void> {
   await db.staffUser.upsert({
     where: { email: 'editor@verity.test' },
     update: {
+      username: 'editor',
       passwordHash: editorHash,
-      role: 'EDITOR',
+      role: 'WRITER',
       status: 'ACTIVE',
       name: 'Editor Test',
-      canManageComplaints: true,
     },
     create: {
+      username: 'editor',
       email: 'editor@verity.test',
       name: 'Editor Test',
       passwordHash: editorHash,
-      role: 'EDITOR',
+      role: 'WRITER',
       status: 'ACTIVE',
-      canManageComplaints: true,
     },
   })
   await db.staffUser.upsert({
     where: { email: 'author@verity.test' },
-    update: { passwordHash: authorHash, role: 'INTERNAL_AUTHOR', status: 'ACTIVE', name: 'Author Test' },
+    update: { username: 'author', passwordHash: authorHash, role: 'WRITER', status: 'ACTIVE', name: 'Author Test' },
     create: {
+      username: 'author',
       email: 'author@verity.test',
       name: 'Author Test',
       passwordHash: authorHash,
-      role: 'INTERNAL_AUTHOR',
+      role: 'WRITER',
       status: 'ACTIVE',
     },
   })
   await db.staffUser.upsert({
     where: { email: 'editor-nogrant@verity.test' },
     update: {
+      username: 'editor-nogrant',
       passwordHash: editorHash,
-      role: 'EDITOR',
+      role: 'WRITER',
       status: 'ACTIVE',
       name: 'Editor No Grant',
-      canManageComplaints: false,
     },
     create: {
+      username: 'editor-nogrant',
       email: 'editor-nogrant@verity.test',
       name: 'Editor No Grant',
       passwordHash: editorHash,
-      role: 'EDITOR',
+      role: 'WRITER',
       status: 'ACTIVE',
-      canManageComplaints: false,
     },
   })
   await db.staffUser.upsert({
     where: { email: 'editor-inactive@verity.test' },
     update: {
+      username: 'editor-inactive',
       passwordHash: editorHash,
-      role: 'EDITOR',
+      role: 'WRITER',
       status: 'SUSPENDED',
       name: 'Inactive Editor',
-      canManageComplaints: true,
     },
     create: {
+      username: 'editor-inactive',
       email: 'editor-inactive@verity.test',
       name: 'Inactive Editor',
       passwordHash: editorHash,
-      role: 'EDITOR',
+      role: 'WRITER',
       status: 'SUSPENDED',
-      canManageComplaints: true,
     },
   })
 
-  await db.apiClient.upsert({
+  const testClient = await db.apiClient.upsert({
     where: { clientId: TEST_AGENT_CLIENT_ID },
     update: {},
     create: {
@@ -149,6 +151,19 @@ export async function seedTestFixtures(): Promise<void> {
       scopes: 'submit',
       status: 'ACTIVE',
       name: 'Test Agent (per-run)',
+    },
+  })
+
+  await db.apiClientCredential.upsert({
+    where: { id: `cred_${testClient.id}` },
+    update: { secretHash: hashClientSecret(API_SECRET), status: 'ACTIVE' },
+    create: {
+      id: `cred_${testClient.id}`,
+      apiClientId: testClient.id,
+      name: 'Kredensial Uji Regresi',
+      keyPrefix: 'vrtk_test',
+      secretHash: hashClientSecret(API_SECRET),
+      status: 'ACTIVE',
     },
   })
 }
@@ -266,6 +281,49 @@ export async function cleanupTestData(): Promise<void> {
       ],
     },
   })
+
+  // Clean test contributor data
+  await db.contributorInvitation.deleteMany({
+    where: {
+      OR: [
+        { email: { endsWith: '@example.test' } },
+        { email: { endsWith: '@verity.test' } },
+      ],
+    },
+  })
+  await db.contributorApplication.deleteMany({
+    where: {
+      OR: [
+        { email: { endsWith: '@example.test' } },
+        { email: { endsWith: '@verity.test' } },
+      ],
+    },
+  })
+  const testContributors = await db.contributor.findMany({
+    where: {
+      OR: [
+        { email: { endsWith: '@example.test' } },
+        { email: { endsWith: '@verity.test' } },
+        { username: { in: ['test_volunteer', 'other_contrib', 'expired_usr'] } },
+      ],
+    },
+    select: { id: true },
+  })
+  const testContribIds = testContributors.map((c) => c.id)
+  if (testContribIds.length > 0) {
+    await db.sourceReference.deleteMany({
+      where: { article: { contributorId: { in: testContribIds } } },
+    })
+    await db.article.deleteMany({
+      where: { contributorId: { in: testContribIds } },
+    })
+    await db.person.deleteMany({
+      where: { contributorId: { in: testContribIds } },
+    })
+    await db.contributor.deleteMany({
+      where: { id: { in: testContribIds } },
+    })
+  }
 }
 
 export const API_SECRET = 'test-api-secret-for-regression-suite-0123456789'

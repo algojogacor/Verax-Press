@@ -14,23 +14,21 @@ beforeAll(async () => {
   await db.staffUser.upsert({
     where: { id: TEST_STAFF_ID },
     update: {
-      email: "pemredVP",
+      username: "pemredVP",
+      email: null,
       name: "Arya Rizky Ardhi Pratama",
       role: "CHIEF_EDITOR",
       status: "ACTIVE",
       passwordHash: hashPassword("Arya260408"),
-      canRiskEdit: true,
-      canManageComplaints: true,
     },
     create: {
       id: TEST_STAFF_ID,
-      email: "pemredVP",
+      username: "pemredVP",
+      email: null,
       name: "Arya Rizky Ardhi Pratama",
       role: "CHIEF_EDITOR",
       status: "ACTIVE",
       passwordHash: hashPassword("Arya260408"),
-      canRiskEdit: true,
-      canManageComplaints: true,
     },
   });
 });
@@ -46,7 +44,7 @@ describe("Staff Authentication Identifier & Password Handling", () => {
   it("authenticates exact username identifier 'pemredVP' with valid password through NextAuth authorize", async () => {
     const result = await nextAuthAuthorize({ email: "pemredVP", password: "Arya260408" });
     expect(result).not.toBeNull();
-    expect(result?.email).toBe("pemredVP");
+    expect(result?.username).toBe("pemredVP");
     expect(result?.name).toBe("Arya Rizky Ardhi Pratama");
     expect(result?.role).toBe("CHIEF_EDITOR");
 
@@ -62,39 +60,39 @@ describe("Staff Authentication Identifier & Password Handling", () => {
   it("authenticates lowercase input 'pemredvp' through case-insensitive matching in NextAuth", async () => {
     const result = await nextAuthAuthorize({ email: "pemredvp", password: "Arya260408" });
     expect(result).not.toBeNull();
-    expect(result?.email).toBe("pemredVP");
-    expect(result?.name).toBe("Arya Rizky Ardhi Pratama");
+    expect(result?.username).toBe("pemredVP");
+    expect(result?.id).toBe(TEST_STAFF_ID);
   });
 
   it("authenticates uppercase input 'PEMREDVP' through case-insensitive matching in NextAuth", async () => {
     const result = await nextAuthAuthorize({ email: "PEMREDVP", password: "Arya260408" });
     expect(result).not.toBeNull();
-    expect(result?.email).toBe("pemredVP");
-    expect(result?.name).toBe("Arya Rizky Ardhi Pratama");
+    expect(result?.username).toBe("pemredVP");
+    expect(result?.id).toBe(TEST_STAFF_ID);
   });
 
   it("authenticates mixed-case input 'PemredVP' through case-insensitive matching in NextAuth", async () => {
     const result = await nextAuthAuthorize({ email: "PemredVP", password: "Arya260408" });
     expect(result).not.toBeNull();
-    expect(result?.email).toBe("pemredVP");
-    expect(result?.name).toBe("Arya Rizky Ardhi Pratama");
+    expect(result?.username).toBe("pemredVP");
+    expect(result?.id).toBe(TEST_STAFF_ID);
   });
 
   it("rejects invalid password for 'pemredVP' and does not create audit log", async () => {
-    const countBefore = await db.auditEvent.count({ where: { actorId: TEST_STAFF_ID } });
-    const result = await nextAuthAuthorize({ email: "pemredVP", password: "WrongPassword123" });
+    const beforeCount = await db.auditEvent.count({ where: { action: "auth.login" } });
+    const result = await nextAuthAuthorize({ email: "pemredVP", password: "WrongPassword999!" });
     expect(result).toBeNull();
-    const countAfter = await db.auditEvent.count({ where: { actorId: TEST_STAFF_ID } });
-    expect(countAfter).toBe(countBefore);
+    const afterCount = await db.auditEvent.count({ where: { action: "auth.login" } });
+    expect(afterCount).toBe(beforeCount);
   });
 
   it("rejects non-existent staff identifier", async () => {
-    const result = await nextAuthAuthorize({ email: "unknownStaff", password: "Arya260408" });
+    const result = await nextAuthAuthorize({ email: "nonexistent_editor_99", password: "AnyPassword123!" });
     expect(result).toBeNull();
   });
 
   it("rejects blank or empty credentials safely", async () => {
-    expect(await nextAuthAuthorize({})).toBeNull();
+    expect(await nextAuthAuthorize(null as any)).toBeNull();
     expect(await nextAuthAuthorize({ email: "", password: "" })).toBeNull();
     expect(await nextAuthAuthorize({ email: "pemredVP", password: "" })).toBeNull();
     expect(await nextAuthAuthorize({ email: "", password: "Arya260408" })).toBeNull();

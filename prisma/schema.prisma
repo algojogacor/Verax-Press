@@ -17,44 +17,117 @@ datasource db {
 // Identity & Access
 // ============================================================
 
-/// Akun staf redaksi (login CMS). Role: CHIEF_EDITOR | EDITOR | INTERNAL_AUTHOR | VOLUNTEER.
-/// Grant eksplisit (bukan default role) sesuai permission matrix TA §5.1:
-/// canRiskEdit = article:risk_edit, canManageComplaints = complaint:manage.
+/// Akun staf redaksi (login CMS). Role: CHIEF_EDITOR | WRITER.
+/// Pemimpin Redaksi (CHIEF_EDITOR) memegang otoritas penuh. Penulis (WRITER) terbatas pada naskah miliknya.
 model StaffUser {
   id                 String    @id @default(cuid())
-  email              String    @unique
+  username           String    @unique
+  email              String?   @unique
   name               String
-  role               String // CHIEF_EDITOR | EDITOR | INTERNAL_AUTHOR | VOLUNTEER
+  role               String    // CHIEF_EDITOR | WRITER
   status             String    @default("ACTIVE") // ACTIVE | SUSPENDED
   passwordHash       String
-  canRiskEdit        Boolean   @default(false)
-  canManageComplaints Boolean  @default(false)
   lastLoginAt        DateTime?
   createdAt          DateTime  @default(now())
   updatedAt          DateTime  @updatedAt
 
-  person             Person?
-  createdArticles    Article[] @relation("ArticleCreator")
-  verifiedSources    SourceReference[] @relation("SourceVerifier")
-  reviews            EditorialReview[]
-  comments           ReviewComment[]
-  decidedCorrections CorrectionRecord[] @relation("CorrectionApprover")
-  disclosureDecided  Article[] @relation("DisclosureDecider")
-  uploadedMedia      MediaAsset[] @relation("MediaUploader")
+  person               Person?
+  createdArticles      Article[]                @relation("ArticleCreator")
+  verifiedSources      SourceReference[]        @relation("SourceVerifier")
+  reviews              EditorialReview[]
+  comments             ReviewComment[]
+  decidedCorrections   CorrectionRecord[]       @relation("CorrectionApprover")
+  disclosureDecided    Article[]                @relation("DisclosureDecider")
+  uploadedMedia        MediaAsset[]             @relation("MediaUploader")
+  sentInvitations      StaffInvitation[]        @relation("StaffInviter")
+  reviewedApplications ContributorApplication[] @relation("ApplicationReviewer")
+  sentContributorInvitations ContributorInvitation[] @relation("ContributorInviter")
 }
 
-/// Akun kontributor eksternal — Tahap B (TIDAK AKTIF pada MVP; gerbang legal belum terpenuhi).
+/// Undangan aktivasi anggota tim redaksi (Penulis). Token disimpan sebagai hash SHA-256.
+model StaffInvitation {
+  id          String    @id @default(cuid())
+  username    String    @unique
+  name        String
+  email       String?
+  role        String    @default("WRITER")
+  tokenHash   String    @unique
+  expiresAt   DateTime
+  acceptedAt  DateTime?
+  revokedAt   DateTime?
+  invitedById String
+  invitedBy   StaffUser @relation("StaffInviter", fields: [invitedById], references: [id])
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  @@index([tokenHash])
+  @@index([username])
+  @@index([expiresAt])
+}
+
+/// Akun kontributor eksternal (Volunteer/Kontributor) — model terpisah dari StaffUser.
 model Contributor {
   id               String    @id @default(cuid())
+  username         String?   @unique
   email            String    @unique
   passwordHash     String
   adultConfirmedAt DateTime? // deklarasi 18+ (D1 LOCKED)
-  status           String    @default("INVITED") // INVITED | ACTIVE | SUSPENDED
+  status           String    @default("ACTIVE") // ACTIVE | SUSPENDED
+  lastLoginAt      DateTime?
   createdAt        DateTime  @default(now())
   updatedAt        DateTime  @updatedAt
 
   person           Person?
   submissions      Submission[]
+  articles         Article[]               @relation("ContributorArticles")
+  application      ContributorApplication?
+}
+
+/// Permohonan kontributor eksternal (Fase 2 onboarding).
+model ContributorApplication {
+  id                 String                 @id @default(cuid())
+  name               String
+  email              String
+  bio                String?
+  interests          String?                // Bidang minat / fokus penulisan
+  portfolioUrl       String?
+  sampleArticle      String?                // Contoh tulisan atau motivasi
+  adultConfirmedAt   DateTime               @default(now()) // Deklarasi wajib 18+ (D1 LOCKED)
+  guidelinesAccepted Boolean                @default(true) // Persetujuan pedoman kontributor
+  status             String                 @default("PENDING") // PENDING | APPROVED | REJECTED
+  decidedById        String?
+  decidedBy          StaffUser?             @relation("ApplicationReviewer", fields: [decidedById], references: [id])
+  decidedAt          DateTime?
+  decisionNote       String?
+  contributorId      String?                @unique
+  contributor        Contributor?           @relation(fields: [contributorId], references: [id])
+  invitation         ContributorInvitation?
+  createdAt          DateTime               @default(now())
+  updatedAt          DateTime               @updatedAt
+
+  @@index([email])
+  @@index([status])
+}
+
+/// Undangan aktivasi akun Volunteer setelah permohonan disetujui Pemimpin Redaksi.
+model ContributorInvitation {
+  id            String                 @id @default(cuid())
+  tokenHash     String                 @unique
+  email         String
+  name          String
+  expiresAt     DateTime
+  acceptedAt    DateTime?
+  revokedAt     DateTime?
+  applicationId String                 @unique
+  application   ContributorApplication @relation(fields: [applicationId], references: [id], onDelete: Cascade)
+  invitedById   String
+  invitedBy     StaffUser              @relation("ContributorInviter", fields: [invitedById], references: [id])
+  createdAt     DateTime               @default(now())
+  updatedAt     DateTime               @updatedAt
+
+  @@index([tokenHash])
+  @@index([email])
+  @@index([expiresAt])
 }
 
 /// Identitas publik (dipisah dari akun login). anonymityMode: REAL_NAME | PEN_NAME | ANONYMOUS.
@@ -113,6 +186,8 @@ model Article {
   disclosureDecidedAt    DateTime?
   createdById            String?
   createdBy              StaffUser? @relation("ArticleCreator", fields: [createdById], references: [id])
+  contributorId          String?
+  contributor            Contributor? @relation("ContributorArticles", fields: [contributorId], references: [id])
   heroMediaId            String?
   heroMedia              MediaAsset? @relation("HeroMediaAsset", fields: [heroMediaId], references: [id], onDelete: SetNull)
   firstPublishedAt       DateTime?
@@ -133,6 +208,7 @@ model Article {
   @@index([status, publishedAt])
   @@index([deskId, status])
   @@index([format, status])
+  @@index([contributorId])
 }
 
 /// Riwayat versi. versionType: author | editorial_copyedit | risk_edit | ingestion.
@@ -201,8 +277,8 @@ model EditorialReview {
   id         String   @id @default(cuid())
   articleId  String
   article    Article  @relation(fields: [articleId], references: [id], onDelete: Cascade)
-  reviewerId String
-  reviewer   StaffUser @relation(fields: [reviewerId], references: [id])
+  reviewerId String?
+  reviewer   StaffUser? @relation(fields: [reviewerId], references: [id])
   fromStatus String
   toStatus   String
   decision   String // e.g. SUBMIT_REVIEW, MOVE_FACT_CHECK, REQUEST_REVISION, PUBLISH, REJECT, ...
@@ -233,6 +309,8 @@ model Submission {
   articleId             String   @unique
   article               Article  @relation(fields: [articleId], references: [id], onDelete: Cascade)
   agentId               String?
+  apiClientId           String?
+  apiClient             ApiClient? @relation(fields: [apiClientId], references: [id], onDelete: SetNull)
   contributorId         String?
   contributor           Contributor? @relation(fields: [contributorId], references: [id])
   status                String   @default("SUBMITTED") // SUBMITTED | EDITORIAL_REVIEW | RESOLVED
@@ -246,6 +324,7 @@ model Submission {
   createdAt             DateTime @default(now())
 
   @@index([origin, status])
+  @@index([apiClientId])
 }
 
 // ============================================================
@@ -253,15 +332,65 @@ model Submission {
 // ============================================================
 
 model ApiClient {
-  id         String    @id @default(cuid())
-  clientId   String    @unique
-  name       String
-  secretHash String // scrypt hash; secret plaintext TIDAK pernah disimpan
-  scopes     String    @default("submit") // comma-separated; hanya "submit" pada MVP
-  status     String    @default("ACTIVE") // ACTIVE | REVOKED
-  expiresAt  DateTime?
-  lastUsedAt DateTime?
-  createdAt  DateTime  @default(now())
+  id          String    @id @default(cuid())
+  clientId    String    @unique
+  name        String
+  description String?
+  ownerName   String?
+  environment String    @default("DEVELOPMENT") // DEVELOPMENT | PREVIEW | PRODUCTION
+  secretHash  String?   // SHA-256 hash kredensial utama/warisan; secret plaintext TIDAK pernah disimpan
+  scopes      String    @default("submit") // comma-separated; hanya "submit" pada MVP
+  status      String    @default("ACTIVE") // ACTIVE | REVOKED
+  expiresAt   DateTime?
+  lastUsedAt  DateTime?
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  credentials ApiClientCredential[]
+  submissions Submission[]
+  requestLogs ApiRequestLog[]
+}
+
+/// Kredensial rotasi API Client (Fase 3).
+model ApiClientCredential {
+  id                String    @id @default(cuid())
+  apiClientId       String
+  apiClient         ApiClient @relation(fields: [apiClientId], references: [id], onDelete: Cascade)
+  name              String?
+  keyPrefix         String    // Awalan secret (mis. vrtk_xxxx) untuk identifikasi di UI
+  secretHash        String    // SHA-256 hash; secret plaintext TIDAK pernah disimpan
+  status            String    @default("ACTIVE") // ACTIVE | GRACE_PERIOD | REVOKED | EXPIRED
+  expiresAt         DateTime?
+  gracePeriodEndsAt DateTime?
+  lastUsedAt        DateTime?
+  revokedAt         DateTime?
+  createdAt         DateTime  @default(now())
+  updatedAt         DateTime  @updatedAt
+
+  @@index([apiClientId, status])
+}
+
+/// Rekaman log permintaan API Client (Fase 3). Metadata tersanitasi tanpa rahasia.
+model ApiRequestLog {
+  id           String     @id @default(cuid())
+  apiClientId  String?
+  apiClient    ApiClient? @relation(fields: [apiClientId], references: [id], onDelete: SetNull)
+  requestId    String     @unique
+  method       String
+  endpoint     String
+  statusCode   Int
+  durationMs   Int
+  ipAddress    String?
+  userAgent    String?
+  submissionId String?
+  errorCode    String?
+  errorMessage String?
+  createdAt    DateTime   @default(now())
+
+  @@index([apiClientId, createdAt])
+  @@index([requestId])
+  @@index([createdAt])
+  @@index([statusCode])
 }
 
 /// Metadata aset visual (ingestion/Editor/Library) — hak penggunaan wajib tercatat (Charter §3.4).

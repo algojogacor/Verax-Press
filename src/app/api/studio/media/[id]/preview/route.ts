@@ -10,7 +10,7 @@ export async function GET(
 ) {
   try {
     const user = await requireSession();
-    if (user.role !== "CHIEF_EDITOR" && user.role !== "EDITOR" && user.role !== "INTERNAL_AUTHOR") {
+    if (user.role !== "CHIEF_EDITOR" && user.role !== "WRITER") {
       return new Response("Unauthorized", { status: 403 });
     }
 

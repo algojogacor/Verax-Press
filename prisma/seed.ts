@@ -219,35 +219,35 @@ async function main() {
   const chief = await db.staffUser.upsert({
     where: { email: CHIEF_EMAIL },
     create: {
+      username: "chief",
       email: CHIEF_EMAIL,
       name: "Ratna Dewanti",
       role: "CHIEF_EDITOR",
       passwordHash: hashPassword(envPassword("VERITY_SEED_PASSWORD_CHIEF", "VerityChief!2026")),
     },
-    update: { role: "CHIEF_EDITOR" },
+    update: { username: "chief", role: "CHIEF_EDITOR" },
   });
   const editor = await db.staffUser.upsert({
     where: { email: EDITOR_EMAIL },
     create: {
+      username: "editor",
       email: EDITOR_EMAIL,
       name: "Bagus Prakoso",
-      role: "EDITOR",
-      // Demonstrasi grant eksplisit (TA §5.1 "By explicit grant"):
-      canRiskEdit: true,
-      canManageComplaints: false,
+      role: "WRITER",
       passwordHash: hashPassword(envPassword("VERITY_SEED_PASSWORD_EDITOR", "VerityEditor!2026")),
     },
-    update: { canRiskEdit: true },
+    update: { username: "editor", role: "WRITER" },
   });
   const author = await db.staffUser.upsert({
     where: { email: AUTHOR_EMAIL },
     create: {
+      username: "penulis",
       email: AUTHOR_EMAIL,
       name: "Alya Rahmadani",
-      role: "INTERNAL_AUTHOR",
+      role: "WRITER",
       passwordHash: hashPassword(envPassword("VERITY_SEED_PASSWORD_AUTHOR", "VerityAuthor!2026")),
     },
-    update: {},
+    update: { username: "penulis", role: "WRITER" },
   });
 
   // ============ Persons (identitas publik) ============
@@ -1034,9 +1034,9 @@ async function main() {
 
   console.log("✓ Seed selesai.");
   console.log("  Akun (password diatur via env VERITY_SEED_PASSWORD_*; fallback dev-only):");
-  console.log(`  - ${CHIEF_EMAIL} (Chief Editor)`);
-  console.log(`  - ${EDITOR_EMAIL} (Editor, grant risk-edit)`);
-  console.log(`  - ${AUTHOR_EMAIL} (Internal Author)`);
+  console.log(`  - ${CHIEF_EMAIL} (Pemimpin Redaksi, @chief)`);
+  console.log(`  - ${EDITOR_EMAIL} (Penulis, @editor)`);
+  console.log(`  - ${AUTHOR_EMAIL} (Penulis, @penulis)`);
 }
 
 function writeEnvLocal(key: string, value: string): void {

@@ -73,6 +73,9 @@ db/*.db
 db/*.db-wal
 db/*.db-shm
 db/*.db-journal
+db/*.bak
+db/*.db.*
+*.bak
 db/backups/
 db/disposable_*
 db/incident-*

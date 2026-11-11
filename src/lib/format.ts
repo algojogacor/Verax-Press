@@ -107,3 +107,5 @@ export function statusDotClass(status: ArticleStatus): string {
       return "bg-neutral-400";
   }
 }
+
+export const formatDateShort = formatShortDate;

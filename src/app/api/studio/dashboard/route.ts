@@ -3,22 +3,14 @@ import { NextResponse } from "next/server";
 import { db } from "@/lib/db";
 import { jsonError, requireSession } from "@/lib/api";
 import { toAuditDTO } from "@/lib/domain/serializers";
-import { userHasPermission } from "@/lib/domain/permissions";
 
 export async function GET() {
   try {
     const user = await requireSession();
-    const isEditorPlus = user.role === "CHIEF_EDITOR" || user.role === "EDITOR";
-    const canSeeAudit = user.role === "CHIEF_EDITOR";
+    const isChief = user.role === "CHIEF_EDITOR";
 
-    // Grant eksplisit dari profil staf DB terverifikasi
-    const canManageComplaints = userHasPermission(
-      { role: user.role, canRiskEdit: user.canRiskEdit ?? false, canManageComplaints: user.canManageComplaints ?? false },
-      "complaint:manage"
-    );
-
-    // Internal Author hanya melihat naskahnya sendiri.
-    const articleFilter = isEditorPlus
+    // Penulis hanya melihat naskahnya sendiri. Pemimpin Redaksi melihat seluruh naskah.
+    const articleFilter = isChief
       ? {}
       : {
           OR: [
@@ -29,10 +21,10 @@ export async function GET() {
 
     const [statusCounts, openComplaints, recentAudit, pendingGate] = await Promise.all([
       db.article.groupBy({ by: ["status"], where: articleFilter, _count: { _all: true } }),
-      canManageComplaints
+      isChief
         ? db.complaint.count({ where: { status: { in: ["RECEIVED", "IN_REVIEW"] } } })
         : Promise.resolve(null),
-      canSeeAudit
+      isChief
         ? db.auditEvent.findMany({ orderBy: { createdAt: "desc" }, take: 12 }).then((rows) => rows.map(toAuditDTO))
         : Promise.resolve([]),
       db.article.findMany({
@@ -62,12 +54,12 @@ export async function GET() {
       recentAudit,
       gateWarnings,
       permissions: {
-        canPublish: user.role === "CHIEF_EDITOR",
-        canReview: isEditorPlus,
-        canVerifySources: isEditorPlus,
-        canManageComplaints,
-        canManageApiClients: user.role === "CHIEF_EDITOR",
-        canReadAudit: canSeeAudit,
+        canPublish: isChief,
+        canReview: isChief,
+        canVerifySources: isChief,
+        canManageApiClients: isChief,
+        canReadAudit: isChief,
+        canManageStaff: isChief,
       },
     });
   } catch (error) {

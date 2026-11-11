@@ -7,12 +7,12 @@ import {
 } from "../src/lib/domain/workflow";
 
 describe("Workflow State Machine (Tahap A / TA §7.1)", () => {
-  it("allows DRAFT to be submitted for review by Author", () => {
+  it("allows DRAFT to be submitted for review by Writer (owner)", () => {
     const rule = getRule("SUBMIT_REVIEW", "DRAFT");
     expect(rule).toBeDefined();
     expect(rule?.to).toBe("PENDING_REVIEW");
-    expect(canExecuteRule(rule!, "INTERNAL_AUTHOR", true)).toBe(true);
-    expect(canExecuteRule(rule!, "INTERNAL_AUTHOR", false)).toBe(false);
+    expect(canExecuteRule(rule!, "WRITER", true)).toBe(true);
+    expect(canExecuteRule(rule!, "WRITER", false)).toBe(false);
   });
 
   it("prevents direct DRAFT to PUBLISHED jump", () => {
@@ -20,12 +20,13 @@ describe("Workflow State Machine (Tahap A / TA §7.1)", () => {
     expect(rule).toBeUndefined();
   });
 
-  it("allows Editor to advance PENDING_REVIEW to FACT_CHECK", () => {
+  it("allows Chief Editor to advance PENDING_REVIEW to FACT_CHECK, denies Writer", () => {
     const rule = getRule("START_FACT_CHECK", "PENDING_REVIEW");
     expect(rule).toBeDefined();
     expect(rule?.to).toBe("FACT_CHECK");
-    expect(canExecuteRule(rule!, "EDITOR", false)).toBe(true);
-    expect(canExecuteRule(rule!, "INTERNAL_AUTHOR", true)).toBe(false);
+    expect(canExecuteRule(rule!, "CHIEF_EDITOR", false)).toBe(true);
+    expect(canExecuteRule(rule!, "WRITER", true)).toBe(false);
+    expect(canExecuteRule(rule!, "WRITER", false)).toBe(false);
   });
 
   it("enforces Chief-only execution on PUBLISH from PENDING_APPROVAL", () => {
@@ -33,9 +34,8 @@ describe("Workflow State Machine (Tahap A / TA §7.1)", () => {
     expect(rule).toBeDefined();
     expect(rule?.gate).toBe("PUBLISH");
     expect(canExecuteRule(rule!, "CHIEF_EDITOR", false)).toBe(true);
-    expect(canExecuteRule(rule!, "EDITOR", false)).toBe(false);
-    expect(canExecuteRule(rule!, "INTERNAL_AUTHOR", true)).toBe(false);
-    expect(canExecuteRule(rule!, "VOLUNTEER", false)).toBe(false);
+    expect(canExecuteRule(rule!, "WRITER", true)).toBe(false);
+    expect(canExecuteRule(rule!, "WRITER", false)).toBe(false);
   });
 
   it("correctly lists allowed transitions from each state", () => {

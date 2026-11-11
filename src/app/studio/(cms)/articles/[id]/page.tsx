@@ -46,7 +46,7 @@ export default function ArticleEditorPage() {
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const { data: session } = useSession();
-  const isEditorPlus = session?.user.role === "CHIEF_EDITOR" || session?.user.role === "EDITOR";
+  const isChiefEditor = session?.user.role === "CHIEF_EDITOR";
 
   const { data: article, isLoading, error } = useQuery({
     queryKey: ["article", id],
@@ -210,7 +210,7 @@ export default function ArticleEditorPage() {
           >
             Catatan
           </TabsTrigger>
-          {isEditorPlus ? (
+          {isChiefEditor ? (
             <TabsTrigger
               value="audit"
               className="flex-none rounded-none border-b-2 border-transparent px-4 py-2.5 data-[state=active]:border-verity-ink data-[state=active]:bg-transparent data-[state=active]:text-verity-ink data-[state=active]:shadow-none"
@@ -232,7 +232,7 @@ export default function ArticleEditorPage() {
         <TabsContent value="comments" className="mt-6">
           <ArticleCommentsTab article={article} />
         </TabsContent>
-        {isEditorPlus ? (
+        {isChiefEditor ? (
           <TabsContent value="audit" className="mt-6">
             <ArticleAuditTab articleId={article.id} />
           </TabsContent>
