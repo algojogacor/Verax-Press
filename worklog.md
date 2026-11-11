@@ -437,3 +437,14 @@ Dijalankan 9 Nov 2026 (sesi build-2). Transkrip lengkap: `scripts/acceptance-tes
 - **Hasil Verifikasi:**
   - `bun test`: 78 lulus dari 78 pengujian lintas 9 berkas (167 assertions lulus, 0 gagal).
   - `bun run build`: 26/26 rute Next.js 16.1.3 Turbopack terkompilasi bersih tanpa galat TypeScript atau ESLint.
+
+
+## 30. Verax Press: Peluncuran Resmi ke Git Remote dan Deployment Vercel Produksi (11 Nov 2026)
+
+- **Status:** Selesai dan sukses (100% Online).
+- **Tindakan yang Dilakukan:**
+  1. **Git Remote Push:** Mendorong branch `remediation/comprehensive-qa-fix` ke remote origin GitHub (`https://github.com/algojogacor/Verax-Press.git`).
+  2. **Penggabungan ke Branch Utama:** Berpindah ke branch `main`, melakukan penggabungan fast-forward dari `remediation/comprehensive-qa-fix` (`0f0df93..af0f104`), dan mendorong pembaruan branch `main` ke remote GitHub.
+  3. **Deployment Vercel Produksi:** Menjalankan perintah `vercel --prod --yes` yang memicu build produksi resmi di Washington D.C. (iad1). Kompilasi Next.js 16.1.3 Turbopack selesai dalam 27 detik dan berhasil meng-generate seluruh 26 rute publik dan studio CMS.
+  4. **Pemberian Alias Domain Produksi:** Deployment `dpl_7xjTvLH7S2tvmyKL2sDEJVYsuXZm` berhasil dipromosikan ke domain resmi: `https://verax-press.vercel.app`.
+  5. **Verifikasi Produksi Langsung:** Probe HTTP terhadap `https://verax-press.vercel.app` mengembalikan HTTP 200 OK dengan status clean-slate otentik ("Belum ada artikel terbit"). Login meja redaksi studio di `https://verax-press.vercel.app/studio/login` aktif melayani autentikasi akun Pemimpin Redaksi.
