@@ -3,12 +3,18 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { ComplaintForm } from "@/components/site/complaint-form";
+import { Breadcrumbs } from "@/components/site/breadcrumbs";
+import { JsonLd } from "@/components/seo/json-ld";
+import { canonicalUrl } from "@/lib/seo/constants";
+import { buildPublicMetadata } from "@/lib/seo/metadata";
+import { buildBreadcrumbJsonLd } from "@/lib/seo/structured-data";
 
-export const metadata: Metadata = {
+export const metadata: Metadata = buildPublicMetadata({
   title: "Hak Jawab, Hak Koreksi, dan Keluhan",
   description:
     "Formulir permohonan hak jawab, hak koreksi, keluhan editorial, dan permintaan penurunan konten Verax Press.",
-};
+  path: "/keluhan",
+});
 
 const COMPLAINT_EXPLANATIONS = [
   {
@@ -32,6 +38,13 @@ const COMPLAINT_EXPLANATIONS = [
 export default function ComplaintPage() {
   return (
     <div className="mx-auto max-w-6xl px-4 py-8 sm:px-6 sm:py-12">
+      <JsonLd
+        data={buildBreadcrumbJsonLd([
+          { name: "Beranda", url: canonicalUrl("/") },
+          { name: "Hak Jawab & Keluhan", url: canonicalUrl("/keluhan") },
+        ])}
+      />
+      <Breadcrumbs items={[{ label: "Beranda", href: "/" }, { label: "Hak Jawab & Keluhan" }]} />
       <header className="border-b-2 border-verity-ink pb-8">
         <p className="font-mono text-[11px] uppercase tracking-[0.16em] text-verity-accent">
           Layanan Publik &amp; Pembaca

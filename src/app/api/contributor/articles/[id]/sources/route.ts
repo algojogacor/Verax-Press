@@ -5,13 +5,14 @@ import { db } from "@/lib/db";
 import { ApiError, jsonError, ok, parseJsonBody, requireContributorSession } from "@/lib/api";
 import { writeAudit } from "@/lib/domain/audit";
 import { SOURCE_TYPES } from "@/lib/domain/constants";
+import { httpUrlSchema } from "@/lib/url";
 
 type Params = { params: Promise<{ id: string }> };
 
 const sourceSchema = z.object({
   title: z.string().min(3).max(300),
   publisher: z.string().max(200).optional(),
-  url: z.string().url().max(2_000),
+  url: httpUrlSchema("URL sumber harus berupa tautan http:// atau https:// yang valid.", 2_000),
   sourceType: z.enum(SOURCE_TYPES as [string, ...string[]]),
   publishedAt: z.string().datetime().optional().nullable(),
   accessedAt: z.string().datetime().optional().nullable(),

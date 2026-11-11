@@ -19,8 +19,8 @@ import { useDesks } from "@/components/studio/desks";
 const ALLOWED_FORMATS = [
   { value: "OPINION", label: "Opini (Analisis & Gagasan Terargumentasi)" },
   { value: "ANALYSIS", label: "Analisis Mendalam (Kajian Berbasis Data & Kebijakan)" },
-  { value: "EXPLAINER", label: "Penjelas / Explainer (Kontekstualisasi Isu Kompleks)" },
-  { value: "FEATURE", label: "Feature (Narasi Kemanusiaan & Dampak Nyata)" },
+  { value: "EXPLAINER", label: "Penjelas (Kontekstualisasi Isu Kompleks)" },
+  { value: "FEATURE", label: "Kisah Khas (Narasi Kemanusiaan & Dampak Nyata)" },
   { value: "INTERVIEW", label: "Wawancara (Tanya Jawab Terstruktur)" },
 ];
 
@@ -109,7 +109,7 @@ export default function NewContributorArticlePage() {
           href="/kontributor/portal"
           className="inline-flex items-center gap-1.5 text-xs font-mono text-verity-ink-soft hover:text-verity-accent"
         >
-          <ArrowLeft className="w-3.5 h-3.5" />
+          <ArrowLeft className="w-3.5 h-3.5" aria-hidden="true" />
           <span>Kembali ke Naskah Saya</span>
         </Link>
         <span className="font-mono text-xs uppercase tracking-wider text-verity-accent">
@@ -117,10 +117,10 @@ export default function NewContributorArticlePage() {
         </span>
       </div>
 
-      <div className="bg-white border border-verity-rule rounded-xl p-6 sm:p-8 shadow-xs">
+      <div className="bg-card border border-verity-rule rounded-xs p-6 sm:p-8">
         <div className="border-b border-verity-rule pb-5 mb-6">
-          <div className="w-10 h-10 rounded-full bg-verity-paper-warm text-verity-ink flex items-center justify-center mb-3">
-            <PenSquare className="w-5 h-5 text-verity-accent" />
+          <div className="w-10 h-10 rounded-xs border border-verity-rule bg-verity-paper-soft text-verity-ink flex items-center justify-center mb-3">
+            <PenSquare className="w-5 h-5 text-verity-accent" aria-hidden="true" />
           </div>
           <h1 className="font-serif text-2xl font-bold text-verity-ink">
             Tulis Naskah Kontributor Baru
@@ -132,18 +132,25 @@ export default function NewContributorArticlePage() {
         </div>
 
         {error && (
-          <div className="mb-6 p-4 rounded-lg bg-rose-50 border border-rose-200 flex items-start gap-3 text-rose-900 text-xs">
-            <AlertCircle className="w-4 h-4 text-rose-600 shrink-0 mt-0.5" />
+          <div
+            role="alert"
+            className="mb-6 p-4 rounded-xs bg-verity-disputed/10 border border-verity-disputed/40 flex items-start gap-3 text-verity-disputed text-xs"
+          >
+            <AlertCircle className="w-4 h-4 shrink-0 mt-0.5" aria-hidden="true" />
             <div>{error}</div>
           </div>
         )}
 
         <form onSubmit={handleSubmit} className="space-y-6">
           <div>
-            <label className="block text-xs font-mono uppercase tracking-wider text-verity-ink-soft mb-1.5">
+            <label
+              htmlFor="article-title"
+              className="block text-xs font-mono uppercase tracking-wider text-verity-ink-soft mb-1.5"
+            >
               Judul Naskah *
             </label>
             <Input
+              id="article-title"
               type="text"
               required
               value={title}
@@ -157,10 +164,14 @@ export default function NewContributorArticlePage() {
           </div>
 
           <div>
-            <label className="block text-xs font-mono uppercase tracking-wider text-verity-ink-soft mb-1.5">
+            <label
+              htmlFor="article-deck"
+              className="block text-xs font-mono uppercase tracking-wider text-verity-ink-soft mb-1.5"
+            >
               Ringkasan Gagasan (Deck / Subjudul)
             </label>
             <Textarea
+              id="article-deck"
               rows={2}
               value={deck}
               onChange={(e) => setDeck(e.target.value)}
@@ -171,12 +182,15 @@ export default function NewContributorArticlePage() {
 
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div>
-              <label className="block text-xs font-mono uppercase tracking-wider text-verity-ink-soft mb-1.5">
+              <label
+                htmlFor="article-desk"
+                className="block text-xs font-mono uppercase tracking-wider text-verity-ink-soft mb-1.5"
+              >
                 Rubrik / Desk *
               </label>
               <Select value={deskSlug} onValueChange={setDeskSlug} required>
-                <SelectTrigger className="bg-verity-paper/40 font-mono text-xs">
-                  <SelectValue placeholder={desksLoading ? "Memuat rubrik..." : "Pilih rubrik..."} />
+                <SelectTrigger id="article-desk" className="bg-verity-paper/40 font-mono text-xs">
+                  <SelectValue placeholder={desksLoading ? "Memuat rubrik…" : "Pilih rubrik…"} />
                 </SelectTrigger>
                 <SelectContent>
                   {desks?.map((desk) => (
@@ -189,12 +203,15 @@ export default function NewContributorArticlePage() {
             </div>
 
             <div>
-              <label className="block text-xs font-mono uppercase tracking-wider text-verity-ink-soft mb-1.5">
+              <label
+                htmlFor="article-format"
+                className="block text-xs font-mono uppercase tracking-wider text-verity-ink-soft mb-1.5"
+              >
                 Format Naskah *
               </label>
               <Select value={format} onValueChange={setFormat} required>
-                <SelectTrigger className="bg-verity-paper/40 font-mono text-xs">
-                  <SelectValue placeholder="Pilih format naskah..." />
+                <SelectTrigger id="article-format" className="bg-verity-paper/40 font-mono text-xs">
+                  <SelectValue placeholder="Pilih format naskah…" />
                 </SelectTrigger>
                 <SelectContent>
                   {ALLOWED_FORMATS.map((item) => (
@@ -211,11 +228,14 @@ export default function NewContributorArticlePage() {
           </div>
 
           <div>
-            <label className="block text-xs font-mono uppercase tracking-wider text-verity-ink-soft mb-1.5">
+            <label
+              htmlFor="article-ai"
+              className="block text-xs font-mono uppercase tracking-wider text-verity-ink-soft mb-1.5"
+            >
               Deklarasi Keterlibatan AI *
             </label>
             <Select value={aiInvolvement} onValueChange={setAiInvolvement}>
-              <SelectTrigger className="bg-verity-paper/40 font-mono text-xs">
+              <SelectTrigger id="article-ai" className="bg-verity-paper/40 font-mono text-xs">
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
@@ -232,10 +252,14 @@ export default function NewContributorArticlePage() {
           </div>
 
           <div>
-            <label className="block text-xs font-mono uppercase tracking-wider text-verity-ink-soft mb-1.5">
+            <label
+              htmlFor="article-body"
+              className="block text-xs font-mono uppercase tracking-wider text-verity-ink-soft mb-1.5"
+            >
               Draf Awal / Paragraf Pembuka
             </label>
             <Textarea
+              id="article-body"
               rows={8}
               value={initialBody}
               onChange={(e) => setInitialBody(e.target.value)}
@@ -248,12 +272,12 @@ export default function NewContributorArticlePage() {
             <Button
               type="submit"
               disabled={submitting}
-              className="w-full bg-verity-ink text-white hover:bg-verity-accent font-mono text-xs uppercase tracking-wider py-2.5"
+              className="w-full bg-verity-ink text-verity-paper hover:bg-verity-accent font-mono text-xs uppercase tracking-wider py-2.5"
             >
               {submitting ? (
                 <span className="flex items-center gap-2">
-                  <Loader2 className="w-4 h-4 animate-spin" />
-                  Menyimpan Draf...
+                  <Loader2 className="w-4 h-4 animate-spin" aria-hidden="true" />
+                  Menyimpan Draf…
                 </span>
               ) : (
                 "Simpan Draf & Lanjutkan ke Editor"

@@ -1,0 +1,20 @@
+{
+  "template": true,
+  "task_id": "",
+  "goal": "",
+  "targets": [],
+  "mode": "READ_ONLY",
+  "scope_exclusions": [],
+  "source_reads": [],
+  "evidence_ids": [],
+  "completed": [],
+  "proposed": [],
+  "blocked": [],
+  "not_assessed": [],
+  "approval_scope": [],
+  "tests_actually_run": [],
+  "source_conflicts": [],
+  "next_smallest_verifiable_step": "",
+  "required_modules": [],
+  "sensitive_data_included": false
+}

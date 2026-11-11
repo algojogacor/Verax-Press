@@ -5,6 +5,7 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import { Menu, X } from "lucide-react";
 import type { NavItem } from "@/components/site/desk-nav";
+import { VeraxMark } from "@/components/site/verax-mark";
 
 export function SiteMobileNav({ items = [] }: { items?: NavItem[] }) {
   const [open, setOpen] = useState(false);
@@ -62,7 +63,8 @@ export function SiteMobileNav({ items = [] }: { items?: NavItem[] }) {
             className="fixed inset-x-0 top-0 z-50 max-h-[85vh] overflow-y-auto border-b-2 border-verity-ink bg-verity-paper shadow-xl sm:hidden"
           >
             <div className="flex items-center justify-between border-b border-verity-rule px-4 py-3">
-              <span className="font-serif text-sm font-semibold tracking-[0.2em] text-verity-ink">
+              <span className="inline-flex items-center gap-2 font-serif text-sm font-semibold tracking-[0.2em] text-verity-ink">
+                <VeraxMark className="size-5 shrink-0" />
                 VERAX PRESS
               </span>
               <button
@@ -135,11 +137,29 @@ export function SiteMobileNav({ items = [] }: { items?: NavItem[] }) {
                 </li>
                 <li>
                   <Link
+                    href="/kirim-tulisan"
+                    onClick={() => setOpen(false)}
+                    className="block py-2.5 font-mono text-[12px] uppercase tracking-[0.1em] text-verity-ink hover:text-verity-accent"
+                  >
+                    Kirim Tulisan
+                  </Link>
+                </li>
+                <li>
+                  <Link
                     href="/pedoman-kontributor"
                     onClick={() => setOpen(false)}
                     className="block py-2.5 font-mono text-[12px] uppercase tracking-[0.1em] text-verity-ink-soft hover:text-verity-accent"
                   >
                     Pedoman Kontributor
+                  </Link>
+                </li>
+                <li>
+                  <Link
+                    href="/informasi-kelembagaan"
+                    onClick={() => setOpen(false)}
+                    className="block py-2.5 font-mono text-[12px] uppercase tracking-[0.1em] text-verity-ink-soft hover:text-verity-accent"
+                  >
+                    Informasi Kelembagaan
                   </Link>
                 </li>
                 <li>

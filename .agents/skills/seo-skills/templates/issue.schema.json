@@ -1,0 +1,157 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://example.com/gsearch/issue.schema.json",
+  "title": "Package-defined SEO issue record",
+  "description": "Not a Google API schema. Records can represent observed defects, hypotheses or unassessed checks.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "id",
+    "title",
+    "status",
+    "severity",
+    "confidence",
+    "scope",
+    "evidence",
+    "source_ids",
+    "mechanism",
+    "recommendation",
+    "acceptance_tests",
+    "approval_required",
+    "limitations"
+  ],
+  "properties": {
+    "id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "title": {
+      "type": "string",
+      "minLength": 1
+    },
+    "status": {
+      "enum": [
+        "observed",
+        "hypothesis",
+        "not_assessed",
+        "resolved",
+        "not_applicable"
+      ]
+    },
+    "severity": {
+      "enum": [
+        "P0",
+        "P1",
+        "P2",
+        "P3"
+      ]
+    },
+    "confidence": {
+      "enum": [
+        "high",
+        "medium",
+        "low",
+        "unknown"
+      ]
+    },
+    "scope": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "evidence": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "id",
+          "class",
+          "observation",
+          "method",
+          "timestamp"
+        ],
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "class": {
+            "enum": [
+              "OFFICIAL_GUIDANCE",
+              "SITE_OBSERVATION",
+              "DERIVED",
+              "PACKAGE_DESIGN",
+              "ILLUSTRATIVE",
+              "UNKNOWN",
+              "CONFLICT"
+            ]
+          },
+          "observation": {
+            "type": "string"
+          },
+          "method": {
+            "type": "string"
+          },
+          "timestamp": {
+            "type": [
+              "string",
+              "null"
+            ]
+          }
+        }
+      }
+    },
+    "source_ids": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "mechanism": {
+      "type": "string"
+    },
+    "recommendation": {
+      "type": "string"
+    },
+    "acceptance_tests": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": [
+          "test",
+          "state"
+        ],
+        "additionalProperties": false,
+        "properties": {
+          "test": {
+            "type": "string"
+          },
+          "state": {
+            "enum": [
+              "proposed",
+              "passed",
+              "failed",
+              "not_assessed"
+            ]
+          },
+          "evidence_id": {
+            "type": [
+              "string",
+              "null"
+            ]
+          }
+        }
+      }
+    },
+    "approval_required": {
+      "type": "boolean"
+    },
+    "limitations": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    }
+  }
+}

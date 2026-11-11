@@ -3,11 +3,22 @@ import { NextResponse } from "next/server";
 import crypto from "node:crypto";
 import { db } from "@/lib/db";
 import { ApiError, jsonError, ok } from "@/lib/api";
+import { rateLimit, sweepRateLimits } from "@/lib/rate-limit";
 
 type Params = { params: Promise<{ token: string }> };
 
-export async function GET(_request: Request, { params }: Params) {
+export async function GET(request: Request, { params }: Params) {
   try {
+    sweepRateLimits();
+    const ip = request.headers.get("x-real-ip") ?? request.headers.get("x-forwarded-for")?.split(",")[0]?.trim() ?? "unknown";
+    const limit = rateLimit(`public-contrib-invite-get:${ip}`, 30, 60 * 60 * 1000);
+    if (!limit.allowed) {
+      return NextResponse.json(
+        { error: "Terlalu banyak permintaan verifikasi tautan. Coba lagi nanti.", code: "RATE_LIMITED" },
+        { status: 429, headers: { "Retry-After": String(limit.retryAfterSeconds) } },
+      );
+    }
+
     const { token } = await params;
     if (!token || token.trim().length < 32) {
       throw new ApiError(404, "INVITATION_NOT_FOUND", "Tautan aktivasi tidak valid.");

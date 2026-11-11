@@ -1,16 +1,10 @@
-User-agent: Googlebot
-Allow: /
-
-User-agent: Bingbot
-Allow: /
-
-User-agent: Twitterbot
-Allow: /
-
-User-agent: facebookexternalhit
-Allow: /
+# Robots.txt untuk Verax Press
+# Aturan perayapan publik sederhana. Pengendalian indeks rute internal, portal,
+# dan pendaftaran diterapkan lewat X-Robots-Tag serta meta robots noindex agar
+# crawler tetap dapat membaca sinyal noindex dan tidak terindeks sebagai URL terblokir.
 
 User-agent: *
 Allow: /
+Disallow: /api/
 
-Sitemap: /sitemap.xml
+Sitemap: https://veraxpress.vercel.app/sitemap.xml

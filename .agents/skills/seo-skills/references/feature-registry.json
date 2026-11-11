@@ -1,0 +1,141 @@
+{
+  "snapshot_date": "2026-09-11",
+  "purpose": "Current-guide routing index; not a fixed field schema or exhaustive list of all Google programmes.",
+  "features": [
+    {
+      "feature": "Article",
+      "source_id": "GS-article",
+      "coverage": "reviewed guide"
+    },
+    {
+      "feature": "Breadcrumb",
+      "source_id": "GS-breadcrumb",
+      "coverage": "reviewed guide"
+    },
+    {
+      "feature": "Carousel",
+      "source_id": "GS-gallery",
+      "coverage": "gallery-linked; exact guide required"
+    },
+    {
+      "feature": "Course list",
+      "source_id": "GS-gallery",
+      "coverage": "gallery-linked; not the retired course-info feature"
+    },
+    {
+      "feature": "Dataset",
+      "source_id": "GS-gallery",
+      "coverage": "Dataset Search, not a promised web Search rich result"
+    },
+    {
+      "feature": "Discussion forum",
+      "source_id": "GS-forum",
+      "coverage": "reviewed guide"
+    },
+    {
+      "feature": "Education Q&A",
+      "source_id": "GS-gallery",
+      "coverage": "gallery-linked; exact guide required"
+    },
+    {
+      "feature": "Employer aggregate rating",
+      "source_id": "GS-gallery",
+      "coverage": "gallery-linked; exact guide required"
+    },
+    {
+      "feature": "Event",
+      "source_id": "GS-event",
+      "coverage": "reviewed guide"
+    },
+    {
+      "feature": "Image metadata",
+      "source_id": "GS-gallery",
+      "coverage": "gallery-linked; exact guide required"
+    },
+    {
+      "feature": "Job posting",
+      "source_id": "GS-job",
+      "coverage": "reviewed guide; Indexing API restricted scope"
+    },
+    {
+      "feature": "Local business",
+      "source_id": "GS-local",
+      "coverage": "reviewed guide; not complete Business Profile guidance"
+    },
+    {
+      "feature": "Math solver",
+      "source_id": "GS-gallery",
+      "coverage": "gallery-linked; exact guide required"
+    },
+    {
+      "feature": "Movie",
+      "source_id": "GS-gallery",
+      "coverage": "gallery-linked; exact guide required"
+    },
+    {
+      "feature": "Organization",
+      "source_id": "GS-org",
+      "coverage": "reviewed guide"
+    },
+    {
+      "feature": "Product / merchant / variants",
+      "source_id": "GS-product",
+      "coverage": "read GS-merchant and GS-variants for detailed contract"
+    },
+    {
+      "feature": "Profile page",
+      "source_id": "GS-profile",
+      "coverage": "reviewed guide"
+    },
+    {
+      "feature": "Q&A",
+      "source_id": "GS-qa",
+      "coverage": "real user-answer question; not an FAQ workaround"
+    },
+    {
+      "feature": "Recipe",
+      "source_id": "GS-recipe",
+      "coverage": "reviewed guide"
+    },
+    {
+      "feature": "Review snippet",
+      "source_id": "GS-review-snippet",
+      "coverage": "check eligibility and self-serving/incentive restrictions"
+    },
+    {
+      "feature": "Software app",
+      "source_id": "GS-software",
+      "coverage": "reviewed guide"
+    },
+    {
+      "feature": "Speakable",
+      "source_id": "GS-gallery",
+      "coverage": "gallery-linked; exact scope required"
+    },
+    {
+      "feature": "Subscription / paywall",
+      "source_id": "GS-paywall",
+      "coverage": "reviewed guide; preserve access controls"
+    },
+    {
+      "feature": "Vacation rental",
+      "source_id": "GS-gallery",
+      "coverage": "gallery-linked; exact eligibility required"
+    },
+    {
+      "feature": "Video",
+      "source_id": "GS-video",
+      "coverage": "video guide read; exact structured-data guide required"
+    },
+    {
+      "feature": "FAQ rich results",
+      "source_id": "GS-updates",
+      "coverage": "retired starting 2026-05-07"
+    },
+    {
+      "feature": "Book actions",
+      "source_id": "GS-updates",
+      "coverage": "status-sensitive outside this main gallery inventory; resolve current official guide; do not assume retired"
+    }
+  ]
+}

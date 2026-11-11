@@ -1,0 +1,32 @@
+{
+  "template": true,
+  "feature": "",
+  "intended_surface": "",
+  "source_url": "",
+  "accessed_at": null,
+  "source_id": null,
+  "region": "unknown",
+  "availability": "unverified",
+  "eligible_page_type": "",
+  "required_fields": [],
+  "recommended_fields": [],
+  "field_evidence_map": [],
+  "content_policy_checks": [],
+  "syntax_validation": {
+    "state": "not_assessed",
+    "tool": null,
+    "evidence": null
+  },
+  "official_feature_validation": {
+    "state": "not_assessed",
+    "tool": null,
+    "evidence": null
+  },
+  "actual_display": {
+    "state": "not_assessed",
+    "evidence": null
+  },
+  "maintenance_rules": [],
+  "unknowns": [],
+  "note": "Populate from the exact current feature guide. Do not invent required facts."
+}

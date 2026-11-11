@@ -10,6 +10,7 @@
 // Margin antar-sibling collapse (layout blok biasa), jadi jarak aktual =
 // max(margin-bawah blok sebelumnya, margin-atas blok berikutnya).
 import type { ArticleContent } from "@/lib/domain/content";
+import { safeMediaSrcUrl } from "@/lib/url";
 
 export function ContentRenderer({ content, endMark = false }: { content: ArticleContent; endMark?: boolean }) {
   // Drop cap HANYA untuk paragraf pembuka pertama artikel (bukan di tengah naskah)
@@ -120,14 +121,16 @@ export function ContentRenderer({ content, endMark = false }: { content: Article
                 ))}
               </ol>
             );
-          case "image":
+          case "image": {
+            const safeSrc = safeMediaSrcUrl(block.url);
+            if (!safeSrc) return null;
             return (
               <figure
                 key={index}
                 className={(isFirst ? "" : "mt-9 ") + (boxedBottom ? "" : "mb-9 ")}
               >
                 <img
-                  src={block.url}
+                  src={safeSrc}
                   alt={block.alt ?? block.caption ?? ""}
                   className="w-full border border-verity-rule bg-verity-paper-soft object-contain"
                   loading="lazy"
@@ -141,6 +144,7 @@ export function ContentRenderer({ content, endMark = false }: { content: Article
                 ) : null}
               </figure>
             );
+          }
           case "note":
             return (
               <aside

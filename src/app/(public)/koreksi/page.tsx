@@ -4,14 +4,20 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { db } from "@/lib/db";
 import { formatDate } from "@/lib/format";
+import { Breadcrumbs } from "@/components/site/breadcrumbs";
+import { JsonLd } from "@/components/seo/json-ld";
+import { canonicalUrl } from "@/lib/seo/constants";
+import { buildPublicMetadata } from "@/lib/seo/metadata";
+import { buildBreadcrumbJsonLd } from "@/lib/seo/structured-data";
 
 export const dynamic = "force-dynamic";
 
-export const metadata: Metadata = {
+export const metadata: Metadata = buildPublicMetadata({
   title: "Log Koreksi",
   description:
     "Catatan publik atas setiap koreksi material pada artikel Verax Press. Riwayat pembaruan tidak pernah dihapus secara diam-diam.",
-};
+  path: "/koreksi",
+});
 
 export default async function CorrectionsPage() {
   const corrections = await db.correctionRecord.findMany({
@@ -23,6 +29,13 @@ export default async function CorrectionsPage() {
 
   return (
     <div className="mx-auto max-w-6xl px-4 py-8 sm:px-6 sm:py-12">
+      <JsonLd
+        data={buildBreadcrumbJsonLd([
+          { name: "Beranda", url: canonicalUrl("/") },
+          { name: "Log Koreksi", url: canonicalUrl("/koreksi") },
+        ])}
+      />
+      <Breadcrumbs items={[{ label: "Beranda", href: "/" }, { label: "Log Koreksi" }]} />
       <header className="border-b-2 border-verity-ink pb-8">
         <p className="font-mono text-[11px] uppercase tracking-[0.16em] text-verity-accent">
           Akuntabilitas Redaksi
@@ -103,7 +116,7 @@ export default async function CorrectionsPage() {
               <ul className="mt-3 space-y-2.5 font-serif text-[0.88rem] leading-relaxed text-verity-ink-soft">
                 <li className="flex gap-2">
                   <span className="text-verity-ink">·</span>
-                  <span>Tidak ada koreksi diam-diam (*silent editing*).</span>
+                  <span>Tidak ada koreksi diam-diam (<em>silent editing</em>).</span>
                 </li>
                 <li className="flex gap-2">
                   <span className="text-verity-ink">·</span>

@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { ImageOff, Sparkles } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
+import { safeMediaSrcUrl } from "@/lib/url";
 
 interface MediaAssetCardProps {
   id: string;
@@ -26,18 +27,19 @@ export function MediaAssetCard({
   createdAt,
 }: MediaAssetCardProps) {
   const [hasError, setHasError] = useState(false);
+  const safeUrl = safeMediaSrcUrl(url);
 
   return (
-    <li className="border border-verity-rule bg-card overflow-hidden shadow-xs transition-colors hover:border-verity-rule-strong">
+    <li className="border border-verity-rule bg-card overflow-hidden transition-colors hover:border-verity-rule-strong">
       <div className="relative aspect-[4/3] bg-verity-paper-soft border-b border-verity-rule flex items-center justify-center overflow-hidden">
-        {hasError ? (
+        {!safeUrl || hasError ? (
           <div className="flex flex-col items-center justify-center gap-1.5 p-4 text-center text-verity-ink-faint">
             <ImageOff className="size-6 stroke-[1.5]" aria-hidden="true" />
             <span className="font-mono text-[10px] uppercase tracking-wider">Pratinjau tidak tersedia</span>
           </div>
         ) : (
           <img
-            src={url}
+            src={safeUrl}
             alt={caption ?? title ?? "Aset media"}
             className="w-full h-full object-cover transition-transform duration-300 hover:scale-[1.02]"
             loading="lazy"
@@ -46,8 +48,8 @@ export function MediaAssetCard({
         )}
         {isSynthetic && (
           <div className="absolute top-2 right-2">
-            <Badge className="gap-1 text-[9px] uppercase tracking-wide bg-verity-paper/95 text-verity-accent border border-verity-rule shadow-xs backdrop-blur-xs">
-              <Sparkles className="size-2.5" />
+            <Badge className="gap-1 text-[9px] uppercase tracking-wide bg-verity-paper/95 text-verity-accent border border-verity-rule backdrop-blur-xs">
+              <Sparkles className="size-2.5" aria-hidden="true" />
               Sintetis (AI)
             </Badge>
           </div>

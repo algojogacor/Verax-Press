@@ -1,0 +1,20 @@
+{
+  "template": true,
+  "goal": "",
+  "targets": [],
+  "owner_or_authority": "unknown",
+  "execution_mode": "READ_ONLY",
+  "countries": [],
+  "languages": [],
+  "page_types": [],
+  "source_scope": {
+    "allowed": [],
+    "excluded": []
+  },
+  "available_evidence": [],
+  "requested_deliverable": "",
+  "acceptance_criteria": [],
+  "assumptions": [],
+  "unresolved_required_inputs": [],
+  "approvals": []
+}

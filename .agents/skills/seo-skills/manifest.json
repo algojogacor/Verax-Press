@@ -1,0 +1,877 @@
+{
+  "name": "gsearch-agent-pack",
+  "version": "1.0.0",
+  "snapshot_date": "2026-09-11",
+  "entrypoint": "SKILL.md",
+  "skill_count": 45,
+  "specialist_module_count": 44,
+  "source_registry": "references/sources.json",
+  "default_mode": "read-only",
+  "module_installation": "Install the complete root folder; child modules rely on shared relative references.",
+  "modules": [
+    {
+      "name": "gsearch-audit",
+      "title": "Run a source-backed SEO audit",
+      "path": "skills/gsearch-audit/SKILL.md",
+      "description": "Use for a full-site SEO audit, launch-readiness review or prioritised remediation plan; route narrower questions to the specialist skill instead.",
+      "source_ids": [
+        "GS-essentials",
+        "GS-how",
+        "GS-technical",
+        "GS-console",
+        "GS-thirdparty"
+      ],
+      "tags": [
+        "audit",
+        "launch",
+        "seo",
+        "technical"
+      ]
+    },
+    {
+      "name": "gsearch-essentials",
+      "title": "Explain and check Search eligibility",
+      "path": "skills/gsearch-essentials/SKILL.md",
+      "description": "Use when a user asks how Google Search works, why a website is not eligible or what the minimum technical requirements are.",
+      "source_ids": [
+        "GS-how",
+        "GS-technical",
+        "GS-essentials",
+        "GS-starter"
+      ],
+      "tags": [
+        "fundamentals",
+        "eligibility",
+        "crawling",
+        "indexing",
+        "teaching"
+      ]
+    },
+    {
+      "name": "gsearch-spam-policy",
+      "title": "Review a proposal against Search spam policies",
+      "path": "skills/gsearch-spam-policy/SKILL.md",
+      "description": "Use to review link acquisition, scaled publishing, third-party hosting, redirects or search-manipulation proposals for policy compliance.",
+      "source_ids": [
+        "GS-spam",
+        "GS-updates",
+        "GS-manual",
+        "GS-abuse"
+      ],
+      "tags": [
+        "spam",
+        "policy",
+        "compliance",
+        "link",
+        "cloaking",
+        "reputation"
+      ]
+    },
+    {
+      "name": "gsearch-content-quality",
+      "title": "Evaluate usefulness, reliability and review quality",
+      "path": "skills/gsearch-content-quality/SKILL.md",
+      "description": "Use for a content-quality audit, a product-review improvement plan or an assessment of whether a page adds value for its intended reader.",
+      "source_ids": [
+        "GS-helpful",
+        "GS-reviews",
+        "GS-starter",
+        "GS-thirdparty"
+      ],
+      "tags": [
+        "content",
+        "quality",
+        "helpful",
+        "reviews",
+        "trust"
+      ]
+    },
+    {
+      "name": "gsearch-content-brief",
+      "title": "Plan a useful page and its editorial brief",
+      "path": "skills/gsearch-content-brief/SKILL.md",
+      "description": "Use to plan a new page, consolidate overlapping pages or build a topic-level content brief from a defined audience need.",
+      "source_ids": [
+        "GS-helpful",
+        "GS-starter",
+        "GS-links",
+        "GS-spam"
+      ],
+      "tags": [
+        "content",
+        "brief",
+        "planning",
+        "intent",
+        "editorial"
+      ]
+    },
+    {
+      "name": "gsearch-ai-content",
+      "title": "Govern AI-assisted content production",
+      "path": "skills/gsearch-ai-content/SKILL.md",
+      "description": "Use when generating or reviewing AI-assisted text, images, metadata or large content batches for a website.",
+      "source_ids": [
+        "GS-gen-content",
+        "GS-helpful",
+        "GS-spam",
+        "GS-ai-guide"
+      ],
+      "tags": [
+        "ai",
+        "generation",
+        "content",
+        "scale",
+        "editorial"
+      ]
+    },
+    {
+      "name": "gsearch-ai-visibility",
+      "title": "Diagnose visibility in Google AI search",
+      "path": "skills/gsearch-ai-visibility/SKILL.md",
+      "description": "Use for AI Overviews, AI Mode, generative Search participation, AI-search content strategy or questions about LLMS.txt.",
+      "source_ids": [
+        "GS-ai-guide",
+        "GS-ai-features",
+        "GS-ai-control",
+        "GS-robots-meta",
+        "GS-updates"
+      ],
+      "tags": [
+        "ai",
+        "overview",
+        "mode",
+        "visibility",
+        "llms",
+        "generative"
+      ]
+    },
+    {
+      "name": "gsearch-internal-links",
+      "title": "Audit internal discovery and link semantics",
+      "path": "skills/gsearch-internal-links/SKILL.md",
+      "description": "Use for orphan pages, navigation redesign, internal-link improvements or review of paid and user-generated link attributes.",
+      "source_ids": [
+        "GS-links",
+        "GS-starter",
+        "GS-urls",
+        "GS-js"
+      ],
+      "tags": [
+        "links",
+        "navigation",
+        "orphan",
+        "anchor",
+        "discovery"
+      ]
+    },
+    {
+      "name": "gsearch-url-architecture",
+      "title": "Design URL, facet and pagination behavior",
+      "path": "skills/gsearch-url-architecture/SKILL.md",
+      "description": "Use for URL structure, category architecture, filters, faceted navigation, infinite scroll, pagination or crawl-space explosions.",
+      "source_ids": [
+        "GS-urls",
+        "GS-facets",
+        "GS-pagination",
+        "GS-canonical",
+        "GS-robots-intro"
+      ],
+      "tags": [
+        "url",
+        "architecture",
+        "facets",
+        "filters",
+        "pagination",
+        "infinite"
+      ]
+    },
+    {
+      "name": "gsearch-robots",
+      "title": "Review robots.txt safely",
+      "path": "skills/gsearch-robots/SKILL.md",
+      "description": "Use to inspect robots.txt, diagnose crawl blocking or propose crawl-access rules; not to remove confidential content from public access.",
+      "source_ids": [
+        "GS-robots-intro",
+        "GS-robots-spec",
+        "GS-noindex",
+        "GS-share"
+      ],
+      "tags": [
+        "robots",
+        "crawl",
+        "blocking",
+        "disallow",
+        "allow"
+      ]
+    },
+    {
+      "name": "gsearch-index-controls",
+      "title": "Choose indexing and preview controls",
+      "path": "skills/gsearch-index-controls/SKILL.md",
+      "description": "Use for noindex, X-Robots-Tag, nosnippet, max-snippet, data-nosnippet or conflicts between crawl and indexing directives.",
+      "source_ids": [
+        "GS-robots-meta",
+        "GS-noindex",
+        "GS-share",
+        "GS-js",
+        "GS-ai-control"
+      ],
+      "tags": [
+        "noindex",
+        "headers",
+        "preview",
+        "snippet",
+        "directives"
+      ]
+    },
+    {
+      "name": "gsearch-sitemaps",
+      "title": "Build and validate a sitemap plan",
+      "path": "skills/gsearch-sitemaps/SKILL.md",
+      "description": "Use to create, inspect, split or troubleshoot XML sitemaps and sitemap indexes.",
+      "source_ids": [
+        "GS-sitemap",
+        "GS-canonical",
+        "GS-technical",
+        "GS-console"
+      ],
+      "tags": [
+        "sitemap",
+        "xml",
+        "lastmod",
+        "discovery"
+      ]
+    },
+    {
+      "name": "gsearch-canonicals",
+      "title": "Resolve duplicate and canonical signals",
+      "path": "skills/gsearch-canonicals/SKILL.md",
+      "description": "Use for duplicate URLs, alternate versions, conflicting canonicals or Google selecting a different canonical.",
+      "source_ids": [
+        "GS-canonical",
+        "GS-js",
+        "GS-pagination",
+        "GS-hreflang",
+        "GS-updates"
+      ],
+      "tags": [
+        "canonical",
+        "duplicate",
+        "cluster",
+        "preferred"
+      ]
+    },
+    {
+      "name": "gsearch-http-redirects",
+      "title": "Diagnose responses, redirects and soft 404s",
+      "path": "skills/gsearch-http-redirects/SKILL.md",
+      "description": "Use for HTTP errors, redirect chains, soft 404s, intermittent server failures or technical response-policy design.",
+      "source_ids": [
+        "GS-http",
+        "GS-migration",
+        "GS-technical",
+        "GS-canonical"
+      ],
+      "tags": [
+        "http",
+        "redirect",
+        "404",
+        "503",
+        "response",
+        "outage"
+      ]
+    },
+    {
+      "name": "gsearch-crawl-budget",
+      "title": "Investigate crawl efficiency with evidence",
+      "path": "skills/gsearch-crawl-budget/SKILL.md",
+      "description": "Use for large or rapidly changing sites with suspected crawling bottlenecks, excessive duplicate crawling or slow discovery of important updates.",
+      "source_ids": [
+        "GS-budget",
+        "GS-facets",
+        "GS-verifybot",
+        "GS-sitemap",
+        "GS-http"
+      ],
+      "tags": [
+        "crawl",
+        "budget",
+        "logs",
+        "efficiency",
+        "large"
+      ]
+    },
+    {
+      "name": "gsearch-crawler-verification",
+      "title": "Verify crawler identity in supplied logs",
+      "path": "skills/gsearch-crawler-verification/SKILL.md",
+      "description": "Use when interpreting server logs attributed to Google crawlers or assessing whether a user-agent string is trustworthy.",
+      "source_ids": [
+        "GS-verifybot",
+        "GS-budget",
+        "GS-console"
+      ],
+      "tags": [
+        "crawler",
+        "googlebot",
+        "verification",
+        "dns",
+        "logs"
+      ]
+    },
+    {
+      "name": "gsearch-javascript",
+      "title": "Audit JavaScript rendering and discovery",
+      "path": "skills/gsearch-javascript/SKILL.md",
+      "description": "Use for client-rendered sites, single-page applications, missing rendered content, hydration issues or JavaScript-generated metadata.",
+      "source_ids": [
+        "GS-js",
+        "GS-links",
+        "GS-http",
+        "GS-mobile"
+      ],
+      "tags": [
+        "javascript",
+        "rendering",
+        "spa",
+        "hydration",
+        "react",
+        "nextjs"
+      ]
+    },
+    {
+      "name": "gsearch-mobile",
+      "title": "Verify mobile content and indexing parity",
+      "path": "skills/gsearch-mobile/SKILL.md",
+      "description": "Use when a mobile redesign, responsive layout, separate mobile URL or hidden mobile content might affect Search.",
+      "source_ids": [
+        "GS-mobile",
+        "GS-js",
+        "GS-experience",
+        "GS-images"
+      ],
+      "tags": [
+        "mobile",
+        "parity",
+        "responsive",
+        "mobile-first"
+      ]
+    },
+    {
+      "name": "gsearch-migration",
+      "title": "Plan and verify a URL migration",
+      "path": "skills/gsearch-migration/SKILL.md",
+      "description": "Use for domain moves, URL restructures, protocol changes or a launch that changes existing indexable URLs.",
+      "source_ids": [
+        "GS-migration",
+        "GS-canonical",
+        "GS-http",
+        "GS-hreflang",
+        "GS-updates"
+      ],
+      "tags": [
+        "migration",
+        "domain",
+        "move",
+        "redirects",
+        "launch"
+      ]
+    },
+    {
+      "name": "gsearch-removal",
+      "title": "Choose durable removal and privacy controls",
+      "path": "skills/gsearch-removal/SKILL.md",
+      "description": "Use when removing a page from Search, hiding sensitive information, handling stale results or assessing a temporary removal request.",
+      "source_ids": [
+        "GS-removal",
+        "GS-share",
+        "GS-noindex",
+        "GS-robots-intro"
+      ],
+      "tags": [
+        "removal",
+        "privacy",
+        "sensitive",
+        "noindex",
+        "deletion"
+      ]
+    },
+    {
+      "name": "gsearch-titles-snippets",
+      "title": "Improve titles and snippets without false guarantees",
+      "path": "skills/gsearch-titles-snippets/SKILL.md",
+      "description": "Use to review page titles, visible headings, meta descriptions or controls affecting search snippets.",
+      "source_ids": [
+        "GS-title",
+        "GS-snippet",
+        "GS-robots-meta",
+        "GS-testing"
+      ],
+      "tags": [
+        "title",
+        "metadata",
+        "description",
+        "snippet",
+        "ctr"
+      ]
+    },
+    {
+      "name": "gsearch-brand-appearance",
+      "title": "Review site identity, favicon and breadcrumbs",
+      "path": "skills/gsearch-brand-appearance/SKILL.md",
+      "description": "Use for site names, homepage organization identity, favicons or breadcrumb appearance.",
+      "source_ids": [
+        "GS-sitename",
+        "GS-favicon",
+        "GS-org",
+        "GS-breadcrumb",
+        "GS-updates"
+      ],
+      "tags": [
+        "favicon",
+        "site-name",
+        "brand",
+        "breadcrumb",
+        "organization"
+      ]
+    },
+    {
+      "name": "gsearch-images",
+      "title": "Audit image discovery and usefulness",
+      "path": "skills/gsearch-images/SKILL.md",
+      "description": "Use for image SEO, image accessibility, missing image search visibility or media metadata review.",
+      "source_ids": [
+        "GS-images",
+        "GS-js",
+        "GS-gallery",
+        "GS-experience"
+      ],
+      "tags": [
+        "images",
+        "alt",
+        "media",
+        "lazy",
+        "licensing"
+      ]
+    },
+    {
+      "name": "gsearch-video",
+      "title": "Diagnose video page and feature eligibility",
+      "path": "skills/gsearch-video/SKILL.md",
+      "description": "Use for video indexing, watch-page design, thumbnails, VideoObject planning or live-broadcast indexing questions.",
+      "source_ids": [
+        "GS-video",
+        "GS-gallery",
+        "GS-js",
+        "GS-indexing-api"
+      ],
+      "tags": [
+        "video",
+        "watch",
+        "thumbnail",
+        "broadcast",
+        "videoobject"
+      ]
+    },
+    {
+      "name": "gsearch-page-experience",
+      "title": "Turn experience measurements into a repair plan",
+      "path": "skills/gsearch-page-experience/SKILL.md",
+      "description": "Use for Core Web Vitals, speed diagnostics, intrusive layout issues or questions about performance and Search.",
+      "source_ids": [
+        "GS-cwv",
+        "GS-experience",
+        "GS-mobile",
+        "GS-thirdparty"
+      ],
+      "tags": [
+        "performance",
+        "speed",
+        "vitals",
+        "lcp",
+        "inp",
+        "cls"
+      ]
+    },
+    {
+      "name": "gsearch-structured-data",
+      "title": "Implement structured data through eligibility gates",
+      "path": "skills/gsearch-structured-data/SKILL.md",
+      "description": "Use for JSON-LD, Microdata or RDFa creation, schema review, rich-result errors or decisions about which markup belongs on a page.",
+      "source_ids": [
+        "GS-gallery",
+        "GS-sd-intro",
+        "GS-sd-policy",
+        "GS-manual"
+      ],
+      "tags": [
+        "schema",
+        "structured",
+        "jsonld",
+        "rich-results",
+        "markup"
+      ]
+    },
+    {
+      "name": "gsearch-products",
+      "title": "Model product, offer and variant information",
+      "path": "skills/gsearch-products/SKILL.md",
+      "description": "Use for product snippets, merchant listings, ProductGroup variants, offers, prices, availability or product-review markup.",
+      "source_ids": [
+        "GS-product",
+        "GS-merchant",
+        "GS-variants",
+        "GS-review-snippet",
+        "GS-updates"
+      ],
+      "tags": [
+        "product",
+        "merchant",
+        "variants",
+        "offer",
+        "price",
+        "commerce"
+      ]
+    },
+    {
+      "name": "gsearch-ecommerce",
+      "title": "Design an ecommerce discovery and launch plan",
+      "path": "skills/gsearch-ecommerce/SKILL.md",
+      "description": "Use for category/product architecture, catalogue launch readiness, inventory discoverability or a broad ecommerce SEO plan.",
+      "source_ids": [
+        "GS-ecommerce",
+        "GS-launch",
+        "GS-pagination",
+        "GS-product",
+        "GS-sitemap",
+        "GS-indexing-api"
+      ],
+      "tags": [
+        "ecommerce",
+        "shop",
+        "catalogue",
+        "launch",
+        "category"
+      ]
+    },
+    {
+      "name": "gsearch-publishing",
+      "title": "Review article, Discover and preferred-source readiness",
+      "path": "skills/gsearch-publishing/SKILL.md",
+      "description": "Use for publisher SEO, article metadata, Discover readiness or preferred-source implementation.",
+      "source_ids": [
+        "GS-article",
+        "GS-discover",
+        "GS-preferred",
+        "GS-helpful",
+        "GS-images",
+        "GS-social"
+      ],
+      "tags": [
+        "publisher",
+        "discover",
+        "article",
+        "news",
+        "preferred"
+      ]
+    },
+    {
+      "name": "gsearch-local",
+      "title": "Review local-business website representation",
+      "path": "skills/gsearch-local/SKILL.md",
+      "description": "Use for LocalBusiness markup, multi-location website structure or consistency of local business facts on a website.",
+      "source_ids": [
+        "GS-local",
+        "GS-org",
+        "GS-review-snippet",
+        "GS-spam"
+      ],
+      "tags": [
+        "local",
+        "business",
+        "location",
+        "address",
+        "maps"
+      ]
+    },
+    {
+      "name": "gsearch-international",
+      "title": "Design language and regional alternates",
+      "path": "skills/gsearch-international/SKILL.md",
+      "description": "Use for hreflang, multi-language sites, regional URLs, language redirects or conflicting locale canonicalization.",
+      "source_ids": [
+        "GS-hreflang",
+        "GS-international",
+        "GS-canonical",
+        "GS-regional"
+      ],
+      "tags": [
+        "international",
+        "hreflang",
+        "locale",
+        "translation",
+        "regional"
+      ]
+    },
+    {
+      "name": "gsearch-paywalls",
+      "title": "Represent subscription content without exposing it",
+      "path": "skills/gsearch-paywalls/SKILL.md",
+      "description": "Use for paywalled articles, subscription markup, access-state representation or Search visibility of protected publisher content.",
+      "source_ids": [
+        "GS-paywall",
+        "GS-share",
+        "GS-spam",
+        "GS-sd-policy"
+      ],
+      "tags": [
+        "paywall",
+        "subscription",
+        "gated",
+        "access"
+      ]
+    },
+    {
+      "name": "gsearch-ugc",
+      "title": "Review forums, Q&A and profile content",
+      "path": "skills/gsearch-ugc/SKILL.md",
+      "description": "Use for discussion forums, user-answer questions, creator profiles, review communities or prevention of user-generated spam.",
+      "source_ids": [
+        "GS-forum",
+        "GS-qa",
+        "GS-profile",
+        "GS-abuse",
+        "GS-links",
+        "GS-updates"
+      ],
+      "tags": [
+        "forum",
+        "qanda",
+        "qapage",
+        "profile",
+        "ugc",
+        "moderation"
+      ]
+    },
+    {
+      "name": "gsearch-feature-resolver",
+      "title": "Resolve any current Search feature before implementation",
+      "path": "skills/gsearch-feature-resolver/SKILL.md",
+      "description": "Use for a specialised rich result or Search feature not fully specified by another module, including jobs, events, recipes, courses, datasets, software and regional experiences.",
+      "source_ids": [
+        "GS-gallery",
+        "GS-sd-policy",
+        "GS-updates",
+        "GS-job",
+        "GS-event",
+        "GS-recipe",
+        "GS-software",
+        "GS-indexing-api"
+      ],
+      "tags": [
+        "feature",
+        "schema",
+        "job",
+        "event",
+        "recipe",
+        "course",
+        "dataset",
+        "software"
+      ]
+    },
+    {
+      "name": "gsearch-search-console",
+      "title": "Build an authorised Search monitoring view",
+      "path": "skills/gsearch-search-console/SKILL.md",
+      "description": "Use for Search Console report interpretation, monitoring setup, indexing/performance questions or analysis of supplied report exports.",
+      "source_ids": [
+        "GS-console",
+        "GS-drops",
+        "GS-ai-control",
+        "GS-social",
+        "GS-manual"
+      ],
+      "tags": [
+        "console",
+        "performance",
+        "monitoring",
+        "reports",
+        "impressions",
+        "clicks"
+      ]
+    },
+    {
+      "name": "gsearch-traffic-drop",
+      "title": "Diagnose a traffic change without jumping to causes",
+      "path": "skills/gsearch-traffic-drop/SKILL.md",
+      "description": "Use for sudden or gradual losses in Search clicks, impressions, indexed pages or a particular search surface.",
+      "source_ids": [
+        "GS-drops",
+        "GS-core",
+        "GS-console",
+        "GS-http",
+        "GS-js",
+        "GS-manual"
+      ],
+      "tags": [
+        "traffic",
+        "drop",
+        "recovery",
+        "decline",
+        "diagnostic"
+      ]
+    },
+    {
+      "name": "gsearch-ranking-updates",
+      "title": "Interpret ranking systems and update timing",
+      "path": "skills/gsearch-ranking-updates/SKILL.md",
+      "description": "Use for questions about core updates, ranking-system concepts, suspected ranking factors or update-related evaluation.",
+      "source_ids": [
+        "GS-core",
+        "GS-ranking",
+        "GS-updates",
+        "GS-helpful",
+        "GS-drops"
+      ],
+      "tags": [
+        "ranking",
+        "algorithm",
+        "core",
+        "update",
+        "factors"
+      ]
+    },
+    {
+      "name": "gsearch-search-operators",
+      "title": "Use search operators as limited diagnostic evidence",
+      "path": "skills/gsearch-search-operators/SKILL.md",
+      "description": "Use for site: checks, public search spot checks or questions about whether an operator proves a page is indexed.",
+      "source_ids": [
+        "GS-site-op",
+        "GS-console",
+        "GS-how"
+      ],
+      "tags": [
+        "operators",
+        "site",
+        "search",
+        "index",
+        "spot-check"
+      ]
+    },
+    {
+      "name": "gsearch-special-cases",
+      "title": "Resolve regional, AMP and special-content boundaries",
+      "path": "skills/gsearch-special-cases/SKILL.md",
+      "description": "Use when a request depends on region-limited Search features, AMP serving behavior, explicit-content classification or a speciality not covered by standard SEO checks.",
+      "source_ids": [
+        "GS-regional",
+        "GS-amp",
+        "GS-explicit",
+        "GS-updates",
+        "GS-gallery"
+      ],
+      "tags": [
+        "regional",
+        "eea",
+        "turkey",
+        "amp",
+        "explicit",
+        "speciality"
+      ]
+    },
+    {
+      "name": "gsearch-experiments",
+      "title": "Design an interpretable SEO experiment",
+      "path": "skills/gsearch-experiments/SKILL.md",
+      "description": "Use for metadata tests, template experiments, A/B testing or evaluation of an SEO change.",
+      "source_ids": [
+        "GS-testing",
+        "GS-drops",
+        "GS-title",
+        "GS-console"
+      ],
+      "tags": [
+        "experiment",
+        "testing",
+        "ab",
+        "causal",
+        "measurement"
+      ]
+    },
+    {
+      "name": "gsearch-review",
+      "title": "Independently review an SEO deliverable or patch",
+      "path": "skills/gsearch-review/SKILL.md",
+      "description": "Use before final delivery of any audit, recommendation, generated markup, code patch or claimed completed implementation.",
+      "source_ids": [
+        "GS-technical",
+        "GS-sd-policy",
+        "GS-updates",
+        "GS-thirdparty"
+      ],
+      "tags": [
+        "review",
+        "verify",
+        "qa",
+        "validation",
+        "acceptance"
+      ]
+    },
+    {
+      "name": "gsearch-docs-refresh",
+      "title": "Refresh the documentation evidence without silent rule changes",
+      "path": "skills/gsearch-docs-refresh/SKILL.md",
+      "description": "Use to update this skill pack, resolve a source conflict, verify a volatile requirement or recheck deprecated features.",
+      "source_ids": [
+        "GS-updates",
+        "GS-gallery",
+        "GS-ai-guide",
+        "GS-ai-control"
+      ],
+      "tags": [
+        "freshness",
+        "update",
+        "refresh",
+        "sources",
+        "documentation"
+      ]
+    },
+    {
+      "name": "gsearch-tutor",
+      "title": "Teach Google Search concepts from first principles",
+      "path": "skills/gsearch-tutor/SKILL.md",
+      "description": "Use when the user asks to learn SEO, explain a specific Search mechanism or practise diagnosing a website rather than requesting production changes.",
+      "source_ids": [
+        "GS-how",
+        "GS-starter",
+        "GS-technical",
+        "GS-canonical",
+        "GS-sd-policy"
+      ],
+      "tags": [
+        "teach",
+        "tutor",
+        "lesson",
+        "learn",
+        "explain"
+      ]
+    },
+    {
+      "name": "gsearch-handoff",
+      "title": "Preserve task state for another agent or session",
+      "path": "skills/gsearch-handoff/SKILL.md",
+      "description": "Use when pausing, resuming or transferring an SEO task between agents, tools or sessions.",
+      "source_ids": [
+        "GS-console",
+        "GS-updates"
+      ],
+      "tags": [
+        "handoff",
+        "resume",
+        "state",
+        "transfer"
+      ]
+    }
+  ]
+}

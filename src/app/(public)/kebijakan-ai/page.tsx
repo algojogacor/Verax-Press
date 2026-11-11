@@ -1,11 +1,13 @@
 // Kebijakan AI: transparansi kecerdasan artifisial untuk pembaca.
-import { InstitutionalShell, LegalNote } from '@/components/public/institutional'
+import { InstitutionalShell, LegalNote } from '@/components/site/institutional'
+import { buildPublicMetadata } from '@/lib/seo/metadata'
 import type { Metadata } from 'next'
 
-export const metadata: Metadata = {
+export const metadata: Metadata = buildPublicMetadata({
   title: 'Kebijakan AI',
   description: 'Transparansi penggunaan kecerdasan artifisial di Verax Press.',
-}
+  path: '/kebijakan-ai',
+})
 
 export default function KebijakanAiPage() {
   return (
@@ -13,6 +15,8 @@ export default function KebijakanAiPage() {
       kicker="Transparansi"
       title="Kebijakan Kecerdasan Artifisial"
       intro="AI adalah alat bantu teknis, bukan sumber fakta dan bukan penerbit. Tanggung jawab editorial selalu berada pada manusia."
+      canonicalPath="/kebijakan-ai"
+      breadcrumbLabel="Kebijakan AI"
     >
       <h2>Prinsip dasar</h2>
       <p>

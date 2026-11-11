@@ -1,14 +1,20 @@
-// Halaman desk: /desk/[slug] (indeks artikel terbit per desk).
-// Struktur broadsheet: pemisah tegas (rule 2px) dengan ringkasan pengantar, artikel pertama
-// sebagai unggulan (tier featured), sisanya kisi berjenjang. Kicker kartu hanya format
-// (nama desk sudah dicantumkan pada judul halaman). Desk nonaktif atau tidak ditemukan menghasilkan 404;
-// hanya artikel PUBLISHED/CORRECTED yang tampil.
+// Halaman desk: /desk/[slug] (indeks artikel terbit per desk dengan paginasi yang ramah perayap).
+// Desk nonaktif atau tidak ditemukan menghasilkan 404; hanya artikel PUBLISHED/CORRECTED yang tampil.
 import type { Metadata } from "next";
+import { cache } from "react";
+import Link from "next/link";
 import { notFound } from "next/navigation";
 import { db } from "@/lib/db";
 import { CompactArticleCard, FeaturedArticleCard, StandardArticleCard } from "@/components/site/article-card";
+import { Breadcrumbs } from "@/components/site/breadcrumbs";
+import { JsonLd } from "@/components/seo/json-ld";
+import { buildPublicMetadata } from "@/lib/seo/metadata";
+import { canonicalUrl, getCanonicalBaseUrl } from "@/lib/seo/constants";
+import { buildBreadcrumbJsonLd, buildCollectionPageJsonLd } from "@/lib/seo/structured-data";
 
 export const dynamic = "force-dynamic";
+
+const PAGE_SIZE = 24;
 
 const publicSelect = {
   id: true,
@@ -22,39 +28,106 @@ const publicSelect = {
   desk: { select: { slug: true, name: true } },
 } as const;
 
-type Params = { params: Promise<{ slug: string }> };
+type PageCtx = {
+  params: Promise<{ slug: string }>;
+  searchParams?: Promise<{ page?: string }>;
+};
 
-async function loadDesk(slug: string) {
+const loadDesk = cache(async (slug: string) => {
   return db.desk.findFirst({
     where: { slug, isActive: true },
     select: { id: true, slug: true, name: true, description: true },
   });
+});
+
+function parsePageParamStrict(rawPage: string | undefined): number {
+  if (!rawPage) return 1;
+  if (!/^\d+$/.test(rawPage.trim())) notFound();
+  const parsed = Number.parseInt(rawPage.trim(), 10);
+  if (!Number.isFinite(parsed) || parsed < 1) notFound();
+  return parsed;
 }
 
-export async function generateMetadata({ params }: Params): Promise<Metadata> {
+export async function generateMetadata({ params, searchParams }: PageCtx): Promise<Metadata> {
   const { slug } = await params;
+  const resolvedSearch = searchParams ? await searchParams : undefined;
+  const rawPage = resolvedSearch?.page;
+  if (rawPage && (!/^\d+$/.test(rawPage.trim()) || Number.parseInt(rawPage.trim(), 10) < 1)) {
+    return { title: "Halaman Tidak Ditemukan", robots: { index: false, follow: false } };
+  }
+
   const desk = await loadDesk(slug);
-  if (!desk) return { title: "Desk tidak ditemukan" };
-  return {
-    title: desk.name,
-    description: desk.description ?? undefined,
-  };
+  if (!desk) {
+    return {
+      title: "Desk Tidak Ditemukan",
+      robots: { index: false, follow: false },
+    };
+  }
+
+  const page = rawPage ? Number.parseInt(rawPage.trim(), 10) : 1;
+  const path = page > 1 ? `/desk/${desk.slug}?page=${page}` : `/desk/${desk.slug}`;
+  const title = page > 1 ? `${desk.name} (Halaman ${page})` : desk.name;
+  const description =
+    desk.description ??
+    `Arsip berita, analisis, dan penjelas pada rubrik ${desk.name} di Verax Press.`;
+
+  return buildPublicMetadata({
+    title,
+    description,
+    path,
+  });
 }
 
-export default async function DeskPage({ params }: Params) {
+export default async function DeskPage({ params, searchParams }: PageCtx) {
   const { slug } = await params;
+  const resolvedSearch = searchParams ? await searchParams : undefined;
+  const page = parsePageParamStrict(resolvedSearch?.page);
+
   const desk = await loadDesk(slug);
   if (!desk) notFound();
 
-  const articles = await db.article.findMany({
-    where: { status: { in: ["PUBLISHED", "CORRECTED"] }, deskId: desk.id },
-    select: publicSelect,
-    orderBy: { publishedAt: "desc" },
-    take: 50,
-  });
+  const where = { status: { in: ["PUBLISHED", "CORRECTED"] }, deskId: desk.id };
+  const [totalCount, articles] = await Promise.all([
+    db.article.count({ where }),
+    db.article.findMany({
+      where,
+      select: publicSelect,
+      orderBy: { publishedAt: "desc" },
+      skip: (page - 1) * PAGE_SIZE,
+      take: PAGE_SIZE,
+    }),
+  ]);
+
+  if (page > 1 && articles.length === 0) {
+    notFound();
+  }
+
+  const totalPages = Math.max(1, Math.ceil(totalCount / PAGE_SIZE));
+  const baseUrl = getCanonicalBaseUrl();
+  const pagePath = page > 1 ? `/desk/${desk.slug}?page=${page}` : `/desk/${desk.slug}`;
+  const pageDescription =
+    desk.description ??
+    `Arsip berita, analisis, dan penjelas pada rubrik ${desk.name} di Verax Press.`;
 
   return (
     <div className="mx-auto max-w-6xl px-4 py-10 sm:px-6 sm:py-12">
+      <JsonLd
+        data={buildBreadcrumbJsonLd([
+          { name: "Beranda", url: canonicalUrl("/") },
+          { name: desk.name, url: canonicalUrl(`/desk/${desk.slug}`) },
+        ])}
+      />
+      <JsonLd
+        data={buildCollectionPageJsonLd({
+          baseUrl,
+          url: canonicalUrl(pagePath),
+          name: page > 1 ? `${desk.name} (Halaman ${page})` : desk.name,
+          description: pageDescription,
+        })}
+      />
+
+      <Breadcrumbs items={[{ label: "Beranda", href: "/" }, { label: desk.name }]} />
+
       {/* Header seksi: jangkar visual dan ringkasan pengantar */}
       <header className="border-b-2 border-verity-ink pb-8">
         <p className="font-sans text-[0.85rem] font-semibold uppercase tracking-[0.2em] text-verity-ink-soft">
@@ -70,9 +143,7 @@ export default async function DeskPage({ params }: Params) {
         ) : null}
       </header>
 
-      {/* Tingkatan 3 lapis: ritme mengecil, bukan kisi seragam:
-          unggulan (utuh) ke 2 kartu dengan ringkasan (hairline) lalu ekor indeks
-          ringkas untuk artikel lebih lama. */}
+      {/* Tingkatan 3 lapis: ritme mengecil, bukan kisi seragam */}
       <section aria-label={`Artikel desk ${desk.name}`} className="pt-10">
         {articles.length === 0 ? (
           <p className="py-12 text-center font-serif text-[1.02rem] leading-relaxed text-verity-ink-soft">
@@ -81,7 +152,6 @@ export default async function DeskPage({ params }: Params) {
           </p>
         ) : (
           <>
-            {/* Grid Utama Desk: Unggulan di kiri + Naskah Terkini / Konteks di kanan */}
             <div className="grid gap-8 lg:grid-cols-[minmax(0,1.5fr)_minmax(0,1fr)] lg:gap-12">
               <div>
                 <FeaturedArticleCard article={articles[0]} />
@@ -115,7 +185,6 @@ export default async function DeskPage({ params }: Params) {
               )}
             </div>
 
-            {/* Indeks Tambahan (Artikel ke-4 dst) */}
             {articles.length > 3 ? (
               <div className="mt-14 border-t border-verity-rule-strong pt-8">
                 <p className="font-sans text-[0.8rem] font-semibold uppercase tracking-[0.2em] text-verity-ink-soft mb-6">
@@ -127,6 +196,39 @@ export default async function DeskPage({ params }: Params) {
                   ))}
                 </div>
               </div>
+            ) : null}
+
+            {totalPages > 1 ? (
+              <nav
+                aria-label="Paginasi rubrik"
+                className="mt-12 flex items-center justify-between border-t border-verity-rule pt-6 font-mono text-xs"
+              >
+                {page > 1 ? (
+                  <Link
+                    href={page === 2 ? `/desk/${desk.slug}` : `/desk/${desk.slug}?page=${page - 1}`}
+                    rel="prev"
+                    className="border border-verity-rule px-3 py-1.5 text-verity-ink hover:border-verity-ink"
+                  >
+                    ← Sebelumnya
+                  </Link>
+                ) : (
+                  <span />
+                )}
+                <span className="text-verity-ink-faint">
+                  Halaman {page} dari {totalPages}
+                </span>
+                {page < totalPages ? (
+                  <Link
+                    href={`/desk/${desk.slug}?page=${page + 1}`}
+                    rel="next"
+                    className="border border-verity-rule px-3 py-1.5 text-verity-ink hover:border-verity-ink"
+                  >
+                    Berikutnya →
+                  </Link>
+                ) : (
+                  <span />
+                )}
+              </nav>
             ) : null}
           </>
         )}

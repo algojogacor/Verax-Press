@@ -2,12 +2,18 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { getPublicBaseUrl } from "@/lib/domain/constants";
+import { Breadcrumbs } from "@/components/site/breadcrumbs";
+import { JsonLd } from "@/components/seo/json-ld";
+import { canonicalUrl } from "@/lib/seo/constants";
+import { buildPublicMetadata } from "@/lib/seo/metadata";
+import { buildBreadcrumbJsonLd } from "@/lib/seo/structured-data";
 
-export const metadata: Metadata = {
+export const metadata: Metadata = buildPublicMetadata({
   title: "Dokumentasi Pengembang & Integrasi Agen AI",
   description:
     "Panduan teknis resmi integrasi agen kecerdasan buatan dengan platform jurnalisme Verax Press: spesifikasi API, skema draf artikel, autentikasi, dan batasan editorial.",
-};
+  path: "/developers",
+});
 
 const SECTIONS = [
   { id: "pengantar", label: "Pengantar & Prinsip" },
@@ -25,6 +31,13 @@ export default function DevelopersPage() {
 
   return (
     <div className="mx-auto max-w-6xl px-4 py-8 sm:px-6 sm:py-12">
+      <JsonLd
+        data={buildBreadcrumbJsonLd([
+          { name: "Beranda", url: canonicalUrl("/") },
+          { name: "Dokumentasi Pengembang", url: canonicalUrl("/developers") },
+        ])}
+      />
+      <Breadcrumbs items={[{ label: "Beranda", href: "/" }, { label: "Dokumentasi Pengembang" }]} />
       <header className="border-b-2 border-verity-ink pb-8">
         <p className="font-mono text-[11px] uppercase tracking-[0.16em] text-verity-accent">
           Dokumentasi Pengembang
@@ -34,13 +47,14 @@ export default function DevelopersPage() {
         </h1>
         <p className="mt-4 max-w-3xl font-serif text-[1.1rem] leading-[1.7] text-verity-ink-soft">
           Panduan integrasi mesin untuk pengiriman draf naskah jurnalistik ke ruang redaksi Verax Press.
-          Seluruh pengiriman naskah melalui API diproses sebagai usulan draf awal dan wajib melewati verifikasi editorial manusia.
+          Seluruh pengiriman naskah melalui API diproses sebagai usulan draf awal dan wajib melewati penelaahan meja redaksi.
         </p>
 
         <div className="mt-6 flex flex-wrap gap-2 text-xs font-mono">
           <Link
             href="/openapi.json"
             target="_blank"
+            rel="noopener noreferrer"
             className="border border-verity-rule bg-verity-paper-soft px-3 py-1.5 text-verity-ink hover:border-verity-ink transition-colors"
           >
             Spesifikasi OpenAPI 3.1.0 (JSON)
@@ -48,6 +62,7 @@ export default function DevelopersPage() {
           <Link
             href="/llms.txt"
             target="_blank"
+            rel="noopener noreferrer"
             className="border border-verity-rule bg-verity-paper-soft px-3 py-1.5 text-verity-ink hover:border-verity-ink transition-colors"
           >
             Ringkasan llms.txt
@@ -55,6 +70,7 @@ export default function DevelopersPage() {
           <Link
             href="/llms-full.txt"
             target="_blank"
+            rel="noopener noreferrer"
             className="border border-verity-rule bg-verity-paper-soft px-3 py-1.5 text-verity-ink hover:border-verity-ink transition-colors"
           >
             Dokumentasi Lengkap llms-full.txt
@@ -62,6 +78,7 @@ export default function DevelopersPage() {
           <Link
             href="/.well-known/verax-agent.json"
             target="_blank"
+            rel="noopener noreferrer"
             className="border border-verity-rule bg-verity-paper-soft px-3 py-1.5 text-verity-ink hover:border-verity-ink transition-colors"
           >
             Metadata Penemuan Agen (.well-known)
@@ -89,7 +106,7 @@ export default function DevelopersPage() {
                     <strong>Tanpa Publikasi Mandiri:</strong> Tidak ada hak publikasi langsung bagi agen AI. Seluruh naskah masuk berstatus <code>DRAFT</code>.
                   </li>
                   <li>
-                    <strong>Verifikasi Sumber Primer:</strong> Semua dokumen rujukan otomatis berstatus <code>UNVERIFIED</code> hingga ditelaah oleh tim pemeriksa fakta manusia.
+                    <strong>Verifikasi Sumber Primer:</strong> Semua dokumen rujukan otomatis berstatus <code>UNVERIFIED</code> hingga ditelaah oleh penyunting meja redaksi.
                   </li>
                   <li>
                     <strong>Dukungan Format Berita Penuh:</strong> Agen dapat mengirimkan format liputan berita (<code>NEWS</code>), opini, analisis, eksplanasi, fitur, maupun wawancara. Seluruh format masuk dengan status awal draf.
@@ -172,7 +189,7 @@ Content-Type: application/json`}
             <div className="mt-4 space-y-6 text-[0.98rem] leading-[1.7] text-verity-ink">
               <div className="border border-verity-rule bg-card p-4">
                 <div className="flex items-center gap-2 font-mono text-xs font-semibold">
-                  <span className="rounded bg-verity-paper-soft px-2 py-0.5 text-verity-ink border border-verity-rule">GET</span>
+                  <span className="rounded-xs bg-verity-paper-soft px-2 py-0.5 text-verity-ink border border-verity-rule">GET</span>
                   <span className="text-verity-ink">/api/internal/v1/capabilities</span>
                 </div>
                 <p className="mt-2 text-sm text-verity-ink-soft">
@@ -182,7 +199,7 @@ Content-Type: application/json`}
 
               <div className="border border-verity-rule bg-card p-4">
                 <div className="flex items-center gap-2 font-mono text-xs font-semibold">
-                  <span className="rounded bg-verity-paper-soft px-2 py-0.5 text-verity-ink border border-verity-rule">POST</span>
+                  <span className="rounded-xs bg-verity-paper-soft px-2 py-0.5 text-verity-ink border border-verity-rule">POST</span>
                   <span className="text-verity-ink">/api/internal/v1/ai-submissions/validate</span>
                 </div>
                 <p className="mt-2 text-sm text-verity-ink-soft">
@@ -192,7 +209,7 @@ Content-Type: application/json`}
 
               <div className="border border-verity-rule bg-card p-4">
                 <div className="flex items-center gap-2 font-mono text-xs font-semibold">
-                  <span className="rounded bg-verity-accent px-2 py-0.5 text-white">POST</span>
+                  <span className="rounded-xs bg-verity-accent px-2 py-0.5 text-verity-paper">POST</span>
                   <span className="text-verity-ink">/api/internal/v1/ai-submissions</span>
                 </div>
                 <p className="mt-2 text-sm text-verity-ink-soft">
@@ -202,7 +219,7 @@ Content-Type: application/json`}
 
               <div className="border border-verity-rule bg-card p-4">
                 <div className="flex items-center gap-2 font-mono text-xs font-semibold">
-                  <span className="rounded bg-verity-paper-soft px-2 py-0.5 text-verity-ink border border-verity-rule">GET</span>
+                  <span className="rounded-xs bg-verity-paper-soft px-2 py-0.5 text-verity-ink border border-verity-rule">GET</span>
                   <span className="text-verity-ink">/api/internal/v1/ai-submissions/[submissionId]</span>
                 </div>
                 <p className="mt-2 text-sm text-verity-ink-soft">
@@ -305,7 +322,7 @@ Content-Type: application/json`}
 }`}
                 </code>
               </pre>
-              <div className="grid grid-cols-2 gap-2 text-xs font-mono">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-xs font-mono">
                 <div className="border border-verity-rule bg-card p-2.5">
                   <span className="font-semibold text-verity-ink">400 MALFORMED_JSON</span>
                   <p className="font-sans text-verity-ink-soft mt-0.5">Format JSON tidak terbaca.</p>

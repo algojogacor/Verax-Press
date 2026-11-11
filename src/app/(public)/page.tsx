@@ -1,11 +1,13 @@
-// Halaman depan Verax Press — surat kabar yang dikurasi, bukan grid kartu seragam:
+// Halaman depan Verax Press: surat kabar yang dikurasi, bukan grid kartu seragam:
 // PAKET UTAMA (lead besar + 2 headline sekunder + rail "Terbaru"), lalu seksi
 // per-desk dengan tata letak yang berganti menyesuaikan jumlah artikel
 // (solo → grid → baris editorial → unggulan+daftar), ditutup band Opini.
 // Aturan kurasi: lead hanya tampil sekali; seksi desk hanya liputan redaksi
 // (opini hidup di band Opini); rail berisi apa pun yang terbaru.
+import type { Metadata } from "next";
 import Link from "next/link";
 import { db } from "@/lib/db";
+import { getActiveDesks } from "@/lib/domain/desks";
 import {
   CompactArticleCard,
   FeaturedArticleCard,
@@ -17,8 +19,47 @@ import {
   type PublicArticle,
 } from "@/components/site/article-card";
 import { formatDate } from "@/lib/format";
+import { JsonLd } from "@/components/seo/json-ld";
+import { getCanonicalBaseUrl } from "@/lib/seo/constants";
+import { buildHomepageGraphJsonLd } from "@/lib/seo/structured-data";
 
 export const dynamic = "force-dynamic";
+
+export const metadata: Metadata = {
+  title: {
+    absolute: "Verax Press | Media Independen Indonesia",
+  },
+  description:
+    "Berita, analisis, opini, dan penjelas tentang hukum, teknologi, serta kebijakan publik Indonesia dengan verifikasi sumber primer dan log koreksi terbuka.",
+  alternates: {
+    canonical: "/",
+  },
+  robots: { index: true, follow: true },
+  openGraph: {
+    title: "Verax Press | Media Independen Indonesia",
+    description:
+      "Berita, analisis, opini, dan penjelas tentang hukum, teknologi, serta kebijakan publik Indonesia dengan verifikasi sumber primer dan log koreksi terbuka.",
+    url: "/",
+    siteName: "Verax Press",
+    type: "website",
+    locale: "id_ID",
+    images: [
+      {
+        url: "/brand/verax-press-og.png",
+        width: 1200,
+        height: 630,
+        alt: "Verax Press | Media Independen Indonesia",
+      },
+    ],
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: "Verax Press | Media Independen Indonesia",
+    description:
+      "Berita, analisis, opini, dan penjelas tentang hukum, teknologi, serta kebijakan publik Indonesia dengan verifikasi sumber primer dan log koreksi terbuka.",
+    images: ["/brand/verax-press-og.png"],
+  },
+};
 
 const publicSelect = {
   id: true,
@@ -64,7 +105,7 @@ export default async function HomePage() {
       orderBy: { publishedAt: "desc" },
       take: 9,
     }),
-    db.desk.findMany({ where: { isActive: true }, orderBy: { sortOrder: "asc" } }),
+    getActiveDesks(),
     db.article.findMany({
       where: { ...PUBLISHED_FILTER, format: "OPINION" },
       select: publicSelect,
@@ -73,6 +114,7 @@ export default async function HomePage() {
     }),
   ]);
 
+  const homepageSchema = buildHomepageGraphJsonLd(getCanonicalBaseUrl());
   const lead = latest[0] ?? null;
   // Paket utama: 2 headline sekunder (non-opini — opini punya band sendiri)
   // + rail Terbaru (5 item berikutnya, format apa pun).
@@ -110,6 +152,7 @@ export default async function HomePage() {
   if (!lead) {
     return (
       <div className="mx-auto max-w-6xl px-4 py-24 text-center sm:px-6">
+        <JsonLd data={homepageSchema} />
         <h1 className="font-serif text-3xl font-semibold text-verity-ink">Belum ada artikel terbit</h1>
         <p className="mt-4 font-serif text-verity-ink-soft">
           Redaksi sedang menyiapkan publikasi pertama. Semua naskah melewati proses editorial
@@ -131,6 +174,9 @@ export default async function HomePage() {
 
   return (
     <div className="mx-auto max-w-6xl px-4 sm:px-6">
+      <JsonLd data={homepageSchema} />
+      <h1 className="sr-only">Verax Press | Media Digital Independen Indonesia</h1>
+
       {/* ===== Paket utama: lead mendominasi + headline sekunder + rail Terbaru ===== */}
       <section
         aria-label="Utama"
@@ -172,6 +218,39 @@ export default async function HomePage() {
             ))}
           </div>
         </aside>
+      </section>
+
+      {/* ===== Bar Pengenalan Editorial (Publication Voice) ===== */}
+      <section
+        aria-label="Tentang publikasi"
+        className="my-10 border-y border-verity-rule bg-verity-paper-soft py-5 px-4 sm:px-6"
+      >
+        <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+          <div className="max-w-2xl">
+            <p className="font-mono text-[10px] uppercase tracking-[0.24em] text-verity-accent">
+              Jurnalisme Digital Independen
+            </p>
+            <p className="mt-1.5 font-serif text-[1rem] leading-relaxed text-verity-ink">
+              Verax Press menyajikan pemberitaan dan analisis isu publik berbasis sumber primer.
+              Setiap laporan menautkan dokumen rujukan terverifikasi serta mencatat setiap koreksi
+              secara terbuka.
+            </p>
+          </div>
+          <div className="flex flex-wrap items-center gap-3 shrink-0 font-mono text-[11px]">
+            <Link
+              href="/standar-editorial"
+              className="border border-verity-rule bg-verity-paper px-3 py-1.5 text-verity-ink hover:border-verity-ink transition-colors"
+            >
+              Standar Editorial →
+            </Link>
+            <Link
+              href="/kirim-tulisan"
+              className="border border-verity-rule bg-verity-paper px-3 py-1.5 text-verity-ink hover:border-verity-ink transition-colors"
+            >
+              Kirim Tulisan →
+            </Link>
+          </div>
+        </div>
       </section>
 
       {/* ===== Seksi desk: napas antar-seksi disengaja dan tidak seragam:

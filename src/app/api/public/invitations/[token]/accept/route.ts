@@ -6,6 +6,7 @@ import { db } from "@/lib/db";
 import { ApiError, jsonError, ok, parseJsonBody } from "@/lib/api";
 import { hashPassword } from "@/lib/password";
 import { writeAudit } from "@/lib/domain/audit";
+import { rateLimit, sweepRateLimits } from "@/lib/rate-limit";
 
 type Params = { params: Promise<{ token: string }> };
 
@@ -18,6 +19,16 @@ const acceptSchema = z.object({
 
 export async function POST(request: Request, { params }: Params) {
   try {
+    sweepRateLimits();
+    const ip = request.headers.get("x-real-ip") ?? request.headers.get("x-forwarded-for")?.split(",")[0]?.trim() ?? "unknown";
+    const limit = rateLimit(`public-staff-invite-accept:${ip}`, 20, 60 * 60 * 1000);
+    if (!limit.allowed) {
+      return NextResponse.json(
+        { error: "Terlalu banyak percobaan aktivasi akun. Coba lagi nanti.", code: "RATE_LIMITED" },
+        { status: 429, headers: { "Retry-After": String(limit.retryAfterSeconds) } },
+      );
+    }
+
     const { token } = await params;
     if (!token || token.trim().length < 16) {
       throw new ApiError(404, "INVALID_TOKEN", "Tautan undangan tidak valid.");

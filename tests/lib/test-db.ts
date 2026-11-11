@@ -5,6 +5,7 @@ import { PrismaClient } from '@prisma/client'
 import { hashPassword } from '@/lib/password'
 import { hashClientSecret } from '@/lib/api-key'
 
+import fs from 'node:fs'
 import path from 'node:path'
 
 export function assertApprovedTestDatabase(url: string): void {
@@ -331,3 +332,18 @@ export const CHIEF_PW = 'chief-test-password-123'
 export const EDITOR_PW = 'editor-test-password-123'
 export const AUTHOR_PW = 'author-test-password-123'
 export const BASE = process.env.TEST_BASE_URL || 'http://localhost:3088'
+
+export function syncStandaloneAssets(): void {
+  const standaloneRoot = path.resolve('.next/standalone')
+  if (!fs.existsSync(standaloneRoot)) return
+  const publicSrc = path.resolve('public')
+  const publicDst = path.join(standaloneRoot, 'public')
+  if (fs.existsSync(publicSrc)) {
+    fs.cpSync(publicSrc, publicDst, { recursive: true, force: true })
+  }
+  const staticSrc = path.resolve('.next/static')
+  const staticDst = path.join(standaloneRoot, '.next', 'static')
+  if (fs.existsSync(staticSrc)) {
+    fs.cpSync(staticSrc, staticDst, { recursive: true, force: true })
+  }
+}

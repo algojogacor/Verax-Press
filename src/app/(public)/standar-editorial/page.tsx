@@ -2,12 +2,18 @@
 // TANPA angka tenggat hari (masih kajian hukum — lihat worklog §3).
 import type { Metadata } from "next";
 import Link from "next/link";
+import { Breadcrumbs } from "@/components/site/breadcrumbs";
+import { JsonLd } from "@/components/seo/json-ld";
+import { canonicalUrl } from "@/lib/seo/constants";
+import { buildPublicMetadata } from "@/lib/seo/metadata";
+import { buildBreadcrumbJsonLd } from "@/lib/seo/structured-data";
 
-export const metadata: Metadata = {
+export const metadata: Metadata = buildPublicMetadata({
   title: "Standar Editorial",
   description:
     "Ringkasan publik standar editorial Verax Press: verifikasi sumber, keberimbangan, kebijakan AI, atribusi, serta koreksi dan hak jawab.",
-};
+  path: "/standar-editorial",
+});
 
 /** Tingkat keterlibatan AI (Charter §4): label & penjelasan ringkas. */
 const AI_LEVELS: { name: string; description: string }[] = [
@@ -39,6 +45,13 @@ const SECTIONS = [
 export default function StandardsPage() {
   return (
     <div className="mx-auto max-w-6xl px-4 py-8 sm:px-6 sm:py-12">
+      <JsonLd
+        data={buildBreadcrumbJsonLd([
+          { name: "Beranda", url: canonicalUrl("/") },
+          { name: "Standar Editorial", url: canonicalUrl("/standar-editorial") },
+        ])}
+      />
+      <Breadcrumbs items={[{ label: "Beranda", href: "/" }, { label: "Standar Editorial" }]} />
       <header className="border-b-2 border-verity-ink pb-8">
         <p className="font-mono text-[11px] uppercase tracking-[0.16em] text-verity-accent">
           Kebijakan Redaksi
@@ -68,7 +81,7 @@ export default function StandardsPage() {
                 URL, serta tanggal terbit dan akses), lalu ditampilkan pada halaman artikel.
               </p>
               <p>
-                Sumber kunci diverifikasi oleh editor manusia. Artikel tidak disetujui untuk terbit
+                Sumber kunci diperiksa langsung oleh penyunting meja redaksi. Artikel tidak disetujui untuk terbit
                 bila masih ada sumber kunci yang belum diverifikasi atau berstatus dipertanyakan.
                 Kutipan langsung harus sesuai dengan sumbernya.
               </p>
@@ -126,7 +139,7 @@ export default function StandardsPage() {
               Kredit pada artikel memakai bentuk yang jelas: “Oleh” untuk penulis naskah, “Dilaporkan
               oleh” untuk pelaporan lapangan, “Disunting oleh” untuk editor penanggung jawab, dan
               “Redaksi Verax Press” untuk karya kolektif newsroom. Byline “Redaksi Verax Press” hanya digunakan
-              untuk karya newsroom yang benar-benar disunting manusia.
+              untuk karya newsroom yang disusun dan disunting langsung oleh tim redaksi.
             </p>
           </section>
 

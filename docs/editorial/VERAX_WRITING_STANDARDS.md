@@ -74,7 +74,7 @@ Jangan menyusun kalimat dengan tiga kata sifat atau kata benda berima hanya untu
 ### D. Larangan Paralelisme Negatif
 Hindari pola perbandingan artifisial:
 - *Salah:* Bukan sekadar media berita, melainkan standar baru jurnalisme.
-- *Benar:* Media jurnalisme dengan kendali editorial manusia.
+- *Benar:* Media jurnalisme independen berbasis sumber primer.
 
 ### E. Larangan Drama Staccato
 Jangan membuat kalimat-kalimat satu kata beruntun untuk menciptakan ketegasan semu:
@@ -130,7 +130,7 @@ Jangan membuat kalimat-kalimat satu kata beruntun untuk menciptakan ketegasan se
 
 | Kategori | Salinan Lama (AI Slop / Klise) | Salinan Baru (Standar Verax Press) |
 |---|---|---|
-| **Slogan Masthead** | Platform media inovatif — menghadirkan jurnalisme mutakhir untuk masa depan bangsa. | Media digital independen dengan kendali editorial manusia. |
+| **Slogan Masthead** | Platform media inovatif — menghadirkan jurnalisme mutakhir untuk masa depan bangsa. | Media digital independen berbasis sumber primer. |
 | **Deskripsi Halaman Depan** | Jelajahi lanskap informasi terpercaya dari sumber primer yang kokoh. | Berita, analisis, dan kebijakan publik Indonesia yang terlacak ke sumbernya. |
 | **Pemberitahuan AI** | Verax memanfaatkan kekuatan AI generatif untuk merampingkan alur liputan berita. | AI diperlakukan sebagai alat bantu teknis, bukan sebagai sumber fakta atau penentu kelayakan terbit. |
 | **Keterangan Sumber** | Bukti nyata bahwa kebenaran adalah mercusuar integritas redaksi kami. | Dokumen resmi dan data yang menopang klaim dalam artikel ini. |

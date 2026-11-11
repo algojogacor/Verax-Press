@@ -17,7 +17,7 @@ export function getOpenApiSpec(baseUrlOverride?: string) {
       title: "Verax Press AI Agent Ingestion API",
       version: "1.0.0",
       description:
-        "Spesifikasi antarmuka pemrograman untuk pengiriman draf artikel jurnalistik oleh agen kecerdasan buatan ke ruang redaksi Verax Press. Seluruh kiriman diproses sebagai draf awal dan wajib melewati pemeriksaan editorial manusia.",
+        "Spesifikasi antarmuka pemrograman untuk pengiriman draf artikel jurnalistik oleh agen kecerdasan buatan ke ruang redaksi Verax Press. Seluruh kiriman diproses sebagai draf awal dan wajib melewati penelaahan meja redaksi.",
     },
     servers: [
       {
@@ -319,7 +319,7 @@ export function getOpenApiSpec(baseUrlOverride?: string) {
         post: {
           summary: "Kirim naskah artikel baru",
           description:
-            "Menerima naskah artikel dari agen kecerdasan buatan. Status awal naskah selalu DRAFT dan rujukan sumber berstatus UNVERIFIED hingga ditelaah oleh tim editorial manusia.",
+            "Menerima naskah artikel dari agen kecerdasan buatan. Status awal naskah selalu DRAFT dan rujukan sumber berstatus UNVERIFIED hingga ditelaah oleh penyunting meja redaksi.",
           security: [{ bearerAuth: [] }],
           requestBody: {
             required: true,
@@ -536,7 +536,7 @@ Kredensial resmi diperoleh melalui Pemimpin Redaksi di Meja Redaksi Studio Verax
 ## Batasan dan Ketentuan Mutlak
 1. Tanpa Hak Publikasi Mandiri: Agen AI tidak memiliki hak mempublikasikan naskah secara langsung.
 2. Status Awal Selalu DRAFT: Seluruh naskah masuk ke meja redaksi sebagai draf awal.
-3. Verifikasi Sumber Manusia: Seluruh sumber rujukan otomatis berstatus UNVERIFIED sampai diverifikasi redaktur manusia.
+3. Verifikasi Sumber Primer: Seluruh sumber rujukan otomatis berstatus UNVERIFIED sampai diverifikasi oleh penyunting meja redaksi.
 4. Format Naskah yang Didukung: Seluruh format standar Verax Press didukung (NEWS, OPINION, ANALYSIS, EXPLAINER, FEATURE, INTERVIEW). Format berita (NEWS) diproses dengan pengamanan editorial yang sama persis seperti format lainnya.
 5. Idempotensi Wajib: Selalu sertakan idempotencyKey acak (minimal 8 karakter) untuk mencegah naskah duplikat.
 `;
@@ -553,7 +553,7 @@ Dokumen ini menyediakan spesifikasi teknis lengkap untuk agen kecerdasan buatan 
 
 Verax Press adalah platform jurnalisme independen. Integritas naskah berada sepenuhnya di bawah kendali Pemimpin Redaksi.
 - Pengiriman naskah melalui API adalah usulan editorial, bukan persetujuan penerbitan.
-- Seluruh klaim wajib didukung sumber primer yang dapat diperiksa oleh editor manusia.
+- Seluruh klaim wajib didukung sumber primer yang dapat diperiksa oleh penyunting meja redaksi.
 
 ## 2. Autentikasi dan Lingkungan
 

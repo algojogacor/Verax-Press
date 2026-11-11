@@ -821,3 +821,95 @@ Dijalankan 9 Nov 2026 (sesi build-2). Transkrip lengkap: `scripts/acceptance-tes
   5. **Verifikasi Langsung:**
      - Seluruh endpoint publik (`/`, `/studio/login`, `/developers`, `/kontributor/daftar`, `/.well-known/verax-agent.json`, `/llms.txt`, `/openapi.json`) mengembalikan HTTP 200 OK.
      - Autentikasi Pemimpin Redaksi `pemredVP` pada `https://veraxpress.vercel.app` terverifikasi sukses (HTTP 302 Redirect -> HTTP 200 Dashboard).
+
+
+## 42. Verax Press: Redesain Pengalaman Publik, Arsitektur Informasi, dan Kesiapan Peluncuran (12 Nov 2026)
+- **Status:** Selesai di tahap staging lokal (berlanjut ke Bagian 43 untuk audit final dan verifikasi perbaikan).
+- **Laporan Audit Menyeluruh:** `docs/superpowers/audits/2026-11-12-verax-public-launch-readiness.md`
+- **Arsip Bukti Tangkapan Layar (Before/After):** `docs/superpowers/audits/launch-readiness-evidence/baseline/` dan `docs/superpowers/audits/launch-readiness-evidence/after/`
+- **Objektif:**
+  - Mentransformasi Verax Press dari sistem penerbitan internal menjadi publikasi jurnalistik mandiri yang langsung dipahami pembaca publik tanpa perlu panduan dari pemilik/pengembang.
+  - Menginventarisasi seluruh rute aplikasi (App Router, API, utilitas, pengalihan) dan menyusun Arsitektur Informasi Publik yang jernih.
+  - Membangun jalur kontributor profesional (`/kirim-tulisan`) dan mengeliminasi istilah internal mentah seperti "Volunteer" dari antarmuka publik.
+  - Memisahkan informasi editorial, kelembagaan, dan hukum ke halaman terdedikasi (`/informasi-kelembagaan`, `/kebijakan-privasi`, `/syarat-ketentuan`, `/standar-editorial`, `/kontak`).
+  - Merombak arsitektur footer broadsheet menjadi 4 kolom berimbang dan menyematkan banner orientasi editorial pada beranda.
+  - Membakukan kanonisasi domain pada `https://veraxpress.vercel.app`, memperbarui `sitemap.ts`, dan memproteksi rute internal pada `robots.txt`.
+- **Tindakan Teknis dan Perubahan Berkas:**
+  1. **Rute Baru Terdedikasi:**
+     - `src/app/(public)/kirim-tulisan/page.tsx`: Halaman arahan resmi kontributor eksternal dengan panduan 5 format naskah, alur 5 tahap penerbitan, transparansi non-garansi publikasi, dan CTA terpadu.
+     - `src/app/(public)/kebijakan-privasi/page.tsx`: Kebijakan privasi faktual berdasarkan implementasi aktual (tanpa pelacak pihak ketiga, kuki teknis sesi `HttpOnly`, perlindungan data pemohon dan pelapor).
+     - `src/app/(public)/syarat-ketentuan/page.tsx`: Syarat dan ketentuan penggunaan situs, lisensi publikasi non-eksklusif karya kontributor, dan disclaimer opini.
+     - `src/app/(public)/informasi-kelembagaan/page.tsx`: Transparansi kelembagaan tanpa klaim fiktif, menyatakan secara faktual status nama kerja, ketiadaan badan hukum pers PT khusus pers, status verifikasi Dewan Pers, dan PSE.
+     - `src/app/(public)/kebijakan-redaksi/page.tsx` dan `src/app/kontributor/panduan/page.tsx`: Rute pengalihan kanonis ke `/standar-editorial` dan `/pedoman-kontributor`.
+  2. **Pembaruan Antarmuka Publik, Portal, & SEO:**
+     - `src/app/(public)/page.tsx`, `src/components/site/site-footer.tsx`, `src/components/site/masthead.tsx`, `src/components/site/site-mobile-nav.tsx`, `src/components/site/institutional.tsx`, `src/components/site/institutional-links.ts`, `src/components/site/institutional-nav.tsx`, `src/app/(public)/tentang/page.tsx`, `src/app/(public)/kontak/page.tsx`, `src/app/(public)/pedoman-kontributor/page.tsx`.
+     - `src/lib/domain/desks.ts` (React `cache()` deduplikasi kueri desk aktif), `src/lib/url.ts` (`safeExternalHttpUrl` dan `safeMediaSrcUrl` anti-XSS/protocol-relative), `public/robots.txt`, `src/app/sitemap.ts`, `src/app/layout.tsx`, `eslint.config.mjs`.
+  3. **Instalasi Skill Dua Tingkat (Project & Global):**
+     - Project-level (`.agents/skills/`): `unslop`, `web-design-guidelines`, `vercel-react-best-practices`, `writing-guidelines`, `security-audit`.
+     - Global agent level: seluruh skill yang diminta beserta skill inti terverifikasi terbaca.
+
+## 43. Audit Final 8-Skill, Perbaikan Bug Nyata, Ikon Broadsheet, & Drift Produksi (12 Nov 2026)
+- **Status Resmi:** **STAGING READY / NEEDS OWNER DEPLOY & EDITORIAL CONTENT**.
+- **Perbaikan Teknis & Bug Nyata yang Ditemukan Selama Verifikasi:**
+  1. `src/components/studio/article-sources-tab.tsx` (baris 294-296): Memperbaiki penutup `return (` yang hilang pada JSX `.map` sehingga `tsc --noEmit` dan `eslint .` kembali bersih.
+  2. `src/app/icon.svg` & `src/app/favicon.ico`: Menambahkan monogram statis broadsheet Verax Press (SVG + ICO 32x32) untuk menutup galat jaringan HTTP 404 pada `/favicon.ico` yang sempat terdeteksi di Chrome telemetry halaman depan.
+  3. `src/middleware.ts`: Menyelaraskan verifikasi JWT proxy/middleware (`getMiddlewareSecret()`) agar menolak rahasia kosong atau fallback dev `verity-dev-secret-change-me` ketika `NODE_ENV === "production"`, selaras dengan `src/lib/auth.ts`.
+  4. `src/app/(public)/penulis/[id]/page.tsx`: Memperbaiki `generateMetadata` agar tidak menggandakan akhiran `| Verax Press` yang sudah diberikan template root layout.
+  5. `src/components/site/complaint-form.tsx` & `src/app/studio/(cms)/staff/page.tsx`: Merapikan elipsis tipografis (`…`), atribut `spellCheck={false}` pada input surel, format placeholder telepon realistis, serta mengganti placeholder email lama `@veraxpress.id` pada dialog staf menjadi `@contoh.id`.
+  6. `tests/visitor-journeys.test.ts`: Menyesuaikan deteksi markdown escape menjadi `/\(\*[A-Za-z0-9]/` agar keterangan sah `"Tanda bintang (*)"` pada halaman `/keluhan` tidak dianggap positif palsu.
+- **Verifikasi Drift Produksi (Baca-Saja terhadap `https://veraxpress.vercel.app`):**
+  - Produksi saat ini masih menjalankan deployment 11 November (0 artikel di Turso Cloud, `robots.txt` lama belum memblokir `/studio`, serta mengembalikan `404` pada `/kirim-tulisan`, `/informasi-kelembagaan`, `/kebijakan-privasi`, `/syarat-ketentuan`, `/kebijakan-redaksi`, `/kontributor/panduan`, dan `/favicon.ico`).
+- **Bukti Verifikasi Akhir Sesudah Suntingan Terakhir:**
+  - `bun run typecheck`: `0` galat TypeScript (exit `0`).
+  - `bun run lint`: `0` galat / `0` peringatan ESLint (exit `0`).
+  - `bun run build`: `59/59` halaman statis berhasil dikompilasi (96 rute di tabel `Route (app)` + `/_not-found` + `/favicon.ico` + `Proxy (Middleware)`), exit `0`.
+  - `bun test` (14 berkas uji, gabungan `db/isolated-test.db` port `3088` dan dev lokal port `3000`): `154 pass, 0 fail` (`569 expect()`), exit `0`.
+  - `bun run scripts/capture-readiness.ts after`: `20/20 clean` (`status=200`, `overflow=0px`, `ctaOk=true`, `errors=0`), disertai konfirmasi `200 OK` langsung pada `/favicon.ico` dan `/icon.svg`.
+
+
+## 44. Audit & Penyempurnaan Technical SEO, Indexing, & Kanonisasi Domain (12 Nov 2026)
+- **Status Teknis Lokal:** Selesai dan terverifikasi (`STAGING READY`); deployment ke produksi Vercel (`https://veraxpress.vercel.app`) masih menunggu otorisasi pemilik.
+- **Laporan Audit Menyeluruh:** `docs/superpowers/audits/2026-11-12-verax-seo-readiness-report.md`
+- **Temuan Kritis pada Produksi Saat Ini (Observasi Baca-Saja 12 Nov 2026):**
+  1. Seluruh 10 hostname `.vercel.app` terkait (`veraxpress.vercel.app`, `verax-press.vercel.app`, `vrxp.vercel.app`, `vpid.vercel.app`, `vrxid.vercel.app`, `vpnews.vercel.app`, `vrxnews.vercel.app`, dan 3 host tim/cabang) saat ini melayani HTTP `200 OK` tanpa pengalihan kanonik.
+  2. `/robots.txt` produksi masih memuat lima blok `User-agent` dengan URL relatif `Sitemap: /sitemap.xml` dan belum mengecualikan `/api/`.
+  3. `/sitemap.xml` produksi saat ini memancarkan `<loc>http://localhost:3000/</loc>` dan tanggal `<lastmod>` dinamis `new Date()`.
+- **Perubahan Kode & Aset yang Diimplementasikan:**
+  1. **Kanonisasi Host & Keamanan Redirect (`308`):** Menambahkan `src/lib/seo/constants.ts`, menyelaraskan `src/lib/domain/constants.ts`, dan memperbarui `src/middleware.ts` untuk mengalihkan permanen (`308`) ke-9 hostname alias non-kanonik ke `https://veraxpress.vercel.app` secara aman dari injeksi header `Host` (dinonaktifkan ketika `VERCEL_ENV === "preview"`). `getCanonicalBaseUrl()` menolak `localhost` maupun host alias/preview.
+  2. **Kontrol `index`/`noindex`, Header HTTP, `robots.txt`, & Sitemap:**
+     - `public/robots.txt` disederhanakan menjadi aturan tunggal `User-agent: *`, `Allow: /`, `Disallow: /api/`, serta `Sitemap: https://veraxpress.vercel.app/sitemap.xml` absolut. Halaman internal/portal (`/studio`, `/cms`, `/kontributor`) sengaja tidak diblokir di `robots.txt` agar perayap tetap membaca `X-Robots-Tag: noindex, nofollow` dan `<meta name="robots">` melalui `src/middleware.ts`, `next.config.ts`, dan server layout/page wrapper.
+     - `src/app/sitemap.ts` kini memakai `getCanonicalBaseUrl()`, menghitung `<lastmod>` hanya dari tanggal terbit/koreksi aktual (`getArticleSeoDates()`), serta mengeluarkan artikel draf/`RETRACTED`/`ARCHIVED`, penulis anonim, dan penulis tanpa karya terbit.
+  3. **Metadata, Schema.org JSON-LD, Tautan Internal, & Search Console:**
+     - Menambahkan `src/lib/seo/metadata.ts`, `src/lib/seo/structured-data.ts`, `src/components/seo/json-ld.tsx`, dan `src/components/site/breadcrumbs.tsx`.
+     - Menyempurnakan metadata canonical, Open Graph lengkap (`siteName`, `images`), Twitter Card `summary_large_image`, Schema.org (`NewsMediaOrganization`, `WebSite`, `NewsArticle`/`Article`, `CollectionPage`, `ProfilePage`, `BreadcrumbList`), `<Breadcrumbs>`, paginasi ketat `404`, serta tautan penulis dan penyunting di seluruh rute publik dan 12 halaman kelembagaan/pengembang.
+     - Membelah komponen Server/Client di 7 rute `/studio/*` dan `/kontributor/*` agar metadata `noindex` berjalan di level server SSR, serta memindahkan pengalihan `/articles/[slug]`, `/kebijakan-redaksi`, dan `/kontributor/panduan` ke `permanentRedirect()` (`308`).
+     - Menambahkan dukungan opsional `GOOGLE_SITE_VERIFICATION` dan `BING_SITE_VERIFICATION` di `src/app/layout.tsx` dan `.env.example` tanpa mengarang token palsu.
+  4. **Aset Ikon & Resolusi Bug Turbopack:** Mengganti berkas biner `icon.png`, `apple-icon.png`, `favicon.ico` ke `public/` dengan deklarasi `metadata.icons` eksplisit di `src/app/layout.tsx` (mendampingi `src/app/icon.svg`, `public/brand/verax-press-logo.png`, dan `public/brand/verax-press-og.png`), menghapus `public/logo.svg` sisa template, serta menambahkan `syncStandaloneAssets()` di `tests/lib/test-db.ts` dan suite uji `tests/seo.test.ts`.
+- **Verifikasi Akhir Workspace Terkini:**
+  - `bun run typecheck`: `0` galat TypeScript (exit `0`).
+  - `bun run lint`: `0` galat dan `0` peringatan ESLint (exit `0`).
+  - `bun run build`: `prisma generate && next build` (Next.js 16.1.3 Turbopack), exit `0`, kompilasi `5.5s`, `58/58` halaman statis terbangun.
+  - `bun test`: **`170 pass, 0 fail`** (`831 expect()`) lintas 15 berkas uji (`db/isolated-test.db`).
+  - Verifikasi langsung pada salinan `db/custom.db` (`standalone` server `:3088`): `check_sitemap.py` (`34` URL valid, `0` eror/duplikat), `inspect_html.py` (11 rute sesuai kebijakan `index`/`noindex`), dan Headless Chrome CDP (`1440x900` & `390x844`: `overflow=0`, JSON-LD valid, `/icon.svg` dan `/favicon.ico` `200 OK`, `0` eror konsol/HTTP).
+
+## 45. Pemasangan Monogram VP Resmi & Pembaruan Positioning "Berbasis Sumber Primer" (12 Nov 2026)
+- **Status Teknis Lokal:** Selesai dan terverifikasi (`STAGING READY`); `Masthead` utama (`src/components/site/masthead.tsx`) sengaja dipertahankan sebagai tipografi `VERAX PRESS` hingga pemilik menentukan pilihan varian wordmark blackletter hasil refinement.
+- **Perubahan Aset Identitas Visual (Monogram `VP` dari sumber vektor datar):**
+  - `src/app/icon.svg`: Lencana gelap ringkas `#161310` (`viewBox="320 168 560 560"`, `rx="48"`) dengan monogram `#FBFAF8` agar terbaca jelas pada tab berukuran `16px` dan `32px`, baik tema terang maupun gelap/Incognito.
+  - `public/favicon.ico`: Multi-frame PNG-in-ICO ukuran `16x16`, `32x32`, dan `48x48`.
+  - `public/icon.png` (`192x192`) dan `public/brand/verax-press-logo.png` (`512x512`): Lencana sudut membulat `#161310` dengan monogram `#FBFAF8` dan garis aksen `#9E2B25` (`viewBox="280 128 640 640"`).
+  - `public/apple-icon.png` (`180x180`): Varian latar penuh tanpa sudut transparan agar dipotong presisi oleh masker iOS.
+  - `public/brand/verax-press-mark.svg`: Vektor monogram murni transparan (`viewBox="350 198 500 500"`).
+  - `public/brand/verax-press-og.png` (`1200x630`): Kartu *Open Graph* baru berbadge `VP` dengan posisi editorial *"Jurnalisme Independen Berbasis Sumber Primer"*.
+- **Pemasangan Komponen `<VeraxMark />` (`src/components/site/verax-mark.tsx`):**
+  - Komponen SVG nir-status berbasis `currentColor` terpasang di `src/components/site/site-footer.tsx`, `src/components/site/site-mobile-nav.tsx`, `src/components/studio/studio-login-client.tsx`, `src/components/studio/staff-activation-client.tsx`, `src/app/studio/(cms)/layout.tsx` (topbar mobile, drawer Sheet, sidebar desktop), `src/components/contributor/contributor-login-client.tsx`, `src/components/contributor/contributor-activation-client.tsx`, `src/components/contributor/contributor-application-client.tsx`, dan `src/components/contributor/portal-shell.tsx`.
+- **Pembaruan Posisi Editorial (Penggantian Slogan "Kendali Editorial Manusia"):**
+  - Atas arahan pemilik bahwa keterlibatan editor manusia merupakan norma dasar jurnalisme, positioning publik di `src/app/layout.tsx`, `src/lib/seo/structured-data.ts`, `src/app/(public)/page.tsx`, `src/components/site/site-footer.tsx`, `src/app/(public)/tentang/page.tsx`, `src/app/(public)/informasi-kelembagaan/page.tsx`, `src/app/(public)/standar-editorial/page.tsx`, `src/app/(public)/developers/page.tsx`, `src/lib/domain/api-docs.ts`, `src/components/studio/studio-login-client.tsx`, `docs/editorial/VERAX_WRITING_STANDARDS.md`, dan `tests/visitor-journeys.test.ts` diselaraskan ke keunggulan pembeda Verax Press (*Ex Fontibus Veritas*): liputan independen **berbasis sumber primer**, penautan dokumen rujukan terverifikasi, serta catatan koreksi yang tercatat terbuka.
+- **Pratinjau Wordmark Blackletter (`wordmark-comparison.png`):**
+  - Disiapkan dua varian vektor murni `#161310` dengan kontur transparan di direktori scratch agar pemilik dapat meninjau sebelum memutuskan penggantian tipografi `Masthead` (Varian A dengan garis belah klasik pada `V` dan `P`, Varian B dengan batang huruf padat penuh).
+- **Bukti Verifikasi Akhir Sesudah Suntingan Terakhir:**
+  - `bun run typecheck`: `0` galat TypeScript (exit `0`).
+  - `bun run lint`: `0` galat / `0` peringatan ESLint (exit `0`).
+  - `bun run build`: `58/58` halaman statis berhasil dibangun (exit `0`).
+  - `bun test`: **`170 pass, 0 fail`** (`831 expect()`), exit `0`.
+  - Uji server terisolasi `.next/standalone` (`127.0.0.1:3089`, `db/isolated-test.db`) dan Chromium CDP: seluruh 7 aset ikon/OG mengembalikan HTTP `200 OK`; `0px` horizontal overflow, `0` galat konsol, `0` aset gagal di rute `/`, `/studio/login`, `/kontributor/login`, `/kontributor/daftar`, dan `/studio` (desktop `1440x900` serta mobile `390x844`).

@@ -162,15 +162,34 @@ export const AI_SUBSTANTIVE_NOTE_DEFAULT =
 
 export const API_CLIENT_ENVIRONMENTS = ["DEVELOPMENT", "PREVIEW", "PRODUCTION"] as const;
 
+import { getCanonicalBaseUrl, isLocalDevelopmentHost, normalizeHostname } from "@/lib/seo/constants";
+
 export function getPublicBaseUrl(): string {
+  const isVercelProduction =
+    typeof process !== "undefined" && process.env.VERCEL_ENV === "production";
+
   if (typeof process !== "undefined" && process.env.VERAX_PUBLIC_BASE_URL) {
-    return process.env.VERAX_PUBLIC_BASE_URL.replace(/\/+$/, "");
+    const candidate = process.env.VERAX_PUBLIC_BASE_URL.trim().replace(/\/+$/, "");
+    if (!isVercelProduction) return candidate;
+    try {
+      const host = normalizeHostname(new URL(candidate).hostname);
+      if (host && !isLocalDevelopmentHost(host)) return candidate;
+    } catch {
+      // Abaikan URL tidak valid di produksi
+    }
   }
   if (typeof process !== "undefined" && process.env.NEXT_PUBLIC_SITE_URL) {
-    return process.env.NEXT_PUBLIC_SITE_URL.replace(/\/+$/, "");
+    const candidate = process.env.NEXT_PUBLIC_SITE_URL.trim().replace(/\/+$/, "");
+    if (!isVercelProduction) return candidate;
+    try {
+      const host = normalizeHostname(new URL(candidate).hostname);
+      if (host && !isLocalDevelopmentHost(host)) return candidate;
+    } catch {
+      // Abaikan URL tidak valid di produksi
+    }
   }
-  if (typeof process !== "undefined" && process.env.VERCEL_ENV === "production") {
-    return "https://veraxpress.vercel.app";
+  if (isVercelProduction) {
+    return getCanonicalBaseUrl();
   }
   if (typeof process !== "undefined" && process.env.VERCEL_URL) {
     return `https://${process.env.VERCEL_URL.replace(/\/+$/, "")}`;

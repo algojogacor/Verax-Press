@@ -561,7 +561,7 @@ export default function StudioApiPortalPage() {
 
         <div className="flex items-center gap-2">
           <Button variant="outline" size="sm" asChild>
-            <a href="/developers" target="_blank" rel="noreferrer" className="flex items-center gap-1.5">
+            <a href="/developers" target="_blank" rel="noopener noreferrer" className="flex items-center gap-1.5">
               <ExternalLink className="size-3.5" />
               <span>Dokumentasi Web</span>
             </a>
@@ -863,7 +863,7 @@ export default function StudioApiPortalPage() {
               <a
                 href="/openapi.json"
                 target="_blank"
-                rel="noreferrer"
+                rel="noopener noreferrer"
                 className="flex items-start gap-3 border border-verity-rule bg-verity-paper-soft p-4 hover:border-verity-ink transition-colors"
               >
                 <FileCode2 className="size-5 text-verity-accent mt-0.5 shrink-0" />
@@ -878,7 +878,7 @@ export default function StudioApiPortalPage() {
               <a
                 href="/.well-known/verax-agent.json"
                 target="_blank"
-                rel="noreferrer"
+                rel="noopener noreferrer"
                 className="flex items-start gap-3 border border-verity-rule bg-verity-paper-soft p-4 hover:border-verity-ink transition-colors"
               >
                 <Code2 className="size-5 text-verity-accent mt-0.5 shrink-0" />
@@ -893,7 +893,7 @@ export default function StudioApiPortalPage() {
               <a
                 href="/llms.txt"
                 target="_blank"
-                rel="noreferrer"
+                rel="noopener noreferrer"
                 className="flex items-start gap-3 border border-verity-rule bg-verity-paper-soft p-4 hover:border-verity-ink transition-colors"
               >
                 <FileText className="size-5 text-verity-accent mt-0.5 shrink-0" />
@@ -908,7 +908,7 @@ export default function StudioApiPortalPage() {
               <a
                 href="/llms-full.txt"
                 target="_blank"
-                rel="noreferrer"
+                rel="noopener noreferrer"
                 className="flex items-start gap-3 border border-verity-rule bg-verity-paper-soft p-4 hover:border-verity-ink transition-colors"
               >
                 <FileText className="size-5 text-verity-accent mt-0.5 shrink-0" />

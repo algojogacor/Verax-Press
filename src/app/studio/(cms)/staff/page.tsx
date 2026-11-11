@@ -798,7 +798,8 @@ export default function StaffManagementPage() {
                 </label>
                 <Input
                   type="email"
-                  placeholder="penulis@veraxpress.id"
+                  placeholder="penulis@contoh.id"
+                  spellCheck={false}
                   value={inviteEmail}
                   onChange={(e) => setInviteEmail(e.target.value)}
                   className="bg-verity-paper border-verity-rule text-sm"
@@ -894,7 +895,8 @@ export default function StaffManagementPage() {
                 <label className="text-xs font-medium text-verity-ink">Email Kontak</label>
                 <Input
                   type="email"
-                  placeholder="nama@veraxpress.id"
+                  placeholder="nama@contoh.id"
+                  spellCheck={false}
                   value={editEmail}
                   onChange={(e) => setEditEmail(e.target.value)}
                   className="bg-verity-paper border-verity-rule text-sm"

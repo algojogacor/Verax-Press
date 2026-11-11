@@ -1,0 +1,806 @@
+{
+  "snapshot_date": "2026-09-11",
+  "method": "Official web pages read via browser research; original source texts are not bundled. Notes are original paraphrases, not remote page snapshots.",
+  "sources": [
+    {
+      "id": "GS-home",
+      "title": "Google Search documentation",
+      "url": "https://developers.google.com/search/docs?hl=en",
+      "accessed": "2026-09-11",
+      "review_status": "reviewed",
+      "review_scope": "Relevant guidance reviewed; not every linked page or property table.",
+      "note": "Entry point for the documentation, not a promise that every descendant page has been reproduced.",
+      "remote_content_sha256": null
+    },
+    {
+      "id": "GS-essentials",
+      "title": "Google Search Essentials",
+      "url": "https://developers.google.com/search/docs/essentials",
+      "accessed": "2026-09-11",
+      "review_status": "reviewed",
+      "review_scope": "Relevant guidance reviewed; not every linked page or property table.",
+      "note": "Meeting the essentials establishes eligibility, not guaranteed crawling, indexing, ranking, or display.",
+      "remote_content_sha256": null
+    },
+    {
+      "id": "GS-technical",
+      "title": "Technical requirements",
+      "url": "https://developers.google.com/search/docs/essentials/technical",
+      "accessed": "2026-09-11",
+      "review_status": "reviewed",
+      "review_scope": "Relevant guidance reviewed; not every linked page or property table.",
+      "note": "Publicly reachable content, a successful response and indexable content are distinct from actual indexing. A robots block is not a noindex instruction.",
+      "remote_content_sha256": null
+    },
+    {
+      "id": "GS-spam",
+      "title": "Spam policies",
+      "url": "https://developers.google.com/search/docs/essentials/spam-policies",
+      "accessed": "2026-09-11",
+      "review_status": "reviewed",
+      "review_scope": "Relevant guidance reviewed; not every linked page or property table.",
+      "note": "Review intent and execution, including scaled content abuse, link spam, cloaking and site reputation abuse. Third-party content is not automatically abuse. Recheck the current regional treatment, especially the EEA.",
+      "remote_content_sha256": null
+    },
+    {
+      "id": "GS-starter",
+      "title": "SEO Starter Guide",
+      "url": "https://developers.google.com/search/docs/fundamentals/seo-starter-guide",
+      "accessed": "2026-09-11",
+      "review_status": "reviewed",
+      "review_scope": "Relevant guidance reviewed; not every linked page or property table.",
+      "note": "Use useful content, understandable organization and accessible pages rather than speculative ranking formulas.",
+      "remote_content_sha256": null
+    },
+    {
+      "id": "GS-how",
+      "title": "How Search works",
+      "url": "https://developers.google.com/search/docs/fundamentals/how-search-works",
+      "accessed": "2026-09-11",
+      "review_status": "reviewed",
+      "review_scope": "Relevant guidance reviewed; not every linked page or property table.",
+      "note": "Discovery, crawling, indexing and serving are different stages. Diagnose the failed stage before prescribing a fix.",
+      "remote_content_sha256": null
+    },
+    {
+      "id": "GS-helpful",
+      "title": "Creating helpful, reliable, people-first content",
+      "url": "https://developers.google.com/search/docs/fundamentals/creating-helpful-content",
+      "accessed": "2026-09-11",
+      "review_status": "reviewed",
+      "review_scope": "Relevant guidance reviewed; not every linked page or property table.",
+      "note": "Assess original value, reliability, authorship and audience satisfaction. Do not invent a numerical E-E-A-T score or universal word-count requirement.",
+      "remote_content_sha256": null
+    },
+    {
+      "id": "GS-gen-content",
+      "title": "Guidance on using generative AI content",
+      "url": "https://developers.google.com/search/docs/fundamentals/using-gen-ai-content",
+      "accessed": "2026-09-11",
+      "review_status": "reviewed",
+      "review_scope": "Relevant guidance reviewed; not every linked page or property table.",
+      "note": "AI-assisted production is not automatically prohibited; accuracy and added value matter. Scaled production without value can violate spam policies. Merchant Center AI-label requirements are a separate implementation concern.",
+      "remote_content_sha256": null
+    },
+    {
+      "id": "GS-ai-guide",
+      "title": "Optimizing for AI search",
+      "url": "https://developers.google.com/search/docs/fundamentals/ai-optimization-guide",
+      "accessed": "2026-09-11",
+      "review_status": "reviewed",
+      "review_scope": "Relevant guidance reviewed; not every linked page or property table.",
+      "note": "The current guide emphasizes original useful content and ordinary SEO rather than special AI markup. Google Search does not use LLMS.txt; the guide also references Search generative AI participation controls.",
+      "remote_content_sha256": null
+    },
+    {
+      "id": "GS-ai-features",
+      "title": "AI features and your website",
+      "url": "https://developers.google.com/search/docs/appearance/ai-features",
+      "accessed": "2026-09-11",
+      "review_status": "reviewed",
+      "review_scope": "Relevant guidance reviewed; not every linked page or property table.",
+      "note": "Indexability and snippet eligibility matter for supporting links in AI search. Reconcile older reporting or participation wording with the newer guide and current Search Console documentation.",
+      "remote_content_sha256": null
+    },
+    {
+      "id": "GS-thirdparty",
+      "title": "Advice about third-party SEO tools",
+      "url": "https://developers.google.com/search/docs/fundamentals/third-party-seo",
+      "accessed": "2026-09-11",
+      "review_status": "reviewed",
+      "review_scope": "Relevant guidance reviewed; not every linked page or property table.",
+      "note": "A third-party score, audit label or recommendation is not automatically a Google requirement.",
+      "remote_content_sha256": null
+    },
+    {
+      "id": "GS-updates",
+      "title": "Documentation updates",
+      "url": "https://developers.google.com/search/updates",
+      "accessed": "2026-09-11",
+      "review_status": "reviewed",
+      "review_scope": "Relevant guidance reviewed; not every linked page or property table.",
+      "note": "Use dated entries to identify additions, removals and changed eligibility. A documentation update date is not necessarily the date a Search behavior changed.",
+      "remote_content_sha256": null
+    },
+    {
+      "id": "GS-reviews",
+      "title": "Write high-quality reviews",
+      "url": "https://developers.google.com/search/docs/specialty/ecommerce/write-high-quality-reviews",
+      "accessed": "2026-09-11",
+      "review_status": "reviewed",
+      "review_scope": "Relevant guidance reviewed; not every linked page or property table.",
+      "note": "Demonstrate substantive evaluation, evidence and meaningful comparisons; do not manufacture testing or personal experience.",
+      "remote_content_sha256": null
+    },
+    {
+      "id": "GS-ai-control",
+      "title": "Search generative AI control",
+      "url": "https://support.google.com/webmasters/answer/16908024",
+      "accessed": "2026-09-11",
+      "review_status": "reviewed",
+      "review_scope": "Relevant guidance reviewed; not every linked page or property table.",
+      "note": "The current help page describes participation controls, property inheritance and a Generative AI performance report link. Detailed report dimensions and API availability were not independently reviewed. Controls for Search participation and model training are different.",
+      "remote_content_sha256": null
+    },
+    {
+      "id": "GS-robots-intro",
+      "title": "Introduction to robots.txt",
+      "url": "https://developers.google.com/search/docs/crawling-indexing/robots/intro",
+      "accessed": "2026-09-11",
+      "review_status": "reviewed",
+      "review_scope": "Relevant guidance reviewed; not every linked page or property table.",
+      "note": "Robots.txt controls crawler access, not confidentiality and not reliable removal of indexed URLs.",
+      "remote_content_sha256": null
+    },
+    {
+      "id": "GS-robots-spec",
+      "title": "How Google interprets robots.txt",
+      "url": "https://developers.google.com/crawling/docs/robots-txt/robots-txt-spec",
+      "accessed": "2026-09-11",
+      "review_status": "reviewed",
+      "review_scope": "Relevant guidance reviewed; not every linked page or property table.",
+      "note": "Rules are scoped to protocol, hostname and port. Google does not support noindex or crawl-delay as robots.txt directives. Match behavior needs a real parser or authoritative tests.",
+      "remote_content_sha256": null
+    },
+    {
+      "id": "GS-robots-meta",
+      "title": "Robots meta tags and HTTP headers",
+      "url": "https://developers.google.com/search/docs/crawling-indexing/robots-meta-tag",
+      "accessed": "2026-09-11",
+      "review_status": "reviewed",
+      "review_scope": "Relevant guidance reviewed; not every linked page or property table.",
+      "note": "Distinguish indexing and preview controls from crawl access. Google must be able to retrieve an instruction to process it. Prefer valid document structure; do not assume a robots meta outside head is ignored.",
+      "remote_content_sha256": null
+    },
+    {
+      "id": "GS-noindex",
+      "title": "Block indexing with noindex",
+      "url": "https://developers.google.com/search/docs/crawling-indexing/block-indexing",
+      "accessed": "2026-09-11",
+      "review_status": "reviewed",
+      "review_scope": "Relevant guidance reviewed; not every linked page or property table.",
+      "note": "A crawlable noindex response can prevent indexing. Blocking retrieval can prevent Google from seeing noindex.",
+      "remote_content_sha256": null
+    },
+    {
+      "id": "GS-sitemap",
+      "title": "Build and submit a sitemap",
+      "url": "https://developers.google.com/search/docs/crawling-indexing/sitemaps/build-sitemap",
+      "accessed": "2026-09-11",
+      "review_status": "reviewed",
+      "review_scope": "Relevant guidance reviewed; not every linked page or property table.",
+      "note": "Sitemaps aid discovery rather than guarantee indexing. Use absolute canonical URLs and truthful last-modification times; limits are 50,000 URLs and 50 MB uncompressed per sitemap.",
+      "remote_content_sha256": null
+    },
+    {
+      "id": "GS-canonical",
+      "title": "Canonicalization",
+      "url": "https://developers.google.com/search/docs/crawling-indexing/consolidate-duplicate-urls",
+      "accessed": "2026-09-11",
+      "review_status": "reviewed",
+      "review_scope": "Relevant guidance reviewed; not every linked page or property table.",
+      "note": "Canonical annotations are signals, not absolute commands. Align internal links, redirects and sitemap choices; preserve genuinely distinct pages.",
+      "remote_content_sha256": null
+    },
+    {
+      "id": "GS-migration",
+      "title": "Site moves with URL changes",
+      "url": "https://developers.google.com/search/docs/crawling-indexing/site-move-with-url-changes",
+      "accessed": "2026-09-11",
+      "review_status": "reviewed",
+      "review_scope": "Relevant guidance reviewed; not every linked page or property table.",
+      "note": "Map old URLs to relevant equivalents, redirect deliberately, update references and monitor both properties. Avoid redirecting unrelated retired pages to the homepage.",
+      "remote_content_sha256": null
+    },
+    {
+      "id": "GS-http",
+      "title": "HTTP status codes, network and DNS errors",
+      "url": "https://developers.google.com/crawling/docs/troubleshooting/http-status-codes",
+      "accessed": "2026-09-11",
+      "review_status": "reviewed",
+      "review_scope": "Relevant guidance reviewed; not every linked page or property table.",
+      "note": "Distinguish successful pages, redirects, not-found responses and server or network failures. A successful status with error content may be treated as a soft 404.",
+      "remote_content_sha256": null
+    },
+    {
+      "id": "GS-js",
+      "title": "JavaScript SEO basics",
+      "url": "https://developers.google.com/search/docs/crawling-indexing/javascript/javascript-seo-basics",
+      "accessed": "2026-09-11",
+      "review_status": "reviewed",
+      "review_scope": "Relevant guidance reviewed; not every linked page or property table.",
+      "note": "Inspect raw responses and rendered output. Initial noindex can prevent rendering, so do not rely on JavaScript removing it. Avoid conflicting canonical signals between initial and rendered HTML.",
+      "remote_content_sha256": null
+    },
+    {
+      "id": "GS-budget",
+      "title": "Managing crawl budget",
+      "url": "https://developers.google.com/crawling/docs/crawl-budget",
+      "accessed": "2026-09-11",
+      "review_status": "reviewed",
+      "review_scope": "Relevant guidance reviewed; not every linked page or property table.",
+      "note": "Prioritize crawl efficiency for genuinely large or rapidly changing sites with evidence of a bottleneck; do not presume every small site has a crawl-budget problem.",
+      "remote_content_sha256": null
+    },
+    {
+      "id": "GS-facets",
+      "title": "Faceted navigation",
+      "url": "https://developers.google.com/crawling/docs/faceted-navigation",
+      "accessed": "2026-09-11",
+      "review_status": "reviewed",
+      "review_scope": "Relevant guidance reviewed; not every linked page or property table.",
+      "note": "Facets can generate effectively unbounded URL spaces. Separate useful indexable landing pages from combinations that should not consume crawl resources.",
+      "remote_content_sha256": null
+    },
+    {
+      "id": "GS-verifybot",
+      "title": "Verifying Google crawler requests",
+      "url": "https://developers.google.com/crawling/docs/crawlers-fetchers/verify-google-requests",
+      "accessed": "2026-09-11",
+      "review_status": "reviewed",
+      "review_scope": "Relevant guidance reviewed; not every linked page or property table.",
+      "note": "A user-agent string is not proof of Google identity. Use documented IP ranges or reverse DNS followed by matching forward resolution.",
+      "remote_content_sha256": null
+    },
+    {
+      "id": "GS-mobile",
+      "title": "Mobile-first indexing best practices",
+      "url": "https://developers.google.com/search/docs/crawling-indexing/mobile/mobile-sites-mobile-first-indexing",
+      "accessed": "2026-09-11",
+      "review_status": "reviewed",
+      "review_scope": "Relevant guidance reviewed; not every linked page or property table.",
+      "note": "Maintain meaningful content, metadata, structured data and resource accessibility on the mobile version rather than optimizing desktop alone.",
+      "remote_content_sha256": null
+    },
+    {
+      "id": "GS-links",
+      "title": "Link best practices",
+      "url": "https://developers.google.com/search/docs/crawling-indexing/links-crawlable",
+      "accessed": "2026-09-11",
+      "review_status": "reviewed",
+      "review_scope": "Relevant guidance reviewed; not every linked page or property table.",
+      "note": "Use discoverable anchor links with href and meaningful context. Qualify paid and user-generated links appropriately; there is no universal optimal link count.",
+      "remote_content_sha256": null
+    },
+    {
+      "id": "GS-urls",
+      "title": "URL structure best practices",
+      "url": "https://developers.google.com/search/docs/crawling-indexing/url-structure",
+      "accessed": "2026-09-11",
+      "review_status": "reviewed",
+      "review_scope": "Relevant guidance reviewed; not every linked page or property table.",
+      "note": "Use understandable, stable URLs and avoid accidental duplicate or unbounded parameter spaces.",
+      "remote_content_sha256": null
+    },
+    {
+      "id": "GS-pagination",
+      "title": "Pagination and incremental loading",
+      "url": "https://developers.google.com/search/docs/specialty/ecommerce/pagination-and-incremental-page-loading",
+      "accessed": "2026-09-11",
+      "review_status": "reviewed",
+      "review_scope": "Relevant guidance reviewed; not every linked page or property table.",
+      "note": "Expose persistent, crawlable URLs for paginated content. Distinct result pages should not all claim that page one is their canonical equivalent.",
+      "remote_content_sha256": null
+    },
+    {
+      "id": "GS-hreflang",
+      "title": "Localized versions of pages",
+      "url": "https://developers.google.com/search/docs/specialty/international/localized-versions",
+      "accessed": "2026-09-11",
+      "review_status": "reviewed",
+      "review_scope": "Relevant guidance reviewed; not every linked page or property table.",
+      "note": "Language alternates require coherent self and reciprocal references. Language or region annotations do not replace canonicalization or actual localization.",
+      "remote_content_sha256": null
+    },
+    {
+      "id": "GS-international",
+      "title": "Managing multi-regional sites",
+      "url": "https://developers.google.com/search/docs/specialty/international/managing-multi-regional-sites",
+      "accessed": "2026-09-11",
+      "review_status": "reviewed",
+      "review_scope": "Relevant guidance reviewed; not every linked page or property table.",
+      "note": "Make language and regional versions accessible at stable URLs; avoid forcing all visitors and crawlers through location-based redirects.",
+      "remote_content_sha256": null
+    },
+    {
+      "id": "GS-share",
+      "title": "Control what you share with Google",
+      "url": "https://developers.google.com/search/docs/crawling-indexing/control-what-you-share",
+      "accessed": "2026-09-11",
+      "review_status": "reviewed",
+      "review_scope": "Relevant guidance reviewed; not every linked page or property table.",
+      "note": "Choose access, indexing and preview controls according to the outcome. Search controls are not a substitute for authentication.",
+      "remote_content_sha256": null
+    },
+    {
+      "id": "GS-removal",
+      "title": "Remove information from Google",
+      "url": "https://developers.google.com/search/docs/crawling-indexing/remove-information",
+      "accessed": "2026-09-11",
+      "review_status": "reviewed",
+      "review_scope": "Relevant guidance reviewed; not every linked page or property table.",
+      "note": "Temporary search removals and durable removal or access control are different operations. Verify ownership and inspect URL variants before requesting changes.",
+      "remote_content_sha256": null
+    },
+    {
+      "id": "GS-testing",
+      "title": "Website testing and Google Search",
+      "url": "https://developers.google.com/search/docs/crawling-indexing/website-testing",
+      "accessed": "2026-09-11",
+      "review_status": "reviewed",
+      "review_scope": "Relevant guidance reviewed; not every linked page or property table.",
+      "note": "Run genuine visitor tests without crawler-targeted cloaking. Use appropriate temporary behavior and clean up experiments when complete.",
+      "remote_content_sha256": null
+    },
+    {
+      "id": "GS-amp",
+      "title": "AMP on Google Search",
+      "url": "https://developers.google.com/search/docs/crawling-indexing/amp",
+      "accessed": "2026-09-11",
+      "review_status": "reviewed",
+      "review_scope": "Relevant guidance reviewed; not every linked page or property table.",
+      "note": "AMP is an optional implementation path. Recheck current serving guidance rather than assuming legacy AMP cache, viewer or signed-exchange requirements.",
+      "remote_content_sha256": null
+    },
+    {
+      "id": "GS-indexing-api",
+      "title": "Using the Indexing API",
+      "url": "https://developers.google.com/search/apis/indexing-api/v3/using-api",
+      "accessed": "2026-09-11",
+      "review_status": "reviewed",
+      "review_scope": "Relevant guidance reviewed; not every linked page or property table.",
+      "note": "The API is limited to supported JobPosting pages or BroadcastEvent embedded in VideoObject. Notification acceptance does not prove that a URL is indexed.",
+      "remote_content_sha256": null
+    },
+    {
+      "id": "GS-title",
+      "title": "Title links",
+      "url": "https://developers.google.com/search/docs/appearance/title-link",
+      "accessed": "2026-09-11",
+      "review_status": "reviewed",
+      "review_scope": "Relevant guidance reviewed; not every linked page or property table.",
+      "note": "Use descriptive, distinct page titles and consistent visible headings. Google can generate a different title link; a fixed character count is not a guaranteed display rule.",
+      "remote_content_sha256": null
+    },
+    {
+      "id": "GS-snippet",
+      "title": "Snippets",
+      "url": "https://developers.google.com/search/docs/appearance/snippet",
+      "accessed": "2026-09-11",
+      "review_status": "reviewed",
+      "review_scope": "Relevant guidance reviewed; not every linked page or property table.",
+      "note": "Snippets can be query-dependent and may come from page content rather than the supplied meta description. Preview controls limit eligibility without guaranteeing exact presentation.",
+      "remote_content_sha256": null
+    },
+    {
+      "id": "GS-sitename",
+      "title": "Site names",
+      "url": "https://developers.google.com/search/docs/appearance/site-names",
+      "accessed": "2026-09-11",
+      "review_status": "reviewed",
+      "review_scope": "Relevant guidance reviewed; not every linked page or property table.",
+      "note": "Provide consistent homepage identity and supported WebSite information. A preference does not guarantee the displayed site name.",
+      "remote_content_sha256": null
+    },
+    {
+      "id": "GS-favicon",
+      "title": "Favicon in search results",
+      "url": "https://developers.google.com/search/docs/appearance/favicon-in-search?hl=en",
+      "accessed": "2026-09-11",
+      "review_status": "reviewed",
+      "review_scope": "Relevant guidance reviewed; not every linked page or property table.",
+      "note": "At review, the guide specified square icons of at least 8 by 8 pixels and recommended larger than 48 by 48. Listed formats were BMP, GIF, ICO, PNG, JPEG, PPM and TIFF; do not assume SVG is supported here.",
+      "remote_content_sha256": null
+    },
+    {
+      "id": "GS-images",
+      "title": "Google Images best practices",
+      "url": "https://developers.google.com/search/docs/appearance/google-images",
+      "accessed": "2026-09-11",
+      "review_status": "reviewed",
+      "review_scope": "Relevant guidance reviewed; not every linked page or property table.",
+      "note": "Make useful images accessible, understandable from nearby content and sensibly described. A preferred image or metadata suggestion is not a guaranteed selection.",
+      "remote_content_sha256": null
+    },
+    {
+      "id": "GS-video",
+      "title": "Video SEO best practices",
+      "url": "https://developers.google.com/search/docs/appearance/video",
+      "accessed": "2026-09-11",
+      "review_status": "reviewed",
+      "review_scope": "Relevant guidance reviewed; not every linked page or property table.",
+      "note": "Check watch-page relevance, video prominence, accessibility and stable thumbnail resources. Ordinary page indexing is not the same as video indexing.",
+      "remote_content_sha256": null
+    },
+    {
+      "id": "GS-experience",
+      "title": "Page experience",
+      "url": "https://developers.google.com/search/docs/appearance/page-experience",
+      "accessed": "2026-09-11",
+      "review_status": "reviewed",
+      "review_scope": "Relevant guidance reviewed; not every linked page or property table.",
+      "note": "Evaluate the visitor experience rather than a single synthetic SEO score. Good experience does not guarantee top ranking.",
+      "remote_content_sha256": null
+    },
+    {
+      "id": "GS-cwv",
+      "title": "Core Web Vitals",
+      "url": "https://developers.google.com/search/docs/appearance/core-web-vitals",
+      "accessed": "2026-09-11",
+      "review_status": "reviewed",
+      "review_scope": "Relevant guidance reviewed; not every linked page or property table.",
+      "note": "Separate real-user experience from lab debugging and measure the relevant page templates. Avoid claiming a ranking change follows mechanically from a performance score.",
+      "remote_content_sha256": null
+    },
+    {
+      "id": "GS-discover",
+      "title": "Discover and your website",
+      "url": "https://developers.google.com/search/docs/appearance/google-discover",
+      "accessed": "2026-09-11",
+      "review_status": "reviewed",
+      "review_scope": "Relevant guidance reviewed; not every linked page or property table.",
+      "note": "Discover eligibility is not guaranteed distribution. Treat feed traffic as a separate, variable surface rather than predictable keyword demand.",
+      "remote_content_sha256": null
+    },
+    {
+      "id": "GS-preferred",
+      "title": "Preferred sources",
+      "url": "https://developers.google.com/search/docs/appearance/preferred-sources",
+      "accessed": "2026-09-11",
+      "review_status": "reviewed",
+      "review_scope": "Relevant guidance reviewed; not every linked page or property table.",
+      "note": "Use the current supported preferred-source mechanism where available. Do not promise a ranking boost or fabricate readers selecting a publisher.",
+      "remote_content_sha256": null
+    },
+    {
+      "id": "GS-regional",
+      "title": "Regionally available features",
+      "url": "https://developers.google.com/search/docs/appearance/aggregator-features",
+      "accessed": "2026-09-11",
+      "review_status": "reviewed",
+      "review_scope": "Relevant guidance reviewed; not every linked page or property table.",
+      "note": "Eligibility and presentation can depend on location and publisher type, including EEA and Türkiye-specific features. Verify the current jurisdiction and exact feature.",
+      "remote_content_sha256": null
+    },
+    {
+      "id": "GS-explicit",
+      "title": "Guidelines for explicit content",
+      "url": "https://developers.google.com/search/docs/specialty/explicit/guidelines",
+      "accessed": "2026-09-11",
+      "review_status": "reviewed",
+      "review_scope": "Relevant guidance reviewed; not every linked page or property table.",
+      "note": "Use accurate classification and appropriate technical separation. Do not attempt to evade safety classification or filters.",
+      "remote_content_sha256": null
+    },
+    {
+      "id": "GS-social",
+      "title": "Analyze social and video content",
+      "url": "https://developers.google.com/search/docs/monitor-debug/analyze-social-video-content",
+      "accessed": "2026-09-11",
+      "review_status": "reviewed",
+      "review_scope": "Relevant guidance reviewed; not every linked page or property table.",
+      "note": "Use the current documentation and actual property access to understand supported social or video analysis. Do not assume a website report exposes all off-site engagement metrics.",
+      "remote_content_sha256": null
+    },
+    {
+      "id": "GS-gallery",
+      "title": "Structured data feature gallery",
+      "url": "https://developers.google.com/search/docs/appearance/structured-data/search-gallery",
+      "accessed": "2026-09-11",
+      "review_status": "reviewed",
+      "review_scope": "Relevant guidance reviewed; not every linked page or property table.",
+      "note": "Resolve current feature guides from this maintained gallery. Feature syntax, content requirements, availability and actual rich-result display are separate questions.",
+      "remote_content_sha256": null
+    },
+    {
+      "id": "GS-sd-intro",
+      "title": "Introduction to structured data",
+      "url": "https://developers.google.com/search/docs/appearance/structured-data/intro-structured-data",
+      "accessed": "2026-09-11",
+      "review_status": "reviewed",
+      "review_scope": "Relevant guidance reviewed; not every linked page or property table.",
+      "note": "Use supported formats and the specific Google feature guide. Schema.org vocabulary validity alone does not establish Google rich-result eligibility.",
+      "remote_content_sha256": null
+    },
+    {
+      "id": "GS-sd-policy",
+      "title": "General structured data guidelines",
+      "url": "https://developers.google.com/search/docs/appearance/structured-data/sd-policies?hl=en",
+      "accessed": "2026-09-11",
+      "review_status": "reviewed",
+      "review_scope": "Relevant guidance reviewed; not every linked page or property table.",
+      "note": "Markup must truthfully represent the page and satisfy feature policies. Passing a syntax test does not guarantee eligibility or display. A structured-data-only manual action is different from an ordinary ranking penalty.",
+      "remote_content_sha256": null
+    },
+    {
+      "id": "GS-product",
+      "title": "Product structured data",
+      "url": "https://developers.google.com/search/docs/appearance/structured-data/product",
+      "accessed": "2026-09-11",
+      "review_status": "reviewed",
+      "review_scope": "Relevant guidance reviewed; not every linked page or property table.",
+      "note": "Choose the product feature matching the page and commercial intent. Product snippets and merchant listings have distinct eligibility and property expectations.",
+      "remote_content_sha256": null
+    },
+    {
+      "id": "GS-merchant",
+      "title": "Merchant listing structured data",
+      "url": "https://developers.google.com/search/docs/appearance/structured-data/merchant-listing",
+      "accessed": "2026-09-11",
+      "review_status": "reviewed",
+      "review_scope": "Relevant guidance reviewed; not every linked page or property table.",
+      "note": "Validate real offer facts, currency, price, availability and current feature-specific properties. The full property table was not reproduced; read the guide before generating production markup.",
+      "remote_content_sha256": null
+    },
+    {
+      "id": "GS-variants",
+      "title": "Product variant structured data",
+      "url": "https://developers.google.com/search/docs/appearance/structured-data/product-variants",
+      "accessed": "2026-09-11",
+      "review_status": "reviewed",
+      "review_scope": "Relevant guidance reviewed; not every linked page or property table.",
+      "note": "Model real product variants and their relationships; align URLs, offer facts and the selected variant visible to users.",
+      "remote_content_sha256": null
+    },
+    {
+      "id": "GS-org",
+      "title": "Organization structured data",
+      "url": "https://developers.google.com/search/docs/appearance/structured-data/organization",
+      "accessed": "2026-09-11",
+      "review_status": "reviewed",
+      "review_scope": "Relevant guidance reviewed; not every linked page or property table.",
+      "note": "Represent the actual organization consistently. Organization markup does not itself prove verification, eligibility for every feature, or higher rankings.",
+      "remote_content_sha256": null
+    },
+    {
+      "id": "GS-local",
+      "title": "Local business structured data",
+      "url": "https://developers.google.com/search/docs/appearance/structured-data/local-business",
+      "accessed": "2026-09-11",
+      "review_status": "reviewed",
+      "review_scope": "Relevant guidance reviewed; not every linked page or property table.",
+      "note": "Use accurate business and location facts. Website markup does not replace management of a Google Business Profile.",
+      "remote_content_sha256": null
+    },
+    {
+      "id": "GS-review-snippet",
+      "title": "Review snippet structured data",
+      "url": "https://developers.google.com/search/docs/appearance/structured-data/review-snippet",
+      "accessed": "2026-09-11",
+      "review_status": "reviewed",
+      "review_scope": "Relevant guidance reviewed; not every linked page or property table.",
+      "note": "Use genuine eligible reviews rather than fabricated or undisclosed incentivized reviews. Self-serving business reviews have feature-specific restrictions.",
+      "remote_content_sha256": null
+    },
+    {
+      "id": "GS-paywall",
+      "title": "Subscription and paywalled content",
+      "url": "https://developers.google.com/search/docs/appearance/structured-data/paywalled-content",
+      "accessed": "2026-09-11",
+      "review_status": "reviewed",
+      "review_scope": "Relevant guidance reviewed; not every linked page or property table.",
+      "note": "Identify paywalled content accurately with the supported markup. Markup is not authorization to bypass a paywall or expose protected user content.",
+      "remote_content_sha256": null
+    },
+    {
+      "id": "GS-job",
+      "title": "Job posting structured data",
+      "url": "https://developers.google.com/search/docs/appearance/structured-data/job-posting",
+      "accessed": "2026-09-11",
+      "review_status": "reviewed",
+      "review_scope": "Relevant guidance reviewed; not every linked page or property table.",
+      "note": "Apply job markup to actual eligible job detail pages and handle expired jobs correctly. The supported Indexing API scope does not extend to unrelated URLs.",
+      "remote_content_sha256": null
+    },
+    {
+      "id": "GS-forum",
+      "title": "Discussion forum structured data",
+      "url": "https://developers.google.com/search/docs/appearance/structured-data/discussion-forum",
+      "accessed": "2026-09-11",
+      "review_status": "reviewed",
+      "review_scope": "Relevant guidance reviewed; not every linked page or property table.",
+      "note": "Match real user discussion content, authorship and hierarchy rather than disguising a promotional page as a forum.",
+      "remote_content_sha256": null
+    },
+    {
+      "id": "GS-qa",
+      "title": "Q&A structured data",
+      "url": "https://developers.google.com/search/docs/appearance/structured-data/qapage",
+      "accessed": "2026-09-11",
+      "review_status": "reviewed",
+      "review_scope": "Relevant guidance reviewed; not every linked page or property table.",
+      "note": "Distinguish a genuine user-answer question page from a publisher-written FAQ. Do not relabel FAQs merely to seek a different rich result.",
+      "remote_content_sha256": null
+    },
+    {
+      "id": "GS-article",
+      "title": "Article structured data",
+      "url": "https://developers.google.com/search/docs/appearance/structured-data/article",
+      "accessed": "2026-09-11",
+      "review_status": "reviewed",
+      "review_scope": "Relevant guidance reviewed; not every linked page or property table.",
+      "note": "Represent visible article identity, authorship, dates and imagery accurately and use the current feature-specific guide.",
+      "remote_content_sha256": null
+    },
+    {
+      "id": "GS-breadcrumb",
+      "title": "Breadcrumb structured data",
+      "url": "https://developers.google.com/search/docs/appearance/structured-data/breadcrumb",
+      "accessed": "2026-09-11",
+      "review_status": "reviewed",
+      "review_scope": "Relevant guidance reviewed; not every linked page or property table.",
+      "note": "Express a coherent user-facing hierarchy with eligible BreadcrumbList markup rather than treating the URL text as the only valid hierarchy.",
+      "remote_content_sha256": null
+    },
+    {
+      "id": "GS-event",
+      "title": "Event structured data",
+      "url": "https://developers.google.com/search/docs/appearance/structured-data/event",
+      "accessed": "2026-09-11",
+      "review_status": "reviewed",
+      "review_scope": "Relevant guidance reviewed; not every linked page or property table.",
+      "note": "Use actual events, correct dates, locations and status. Recheck eligibility instead of marking ordinary business hours or promotions as events.",
+      "remote_content_sha256": null
+    },
+    {
+      "id": "GS-recipe",
+      "title": "Recipe structured data",
+      "url": "https://developers.google.com/search/docs/appearance/structured-data/recipe",
+      "accessed": "2026-09-11",
+      "review_status": "reviewed",
+      "review_scope": "Relevant guidance reviewed; not every linked page or property table.",
+      "note": "Use the recipe feature only for actual recipe content, with factual instructions and supporting properties visible on the page.",
+      "remote_content_sha256": null
+    },
+    {
+      "id": "GS-software",
+      "title": "Software app structured data",
+      "url": "https://developers.google.com/search/docs/appearance/structured-data/software-app",
+      "accessed": "2026-09-11",
+      "review_status": "reviewed",
+      "review_scope": "Relevant guidance reviewed; not every linked page or property table.",
+      "note": "Read the current guide for an actual software application page. Do not invent price, ratings or platform support to fill missing fields.",
+      "remote_content_sha256": null
+    },
+    {
+      "id": "GS-profile",
+      "title": "Profile page structured data",
+      "url": "https://developers.google.com/search/docs/appearance/structured-data/profile-page",
+      "accessed": "2026-09-11",
+      "review_status": "reviewed",
+      "review_scope": "Relevant guidance reviewed; not every linked page or property table.",
+      "note": "Use supported profile markup for pages with a real profile focus and factual creator identity.",
+      "remote_content_sha256": null
+    },
+    {
+      "id": "GS-ecommerce",
+      "title": "Ecommerce best practices",
+      "url": "https://developers.google.com/search/docs/specialty/ecommerce",
+      "accessed": "2026-09-11",
+      "review_status": "reviewed",
+      "review_scope": "Relevant guidance reviewed; not every linked page or property table.",
+      "note": "Connect crawlable site structure, truthful product data and a deliberate launch plan; Merchant Center and website SEO are distinct integrations.",
+      "remote_content_sha256": null
+    },
+    {
+      "id": "GS-launch",
+      "title": "Launch an ecommerce website",
+      "url": "https://developers.google.com/search/docs/specialty/ecommerce/how-to-launch-an-ecommerce-website",
+      "accessed": "2026-09-11",
+      "review_status": "reviewed",
+      "review_scope": "Relevant guidance reviewed; not every linked page or property table.",
+      "note": "Choose a launch strategy deliberately and verify public accessibility and inventory quality before submission or promotion.",
+      "remote_content_sha256": null
+    },
+    {
+      "id": "GS-console",
+      "title": "Get started with Search Console",
+      "url": "https://developers.google.com/search/docs/monitor-debug/search-console-start",
+      "accessed": "2026-09-11",
+      "review_status": "reviewed",
+      "review_scope": "Relevant guidance reviewed; not every linked page or property table.",
+      "note": "Use authorized property data to inspect performance and indexing; do not treat console data access or ownership as implied by a public URL.",
+      "remote_content_sha256": null
+    },
+    {
+      "id": "GS-drops",
+      "title": "Debugging Search traffic drops",
+      "url": "https://developers.google.com/search/docs/monitor-debug/debugging-search-traffic-drops",
+      "accessed": "2026-09-11",
+      "review_status": "reviewed",
+      "review_scope": "Relevant guidance reviewed; not every linked page or property table.",
+      "note": "Separate technical failures, demand changes, ranking changes and reporting effects. Segment comparable periods before deciding a cause.",
+      "remote_content_sha256": null
+    },
+    {
+      "id": "GS-core",
+      "title": "Core updates",
+      "url": "https://developers.google.com/search/docs/appearance/core-updates",
+      "accessed": "2026-09-11",
+      "review_status": "reviewed",
+      "review_scope": "Relevant guidance reviewed; not every linked page or property table.",
+      "note": "Check rollout dates and completion before assessing an update. Guidance recommends waiting at least a full week after completion for the suggested comparison; urgent technical incidents should still be fixed immediately.",
+      "remote_content_sha256": null
+    },
+    {
+      "id": "GS-ranking",
+      "title": "Ranking systems guide",
+      "url": "https://developers.google.com/search/docs/appearance/ranking-systems-guide",
+      "accessed": "2026-09-11",
+      "review_status": "reviewed",
+      "review_scope": "Relevant guidance reviewed; not every linked page or property table.",
+      "note": "Google describes systems, not a public exact ranking formula. Do not convert individual concepts into invented weights or guarantees.",
+      "remote_content_sha256": null
+    },
+    {
+      "id": "GS-abuse",
+      "title": "Prevent abuse on your site",
+      "url": "https://developers.google.com/search/docs/monitor-debug/prevent-abuse",
+      "accessed": "2026-09-11",
+      "review_status": "reviewed",
+      "review_scope": "Relevant guidance reviewed; not every linked page or property table.",
+      "note": "Prevent and moderate spam on sites that accept public contributions. Do not infer a manual action merely from a traffic change.",
+      "remote_content_sha256": null
+    },
+    {
+      "id": "GS-site-op",
+      "title": "The site: search operator",
+      "url": "https://developers.google.com/search/docs/monitor-debug/search-operators/all-search-site",
+      "accessed": "2026-09-11",
+      "review_status": "reviewed",
+      "review_scope": "Relevant guidance reviewed; not every linked page or property table.",
+      "note": "The operator is a limited diagnostic aid, not a complete indexed-URL inventory or definitive count.",
+      "remote_content_sha256": null
+    },
+    {
+      "id": "GS-manual",
+      "title": "Manual actions report",
+      "url": "https://support.google.com/webmasters/answer/9044175",
+      "accessed": "2026-09-11",
+      "review_status": "reviewed",
+      "review_scope": "Relevant guidance reviewed; not every linked page or property table.",
+      "note": "Use the actual authorized report and stated scope. Fix the documented issues before an explicitly authorized reconsideration request; do not invent a manual action from ranking changes.",
+      "remote_content_sha256": null
+    },
+    {
+      "id": "EXT-skills",
+      "title": "Agent Skills specification",
+      "url": "https://agentskills.io/specification",
+      "accessed": "2026-09-11",
+      "review_status": "reviewed",
+      "review_scope": "Relevant guidance reviewed; not every linked page or property table.",
+      "note": "A skill is a folder with a SKILL.md containing name and description frontmatter. Progressive references and scripts keep the entrypoint focused.",
+      "remote_content_sha256": null
+    },
+    {
+      "id": "GS-inspection-unreviewed",
+      "title": "URL Inspection help — live verification required",
+      "url": "https://support.google.com/webmasters/answer/7576553",
+      "accessed": "2026-09-11",
+      "review_status": "not_retrieved",
+      "review_scope": "Read this source live before relying on its detailed requirements.",
+      "note": "The direct help-page fetch did not succeed during package creation. Follow the current Search Console UI/help before relying on detailed report behavior.",
+      "remote_content_sha256": null
+    }
+  ]
+}

@@ -1,0 +1,88 @@
+{
+  "release": "1.0.0",
+  "snapshot_date": "2026-09-11",
+  "build_checked_at": "2026-09-11T17:11:16.986642+00:00",
+  "unit_tests": {
+    "passed": 66,
+    "failed": 0,
+    "scope": "Local parsers, router, report-only refresher with mocked networking, registry and bundle structure."
+  },
+  "cli_smoke_checks": [
+    {
+      "check": "html_good",
+      "expected_exit": 0,
+      "actual_exit": 0,
+      "passed": true
+    },
+    {
+      "check": "html_conflict",
+      "expected_exit": 0,
+      "actual_exit": 0,
+      "passed": true
+    },
+    {
+      "check": "html_missing",
+      "expected_exit": 2,
+      "actual_exit": 2,
+      "passed": true
+    },
+    {
+      "check": "sitemap_good",
+      "expected_exit": 0,
+      "actual_exit": 0,
+      "passed": true
+    },
+    {
+      "check": "sitemap_bad",
+      "expected_exit": 2,
+      "actual_exit": 2,
+      "passed": true
+    },
+    {
+      "check": "route",
+      "expected_exit": 0,
+      "actual_exit": 0,
+      "passed": true
+    },
+    {
+      "check": "refresh_dry_run",
+      "expected_exit": 0,
+      "actual_exit": 0,
+      "passed": true
+    },
+    {
+      "check": "package_validator",
+      "expected_exit": 0,
+      "actual_exit": 0,
+      "passed": true
+    }
+  ],
+  "additional_build_checks": {
+    "all_45_skill_frontmatters_parsed_as_yaml": true,
+    "issue_json_schema_meta_validation": true,
+    "illustrative_issue_validates": true,
+    "invalid_issue_rejected": true
+  },
+  "structure_checks": {
+    "skill_files": 45,
+    "specialist_modules": 44,
+    "source_records": 80,
+    "reviewed_source_records": 79,
+    "json_files_parsed": 11,
+    "python_files_compiled": 6,
+    "local_markdown_links_checked": 769
+  },
+  "agent_evaluations": {
+    "authored": 56,
+    "run_in_external_harness": 0,
+    "status": "not_run"
+  },
+  "not_assessed": [
+    "Live documentation fetch from the distributed helper",
+    "Browser rendering of an actual site",
+    "Official live rich-result validation",
+    "Private Google account access",
+    "External agent runtime behavior",
+    "Website deployment and observed Search outcomes"
+  ]
+}

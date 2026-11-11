@@ -190,7 +190,7 @@ export function ComplaintForm() {
           id="complaint-article"
           value={articleSlug}
           onChange={(event) => setArticleSlug(event.target.value)}
-          placeholder="Misal: https://veraxpress.vercel.app/artikel/... atau judul berita terkait"
+          placeholder="Misal: https://veraxpress.vercel.app/artikel/… atau judul berita terkait"
           className="h-11 bg-card"
           autoComplete="off"
         />
@@ -224,6 +224,7 @@ export function ComplaintForm() {
           <Input
             id="complaint-email"
             type="email"
+            spellCheck={false}
             value={senderEmail}
             onChange={(event) => {
               setSenderEmail(event.target.value);
@@ -246,7 +247,7 @@ export function ComplaintForm() {
           type="tel"
           value={senderPhone}
           onChange={(event) => setSenderPhone(event.target.value)}
-          placeholder="0812-xxxx-xxxx (untuk konfirmasi cepat redaksi)"
+          placeholder="0812-1234-5678 (untuk konfirmasi cepat redaksi)"
           className="h-11 bg-card"
           autoComplete="tel"
         />

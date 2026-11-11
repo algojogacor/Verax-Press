@@ -1,0 +1,36 @@
+{
+  "id": "ILL-001",
+  "title": "Initial and rendered canonical signals disagree",
+  "status": "observed",
+  "severity": "P1",
+  "confidence": "high",
+  "scope": [
+    "Fictional saved HTML and DOM snapshots only"
+  ],
+  "evidence": [
+    {
+      "id": "E-ILL-1",
+      "class": "ILLUSTRATIVE",
+      "observation": "Initial snapshot declares canonical A; provided rendered snapshot declares canonical B.",
+      "method": "Fictional paired-snapshot inspection; not a live site test",
+      "timestamp": null
+    }
+  ],
+  "source_ids": [
+    "GS-js",
+    "GS-canonical"
+  ],
+  "mechanism": "Contradictory canonical signals make the intended representative unclear. This does not prove the Google-selected canonical.",
+  "recommendation": "Establish the correct representative, then propose a consistent initial/rendered implementation.",
+  "acceptance_tests": [
+    {
+      "test": "Compare the live initial response and actual rendered DOM after authorised deployment.",
+      "state": "proposed",
+      "evidence_id": null
+    }
+  ],
+  "approval_required": true,
+  "limitations": [
+    "No live deployment, browser session or Google inspection was performed."
+  ]
+}

@@ -4,17 +4,13 @@
 // etimologi nama (verax, Lat.: jujur) dengan identitas verifikasi sumber.
 // Server component: daftar desk diambil dari DB; interaksi aktif ditangani DeskNav (client).
 import Link from "next/link";
-import { db } from "@/lib/db";
+import { getActiveDesks } from "@/lib/domain/desks";
 import { formatMastheadDate } from "@/lib/format";
 import { DeskNav, type NavItem } from "@/components/site/desk-nav";
 import { SiteMobileNav } from "@/components/site/site-mobile-nav";
 
 export async function Masthead() {
-  const desks = await db.desk.findMany({
-    where: { isActive: true },
-    orderBy: { sortOrder: "asc" },
-    select: { slug: true, name: true },
-  });
+  const desks = await getActiveDesks();
 
   const navItems: NavItem[] = [
     ...desks.map((desk) => ({ href: `/desk/${desk.slug}`, label: desk.name })),
@@ -44,7 +40,14 @@ export async function Masthead() {
                 href="/keluhan"
                 className="font-mono text-[10px] uppercase tracking-[0.08em] text-verity-ink-soft underline-offset-4 hover:text-verity-accent hover:underline"
               >
-                Hak Jawab &amp; Keluhan
+                Hak Jawab
+              </Link>
+              <span aria-hidden="true" className="text-verity-rule-strong">·</span>
+              <Link
+                href="/kirim-tulisan"
+                className="font-mono text-[10px] uppercase tracking-[0.08em] text-verity-ink-soft underline-offset-4 hover:text-verity-accent hover:underline"
+              >
+                Kirim Tulisan
               </Link>
             </nav>
           </div>
@@ -67,6 +70,13 @@ export async function Masthead() {
                 className="font-mono text-[11px] uppercase tracking-[0.08em] text-verity-ink-soft underline-offset-4 hover:text-verity-accent hover:underline"
               >
                 Hak Jawab
+              </Link>
+              <span aria-hidden="true" className="text-verity-rule-strong">·</span>
+              <Link
+                href="/kirim-tulisan"
+                className="font-mono text-[11px] uppercase tracking-[0.08em] text-verity-ink-soft underline-offset-4 hover:text-verity-accent hover:underline"
+              >
+                Kirim Tulisan
               </Link>
             </nav>
           </div>

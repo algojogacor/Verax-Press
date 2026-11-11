@@ -8,6 +8,7 @@ import { articleDetailInclude, toArticleDetail } from "@/lib/domain/serializers"
 import { canEditArticleContent, canReadArticle } from "@/lib/domain/permissions";
 import { writeAudit } from "@/lib/domain/audit";
 import { SOURCE_TYPES, VERIFICATION_STATUSES } from "@/lib/domain/constants";
+import { httpUrlSchema } from "@/lib/url";
 import type { SessionUser } from "@/types/verity";
 
 type Params = { params: Promise<{ id: string; sourceId: string }> };
@@ -21,7 +22,7 @@ export async function PATCH(request: Request, { params }: Params) {
       z.object({
         title: z.string().min(3).max(300).optional(),
         publisher: z.string().max(200).nullable().optional(),
-        url: z.string().url().max(2_000).optional(),
+        url: httpUrlSchema("URL sumber harus berupa tautan http:// atau https:// yang valid.", 2_000).optional(),
         sourceType: z.enum(SOURCE_TYPES as [string, ...string[]]).optional(),
         publishedAt: z.string().datetime().nullable().optional(),
         accessedAt: z.string().datetime().nullable().optional(),

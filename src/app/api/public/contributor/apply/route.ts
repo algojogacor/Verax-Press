@@ -4,13 +4,18 @@ import { z } from "zod";
 import { db } from "@/lib/db";
 import { ApiError, jsonError, ok, parseJsonBody } from "@/lib/api";
 import { writeAudit } from "@/lib/domain/audit";
+import { rateLimit, sweepRateLimits } from "@/lib/rate-limit";
+import { httpUrlSchema } from "@/lib/url";
 
 const applySchema = z.object({
   name: z.string().min(2, "Nama lengkap minimal 2 karakter.").max(100, "Nama maksimal 100 karakter."),
   email: z.string().email("Format alamat email tidak valid.").max(200),
   bio: z.string().max(1000, "Deskripsi singkat maksimal 1.000 karakter.").optional(),
   interests: z.string().max(500, "Bidang minat maksimal 500 karakter.").optional(),
-  portfolioUrl: z.string().max(500, "Tautan portofolio maksimal 500 karakter.").optional(),
+  portfolioUrl: z.preprocess(
+    (val) => (typeof val === "string" && val.trim() === "" ? undefined : val),
+    httpUrlSchema("Tautan portofolio harus berupa URL http:// atau https:// yang valid.", 500).optional(),
+  ),
   sampleArticle: z.string().max(10000, "Contoh tulisan maksimal 10.000 karakter.").optional(),
   adultConfirmed: z.boolean().refine((val) => val === true, {
     message: "Deklarasi usia 18 tahun atau lebih wajib dikonfirmasi.",
@@ -22,6 +27,16 @@ const applySchema = z.object({
 
 export async function POST(request: Request) {
   try {
+    sweepRateLimits();
+    const ip = request.headers.get("x-real-ip") ?? request.headers.get("x-forwarded-for")?.split(",")[0]?.trim() ?? "unknown";
+    const limit = rateLimit(`public-contributor-apply:${ip}`, 20, 60 * 60 * 1000);
+    if (!limit.allowed) {
+      return NextResponse.json(
+        { error: "Terlalu banyak pengajuan dari jaringan ini. Coba lagi nanti.", code: "RATE_LIMITED" },
+        { status: 429, headers: { "Retry-After": String(limit.retryAfterSeconds) } },
+      );
+    }
+
     const body = await parseJsonBody(request, applySchema);
     const cleanEmail = body.email.trim().toLowerCase();
     const cleanName = body.name.trim();

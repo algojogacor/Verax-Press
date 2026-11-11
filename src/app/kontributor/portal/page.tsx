@@ -10,7 +10,6 @@ import {
   AlertTriangle,
   Plus,
   Search,
-  ExternalLink,
   ChevronRight,
   BookOpen,
 } from "lucide-react";
@@ -38,14 +37,14 @@ interface ContributorArticleItem {
 }
 
 const STATUS_LABELS: Record<string, { label: string; color: string }> = {
-  DRAFT: { label: "Draf", color: "bg-slate-100 text-slate-700 border-slate-300" },
-  PENDING_REVIEW: { label: "Antrean Review", color: "bg-amber-50 text-amber-800 border-amber-300" },
-  FACT_CHECK: { label: "Pemeriksaan Fakta", color: "bg-sky-50 text-sky-800 border-sky-300" },
-  REVISION_NEEDED: { label: "Perlu Revisi", color: "bg-rose-50 text-rose-800 border-rose-300" },
-  PENDING_APPROVAL: { label: "Menunggu Persetujuan", color: "bg-indigo-50 text-indigo-800 border-indigo-300" },
-  PUBLISHED: { label: "Terbit", color: "bg-emerald-50 text-emerald-800 border-emerald-300" },
-  REJECTED: { label: "Ditolak", color: "bg-rose-100 text-rose-900 border-rose-400" },
-  WITHDRAWN: { label: "Ditarik", color: "bg-zinc-100 text-zinc-700 border-zinc-300" },
+  DRAFT: { label: "Draf", color: "bg-verity-paper-soft text-verity-ink border-verity-rule-strong" },
+  PENDING_REVIEW: { label: "Antrean Review", color: "bg-verity-paper text-verity-ink border-verity-unverified" },
+  FACT_CHECK: { label: "Pemeriksaan Fakta", color: "bg-verity-paper text-verity-accent border-verity-accent/40" },
+  REVISION_NEEDED: { label: "Perlu Revisi", color: "bg-verity-disputed/10 text-verity-disputed border-verity-disputed/40" },
+  PENDING_APPROVAL: { label: "Menunggu Persetujuan", color: "bg-verity-paper text-verity-ink border-verity-ink" },
+  PUBLISHED: { label: "Terbit", color: "bg-verity-verified/10 text-verity-verified border-verity-verified/40" },
+  REJECTED: { label: "Ditolak", color: "bg-verity-disputed/10 text-verity-disputed border-verity-disputed" },
+  WITHDRAWN: { label: "Ditarik", color: "bg-verity-paper-soft text-verity-ink-soft border-verity-rule" },
 };
 
 export default function ContributorDashboardPage() {
@@ -122,70 +121,71 @@ export default function ContributorDashboardPage() {
         </div>
 
         <div>
-          <Link href="/kontributor/portal/naskah/baru">
-            <Button className="bg-verity-ink text-white hover:bg-verity-accent font-mono text-xs uppercase tracking-wider">
-              <Plus className="w-4 h-4 mr-1.5" />
+          <Button className="bg-verity-ink text-verity-paper hover:bg-verity-accent font-mono text-xs uppercase tracking-wider" asChild>
+            <Link href="/kontributor/portal/naskah/baru">
+              <Plus className="w-4 h-4 mr-1.5" aria-hidden="true" />
               Tulis Naskah Baru
-            </Button>
-          </Link>
+            </Link>
+          </Button>
         </div>
       </div>
 
       {/* Metrics Row */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-        <div className="bg-white border border-verity-rule rounded-xl p-5 shadow-xs">
+        <div className="bg-card border border-verity-rule rounded-xs p-5">
           <div className="flex items-center justify-between text-verity-ink-soft mb-2">
             <span className="font-mono text-xs uppercase tracking-wider">Total Naskah</span>
-            <FileText className="w-4 h-4 text-verity-ink-soft" />
+            <FileText className="w-4 h-4 text-verity-ink-soft" aria-hidden="true" />
           </div>
-          <p className="font-serif text-3xl font-bold text-verity-ink">
-            {metricsLoading ? "..." : metrics.totalArticles}
+          <p className="font-serif text-3xl font-bold text-verity-ink tabular-nums">
+            {metricsLoading ? "…" : metrics.totalArticles}
           </p>
           <p className="text-xs text-verity-ink-soft mt-1">Karya yang pernah diajukan</p>
         </div>
 
-        <div className="bg-white border border-verity-rule rounded-xl p-5 shadow-xs">
+        <div className="bg-card border border-verity-rule rounded-xs p-5">
           <div className="flex items-center justify-between text-verity-ink-soft mb-2">
             <span className="font-mono text-xs uppercase tracking-wider">Draf & Revisi</span>
-            <AlertTriangle className="w-4 h-4 text-amber-600" />
+            <AlertTriangle className="w-4 h-4 text-verity-unverified" aria-hidden="true" />
           </div>
-          <p className="font-serif text-3xl font-bold text-amber-800">
-            {metricsLoading ? "..." : metrics.draftCount + metrics.revisionCount}
+          <p className="font-serif text-3xl font-bold text-verity-unverified tabular-nums">
+            {metricsLoading ? "…" : metrics.draftCount + metrics.revisionCount}
           </p>
           <p className="text-xs text-verity-ink-soft mt-1">Perlu penyuntingan penulis</p>
         </div>
 
-        <div className="bg-white border border-verity-rule rounded-xl p-5 shadow-xs">
+        <div className="bg-card border border-verity-rule rounded-xs p-5">
           <div className="flex items-center justify-between text-verity-ink-soft mb-2">
             <span className="font-mono text-xs uppercase tracking-wider">Proses Telaah</span>
-            <Clock className="w-4 h-4 text-sky-600" />
+            <Clock className="w-4 h-4 text-verity-accent" aria-hidden="true" />
           </div>
-          <p className="font-serif text-3xl font-bold text-sky-800">
-            {metricsLoading ? "..." : metrics.inReviewCount}
+          <p className="font-serif text-3xl font-bold text-verity-accent tabular-nums">
+            {metricsLoading ? "…" : metrics.inReviewCount}
           </p>
           <p className="text-xs text-verity-ink-soft mt-1">Dalam antrean meja redaksi</p>
         </div>
 
-        <div className="bg-white border border-verity-rule rounded-xl p-5 shadow-xs">
+        <div className="bg-card border border-verity-rule rounded-xs p-5">
           <div className="flex items-center justify-between text-verity-ink-soft mb-2">
             <span className="font-mono text-xs uppercase tracking-wider">Terbit</span>
-            <CheckCircle2 className="w-4 h-4 text-emerald-600" />
+            <CheckCircle2 className="w-4 h-4 text-verity-verified" aria-hidden="true" />
           </div>
-          <p className="font-serif text-3xl font-bold text-emerald-800">
-            {metricsLoading ? "..." : metrics.publishedCount}
+          <p className="font-serif text-3xl font-bold text-verity-verified tabular-nums">
+            {metricsLoading ? "…" : metrics.publishedCount}
           </p>
           <p className="text-xs text-verity-ink-soft mt-1">Telah disetujui Pemred</p>
         </div>
       </div>
 
       {/* Articles Table & Filters */}
-      <div className="bg-white border border-verity-rule rounded-xl shadow-xs overflow-hidden">
+      <div className="bg-card border border-verity-rule rounded-xs overflow-hidden">
         <div className="p-4 sm:p-5 border-b border-verity-rule flex flex-col sm:flex-row gap-3 items-stretch sm:items-center justify-between">
           <div className="relative flex-1 max-w-sm">
-            <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-verity-ink-soft" />
+            <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-verity-ink-soft" aria-hidden="true" />
             <Input
               type="text"
-              placeholder="Cari judul atau rubrik..."
+              aria-label="Cari naskah berdasarkan judul atau rubrik"
+              placeholder="Cari judul atau rubrik…"
               value={search}
               onChange={(e) => setSearch(e.target.value)}
               className="pl-9 bg-verity-paper/40 text-xs font-sans"
@@ -201,11 +201,13 @@ export default function ContributorDashboardPage() {
             ].map((tab) => (
               <button
                 key={tab.id}
+                type="button"
+                aria-pressed={statusFilter === tab.id}
                 onClick={() => setStatusFilter(tab.id)}
-                className={`px-3 py-1.5 rounded-md transition-colors whitespace-nowrap ${
+                className={`px-3 py-1.5 rounded-xs transition-colors whitespace-nowrap ${
                   statusFilter === tab.id
-                    ? "bg-verity-ink text-white font-semibold"
-                    : "text-verity-ink-soft hover:bg-verity-paper-warm"
+                    ? "bg-verity-ink text-verity-paper font-semibold"
+                    : "text-verity-ink-soft hover:bg-verity-paper-soft"
                 }`}
               >
                 {tab.label}
@@ -216,11 +218,11 @@ export default function ContributorDashboardPage() {
 
         {articlesLoading ? (
           <div className="p-12 text-center text-xs font-mono text-verity-ink-soft">
-            Memuat daftar naskah...
+            Memuat daftar naskah…
           </div>
         ) : filteredArticles.length === 0 ? (
           <div className="p-12 text-center space-y-3">
-            <BookOpen className="w-10 h-10 text-verity-ink-soft mx-auto opacity-40" />
+            <BookOpen className="w-10 h-10 text-verity-ink-soft mx-auto opacity-40" aria-hidden="true" />
             <p className="font-serif text-base font-medium text-verity-ink">
               {search || statusFilter !== "ALL"
                 ? "Tidak ada naskah yang sesuai dengan penyaringan."
@@ -231,12 +233,12 @@ export default function ContributorDashboardPage() {
             </p>
             {!search && statusFilter === "ALL" && (
               <div className="pt-2">
-                <Link href="/kontributor/portal/naskah/baru">
-                  <Button size="sm" className="bg-verity-ink text-white hover:bg-verity-accent text-xs font-mono">
-                    <Plus className="w-3.5 h-3.5 mr-1" />
+                <Button size="sm" className="bg-verity-ink text-verity-paper hover:bg-verity-accent text-xs font-mono" asChild>
+                  <Link href="/kontributor/portal/naskah/baru">
+                    <Plus className="w-3.5 h-3.5 mr-1" aria-hidden="true" />
                     Buat Naskah Pertama
-                  </Button>
-                </Link>
+                  </Link>
+                </Button>
               </div>
             )}
           </div>
@@ -257,12 +259,12 @@ export default function ContributorDashboardPage() {
                 {filteredArticles.map((article) => {
                   const statusMeta = STATUS_LABELS[article.status] ?? {
                     label: article.status,
-                    color: "bg-slate-100 text-slate-800 border-slate-300",
+                    color: "bg-verity-paper-soft text-verity-ink border-verity-rule-strong",
                   };
                   return (
                     <tr
                       key={article.id}
-                      className="hover:bg-verity-paper-warm/40 transition-colors group"
+                      className="hover:bg-verity-paper-soft/40 transition-colors group"
                     >
                       <td className="py-3 px-4 font-serif font-medium text-verity-ink max-w-md">
                         <Link
@@ -280,12 +282,12 @@ export default function ContributorDashboardPage() {
                           {article.desk.name}
                         </span>
                       </td>
-                      <td className="py-3 px-4 whitespace-nowrap text-xs font-mono text-verity-ink-soft">
+                      <td className="py-3 px-4 whitespace-nowrap text-xs font-mono text-verity-ink-soft tabular-nums">
                         {article.sourceCount} sumber
                       </td>
                       <td className="py-3 px-4 whitespace-nowrap">
                         <span
-                          className={`inline-block px-2.5 py-0.5 rounded-full text-xs font-mono border ${statusMeta.color}`}
+                          className={`inline-block px-2.5 py-0.5 rounded-xs text-xs font-mono border ${statusMeta.color}`}
                         >
                           {statusMeta.label}
                         </span>
@@ -300,10 +302,10 @@ export default function ContributorDashboardPage() {
                       <td className="py-3 px-4 whitespace-nowrap text-right">
                         <Link
                           href={`/kontributor/portal/naskah/${article.id}`}
-                          className="inline-flex items-center gap-1 text-xs font-mono text-verity-ink hover:text-verity-accent px-2.5 py-1 rounded border border-verity-rule bg-white shadow-2xs group-hover:border-verity-accent/40"
+                          className="inline-flex items-center gap-1 text-xs font-mono text-verity-ink hover:text-verity-accent px-2.5 py-1 rounded-xs border border-verity-rule bg-card group-hover:border-verity-accent/40"
                         >
                           <span>Buka</span>
-                          <ChevronRight className="w-3 h-3" />
+                          <ChevronRight className="w-3 h-3" aria-hidden="true" />
                         </Link>
                       </td>
                     </tr>

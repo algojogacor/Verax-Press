@@ -1,0 +1,23 @@
+{
+  "template": true,
+  "task_id": "",
+  "records": [
+    {
+      "id": "E001",
+      "class": "UNKNOWN",
+      "claim_or_observation": "",
+      "target_or_source_url": "",
+      "source_id": null,
+      "accessed_at": null,
+      "section_or_locator": "",
+      "method": "",
+      "scope": "",
+      "raw_artifact_path": null,
+      "sha256": null,
+      "supports": [],
+      "limitations": [],
+      "sensitive_data_redacted": true
+    }
+  ],
+  "note": "A null digest is unknown, not permission to invent a file or remote-page hash."
+}

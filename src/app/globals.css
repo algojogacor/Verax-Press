@@ -222,30 +222,23 @@
       padding: 0 0.075em 0 0;
     }
   }
-  .prose-verity p + p { margin-top: 1.125rem; }
-  .prose-verity a {
+  :where(.prose-verity) :where(p + p) { margin-top: 1.125rem; }
+  :where(.prose-verity) :where(a:not([class*="bg-"])) {
     color: var(--color-verity-accent);
     text-decoration: underline;
     text-underline-offset: 3px;
   }
-  /* Long-form heading grammar — two tiers */
-  .prose-verity h2 {
+  /* Hierarki subjudul konsisten dengan artikel long-form */
+  :where(.prose-verity) :where(h2) {
     font-family: var(--font-serif), Georgia, serif;
-    font-size: 1.625rem;
+    font-size: 1.45rem;
     font-weight: 600;
-    line-height: 1.22;
-    margin-top: 3.5rem;
-    margin-bottom: 0.9375rem;
+    line-height: 1.25;
+    margin-top: 2.5rem;
+    margin-bottom: 0.875rem;
   }
-  .prose-verity h2 ~ h2 {
-    font-family: var(--font-sans);
-    font-size: 0.875rem;
-    font-weight: 700;
-    letter-spacing: 0.15em;
-    text-transform: uppercase;
-    line-height: 1.4;
-    margin-top: 2.875rem;
-    margin-bottom: 0.6875rem;
+  :where(.prose-verity) > :where(h2:first-child) {
+    margin-top: 0;
   }
 }
 

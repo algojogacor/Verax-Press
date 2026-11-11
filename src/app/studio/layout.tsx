@@ -1,28 +1,15 @@
-// Layout root studio: providers (NextAuth session + TanStack Query).
-// Tanpa chrome — halaman login juga dirender di bawah layout ini.
-"use client";
+// Layout root studio (Server Component): memblokir pengindeksan mesin pencari di seluruh rute /studio/*.
+import type { Metadata } from "next";
+import { StudioProviders } from "@/components/studio/studio-providers";
 
-import { useState } from "react";
-import { SessionProvider } from "next-auth/react";
-import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+export const metadata: Metadata = {
+  title: {
+    default: "Studio Redaksi",
+    template: "%s | Studio Redaksi | Verax Press",
+  },
+  robots: { index: false, follow: false },
+};
 
 export default function StudioLayout({ children }: { children: React.ReactNode }) {
-  const [queryClient] = useState(
-    () =>
-      new QueryClient({
-        defaultOptions: {
-          queries: {
-            retry: 1,
-            refetchOnWindowFocus: false,
-            staleTime: 15_000,
-          },
-        },
-      }),
-  );
-
-  return (
-    <SessionProvider>
-      <QueryClientProvider client={queryClient}>{children}</QueryClientProvider>
-    </SessionProvider>
-  );
+  return <StudioProviders>{children}</StudioProviders>;
 }

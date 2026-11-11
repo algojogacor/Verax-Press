@@ -26,6 +26,7 @@ import { apiFetch } from "@/components/studio/api";
 import { ROLE_LABELS } from "@/lib/domain/constants";
 import type { SessionUser } from "@/types/verity";
 import { cn } from "@/lib/utils";
+import { VeraxMark } from "@/components/site/verax-mark";
 
 interface DashboardData {
   user: SessionUser;
@@ -57,7 +58,7 @@ function StudioNav({ onNavigate }: { onNavigate?: () => void }) {
     { href: "/studio", label: "Dashboard", icon: LayoutDashboard },
     { href: "/studio/articles", label: "Artikel", icon: FileText },
     ...(isChief ? [{ href: "/studio/staff", label: "Tim Redaksi", icon: Users }] : []),
-    ...(isChief ? [{ href: "/studio/applications", label: "Pengajuan Volunteer", icon: UserCheck }] : []),
+    ...(isChief ? [{ href: "/studio/applications", label: "Pengajuan Kontributor", icon: UserCheck }] : []),
     { href: "/studio/media", label: "Media", icon: ImageIcon },
     ...(isChief ? [{ href: "/studio/complaints", label: "Keluhan", icon: ClipboardList }] : []),
     ...(isChief ? [{ href: "/studio/audit", label: "Audit", icon: ScrollText }] : []),
@@ -139,6 +140,12 @@ export default function CmsLayout({ children }: { children: React.ReactNode }) {
 
   return (
     <div className="min-h-screen bg-verity-paper text-verity-ink">
+      <a
+        href="#studio-main-content"
+        className="sr-only focus:not-sr-only focus:fixed focus:top-2 focus:left-2 focus:z-50 focus:bg-verity-ink focus:text-verity-paper focus:px-3 focus:py-2 focus:font-mono focus:text-xs"
+      >
+        Lewati ke konten utama
+      </a>
       {/* Topbar mobile */}
       <header className="flex h-14 items-center justify-between border-b border-verity-rule px-4 md:hidden">
         <div className="flex items-center gap-3">
@@ -150,12 +157,17 @@ export default function CmsLayout({ children }: { children: React.ReactNode }) {
             </SheetTrigger>
             <SheetContent side="left" className="w-64 p-0 bg-verity-paper">
               <SheetHeader className="border-b border-verity-rule p-4 text-left">
-                <SheetTitle className="font-serif text-lg font-semibold tracking-tight text-verity-ink">
-                  Verax Press
-                </SheetTitle>
-                <p className="font-mono text-[11px] uppercase tracking-[0.12em] text-verity-ink-soft">
-                  Ruang Redaksi
-                </p>
+                <div className="flex items-center gap-2.5">
+                  <VeraxMark className="size-7 shrink-0 text-verity-ink" />
+                  <div>
+                    <SheetTitle className="font-serif text-lg font-semibold leading-tight tracking-tight text-verity-ink">
+                      Verax Press
+                    </SheetTitle>
+                    <p className="mt-0.5 font-mono text-[11px] uppercase tracking-[0.12em] text-verity-ink-soft">
+                      Ruang Redaksi
+                    </p>
+                  </div>
+                </div>
               </SheetHeader>
               <div className="p-3">
                 <StudioNav onNavigate={() => setMobileOpen(false)} />
@@ -165,7 +177,8 @@ export default function CmsLayout({ children }: { children: React.ReactNode }) {
               </div>
             </SheetContent>
           </Sheet>
-          <span className="font-serif text-lg font-semibold tracking-tight text-verity-ink">
+          <span className="inline-flex items-center gap-2 font-serif text-lg font-semibold tracking-tight text-verity-ink">
+            <VeraxMark className="size-5 shrink-0" />
             Verax Press
           </span>
         </div>
@@ -181,13 +194,18 @@ export default function CmsLayout({ children }: { children: React.ReactNode }) {
             <div className="border-b border-verity-rule p-5">
               <Link
                 href="/studio"
-                className="font-serif text-xl font-semibold tracking-tight text-verity-ink hover:text-verity-accent"
+                className="flex items-center gap-2.5 text-verity-ink transition-colors hover:text-verity-accent focus-visible:outline-2 focus-visible:outline-verity-accent"
               >
-                Verax Press
+                <VeraxMark className="size-7 shrink-0" />
+                <span>
+                  <span className="block font-serif text-xl font-semibold leading-none tracking-tight">
+                    Verax Press
+                  </span>
+                  <span className="mt-1.5 block font-mono text-[11px] uppercase tracking-[0.14em] text-verity-ink-soft">
+                    Ruang Redaksi
+                  </span>
+                </span>
               </Link>
-              <p className="mt-1 font-mono text-[11px] uppercase tracking-[0.14em] text-verity-ink-soft">
-                Ruang Redaksi
-              </p>
             </div>
             <div className="p-3">
               <StudioNav />
@@ -196,7 +214,7 @@ export default function CmsLayout({ children }: { children: React.ReactNode }) {
           <UserFooter />
         </aside>
 
-        <main className="min-w-0 p-4 sm:p-6 lg:p-8">{children}</main>
+        <main id="studio-main-content" tabIndex={-1} className="min-w-0 p-4 sm:p-6 lg:p-8 outline-none">{children}</main>
       </div>
     </div>
   );

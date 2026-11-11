@@ -3,6 +3,7 @@
 // Tidak ada HTML yang pernah masuk atau keluar dari layer ini.
 
 import { z } from "zod";
+import { mediaUrlSchema } from "@/lib/url";
 
 const textBlock = z.object({ type: z.literal("paragraph"), text: z.string().min(1).max(20_000) });
 
@@ -26,7 +27,7 @@ const listBlock = z.object({
 
 const imageBlock = z.object({
   type: z.literal("image"),
-  url: z.string().url().max(2_000),
+  url: mediaUrlSchema("URL gambar harus berupa URL http(s) atau path lokal yang diawali /.", 2_000),
   alt: z.string().max(500).optional(),
   caption: z.string().max(500).optional(),
   credit: z.string().max(300).optional(),

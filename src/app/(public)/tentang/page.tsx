@@ -2,15 +2,22 @@
 // Nada hati-hati: tidak ada klaim status hukum (lihat catatan penutup).
 import type { Metadata } from "next";
 import Link from "next/link";
-import { db } from "@/lib/db";
+import { getActiveDesks } from "@/lib/domain/desks";
+import { INSTITUTIONAL_LINKS } from "@/components/site/institutional";
+import { Breadcrumbs } from "@/components/site/breadcrumbs";
+import { JsonLd } from "@/components/seo/json-ld";
+import { canonicalUrl } from "@/lib/seo/constants";
+import { buildPublicMetadata } from "@/lib/seo/metadata";
+import { buildBreadcrumbJsonLd } from "@/lib/seo/structured-data";
 
 export const dynamic = "force-dynamic";
 
-export const metadata: Metadata = {
+export const metadata: Metadata = buildPublicMetadata({
   title: "Tentang Verax Press",
   description:
-    "Mengenal Verax Press: media digital independen dengan kendali editorial manusia. Misi, nilai editorial, desk, cara kerja, dan peluncuran bertahap.",
-};
+    "Mengenal Verax Press: media digital independen berbasis sumber primer. Misi, nilai editorial, rubrik liputan, dan mekanisme akuntabilitas redaksi.",
+  path: "/tentang",
+});
 
 /** Nilai editorial (Charter §2): nilai & penerapannya. */
 const EDITORIAL_VALUES: { name: string; application: string }[] = [
@@ -48,32 +55,27 @@ const MISSIONS: string[] = [
   "Mengelola penerbitan secara bertanggung jawab, termasuk mencatat dan menampilkan koreksi.",
 ];
 
-const INSTITUTIONAL_LINKS = [
-  { href: "/standar-editorial", label: "Standar Editorial" },
-  { href: "/pedoman-kontributor", label: "Pedoman Kontributor" },
-  { href: "/kebijakan-ai", label: "Kebijakan AI & Otomasi" },
-  { href: "/koreksi", label: "Catatan Koreksi Publik" },
-  { href: "/keluhan", label: "Hak Jawab & Keluhan" },
-  { href: "/kontak", label: "Kontak Redaksi" },
-];
-
 export default async function AboutPage() {
-  const desks = await db.desk.findMany({
-    where: { isActive: true },
-    select: { slug: true, name: true, description: true },
-    orderBy: { sortOrder: "asc" },
-  });
+  const desks = await getActiveDesks();
+  const sidebarLinks = INSTITUTIONAL_LINKS.filter((item) => item.href !== "/tentang");
 
   return (
     <div className="mx-auto max-w-6xl px-4 py-8 sm:px-6 sm:py-12">
+      <JsonLd
+        data={buildBreadcrumbJsonLd([
+          { name: "Beranda", url: canonicalUrl("/") },
+          { name: "Tentang Verax Press", url: canonicalUrl("/tentang") },
+        ])}
+      />
+      <Breadcrumbs items={[{ label: "Beranda", href: "/" }, { label: "Tentang Verax Press" }]} />
       <header className="border-b-2 border-verity-ink pb-8">
         <p className="font-mono text-[11px] uppercase tracking-[0.16em] text-verity-accent">Tentang</p>
         <h1 className="mt-3 font-serif text-[2.2rem] font-semibold leading-[1.08] tracking-[-0.012em] text-verity-ink sm:text-[2.8rem]">
           Tentang Verax Press
         </h1>
         <p className="mt-4 max-w-3xl font-serif text-[1.1rem] leading-[1.7] text-verity-ink-soft">
-          Media digital independen yang berfokus pada jurnalisme bermutu, disiplin verifikasi
-          sumber primer, dan kendali editorial manusia di setiap tahap produksi.
+          Media digital independen yang menelusuri persoalan publik ke dokumen primer,
+          memeriksa setiap rujukan sebelum tayang, dan mencatat koreksi secara terbuka.
         </p>
       </header>
 
@@ -100,9 +102,9 @@ export default async function AboutPage() {
                 arah kerja kami: kebenaran bersumber dari sumbernya.
               </p>
               <p>
-                Verax Press bukan platform publikasi mandiri dan bukan forum terbuka. Tidak ada naskah
-                yang terbit tanpa persetujuan manusia: setiap artikel melewati penelaahan, pemeriksaan
-                fakta, dan persetujuan redaktur sebelum tayang.
+                Verax Press bukan platform publikasi mandiri dan bukan forum terbuka. Setiap artikel
+                melewati penelaahan redaktur, uji fakta atas sumber kunci, dan persetujuan akhir
+                Pemimpin Redaksi sebelum tayang.
               </p>
             </div>
           </section>
@@ -187,11 +189,11 @@ export default async function AboutPage() {
             <div className="mt-4 space-y-4 font-serif text-[1.02rem] leading-[1.78] text-verity-ink">
               <p>
                 Setiap naskah melewati alur editorial yang sama: draf, penelaahan redaktur, uji fakta,
-                lalu persetujuan akhir Chief Editor sebelum terbit. Hanya Chief Editor yang memiliki wewenang
+                lalu persetujuan akhir Pemimpin Redaksi sebelum terbit. Hanya Pemimpin Redaksi yang memiliki wewenang
                 menerbitkan artikel.
               </p>
               <p>
-                Sumber kunci pada setiap artikel diverifikasi oleh editor manusia. Naskah tidak
+                Sumber kunci pada setiap artikel diperiksa langsung oleh meja redaksi. Naskah tidak
                 disetujui terbit bila masih terdapat sumber kunci yang belum diverifikasi atau
                 dipertanyakan. Daftar sumber beserta statusnya ditampilkan langsung pada halaman artikel.
               </p>
@@ -209,28 +211,100 @@ export default async function AboutPage() {
             </div>
           </section>
 
-          {/* Peluncuran bertahap */}
-          <section aria-labelledby="peluncuran" className="border-t border-verity-rule py-8">
-            <h2 id="peluncuran" className="font-serif text-[1.4rem] font-semibold text-verity-ink">
-              Peluncuran bertahap
+          {/* Identitas redaksi */}
+          <section aria-labelledby="identitas-redaksi" className="border-t border-verity-rule py-8">
+            <h2 id="identitas-redaksi" className="font-serif text-[1.4rem] font-semibold text-verity-ink">
+              Identitas Redaksi
             </h2>
             <div className="mt-4 space-y-4 font-serif text-[1.02rem] leading-[1.78] text-verity-ink">
               <p>
-                Verax Press diluncurkan bertahap. Tahap A dijalankan oleh ruang redaksi internal,
-                dengan seluruh konten diproduksi dan disunting oleh staf redaksi.
+                Seluruh kebijakan editorial, penegakan standar jurnalistik, dan persetujuan penerbitan
+                naskah berada di bawah tanggung jawab Pemimpin Redaksi:
+              </p>
+              <div className="border border-verity-rule bg-verity-paper-soft p-5 max-w-lg">
+                <p className="font-mono text-[10px] uppercase tracking-[0.16em] text-verity-accent">
+                  Pemimpin Redaksi
+                </p>
+                <p className="mt-1 font-serif text-[1.25rem] font-semibold text-verity-ink">
+                  Arya Rizky Ardhi Pratama
+                </p>
+                <p className="mt-1 font-serif text-[0.92rem] text-verity-ink-soft">
+                  Penanggung Jawab Kebijakan Redaksi &amp; Persetujuan Penerbitan Naskah
+                </p>
+                <p className="mt-3 font-mono text-[11px] text-verity-ink-faint border-t border-verity-rule pt-2.5">
+                  Meja Redaksi Verax Press · Indonesia
+                </p>
+              </div>
+            </div>
+          </section>
+
+          {/* Berkontribusi */}
+          <section aria-labelledby="berkontribusi" className="border-t border-verity-rule py-8">
+            <h2 id="berkontribusi" className="font-serif text-[1.4rem] font-semibold text-verity-ink">
+              Berkontribusi Tulisan
+            </h2>
+            <div className="mt-4 space-y-4 font-serif text-[1.02rem] leading-[1.78] text-verity-ink">
+              <p>
+                Verax Press menerima kontribusi artikel opini terkurasi, analisis mendalam, artikel penjelas,
+                liputan fitur, dan wawancara dari akademisi, praktisi, serta penulis independen.
               </p>
               <p>
-                Tahap B membuka kontribusi eksternal melalui mekanisme undangan khusus, setelah persyaratan tata kelola
-                seperti kebijakan lisensi kontributor dan proses kurasi terpenuhi secara lengkap.
+                Setiap naskah yang diajukan wajib menyertakan dokumen rujukan primer dan mematuhi etika penulisan.
+                Informasi mengenai kriteria, alur penilaian, dan formulir pendaftaran tersedia pada halaman{" "}
+                <Link
+                  href="/kirim-tulisan"
+                  className="text-verity-accent underline underline-offset-4 hover:text-verity-accent-deep"
+                >
+                  Kirim Tulisan
+                </Link>
+                .
               </p>
             </div>
           </section>
 
-          {/* Catatan penutup */}
-          <p className="border-t border-verity-rule pt-4 font-mono text-[11px] leading-relaxed text-verity-ink-faint">
-            Verax Press adalah nama kerja. Verax Press belum mengklaim status badan hukum pers, pendaftaran
-            PSE, atau verifikasi Dewan Pers.
-          </p>
+          {/* Transparansi Kelembagaan */}
+          <section aria-labelledby="kelembagaan" className="border-t border-verity-rule py-8">
+            <h2 id="kelembagaan" className="font-serif text-[1.4rem] font-semibold text-verity-ink">
+              Transparansi Kelembagaan
+            </h2>
+            <div className="mt-4 space-y-4 font-serif text-[1.02rem] leading-[1.78] text-verity-ink">
+              <p>
+                Verax Press mengedepankan keterbukaan faktual atas status kelembagaannya. Verax Press adalah nama
+                kerja publikasi media digital independen yang saat ini belum memiliki status badan hukum pers,
+                belum terdaftar PSE, dan belum diverifikasi Dewan Pers.
+              </p>
+              <p>
+                Uraian lengkap mengenai tata kelola, kebijakan perlindungan data, dan syarat penggunaan layanan dapat
+                dibaca pada dokumen transparansi berikut:
+              </p>
+              <div className="flex flex-wrap gap-3 font-mono text-xs pt-2">
+                <Link
+                  href="/informasi-kelembagaan"
+                  className="border border-verity-rule bg-verity-paper-soft px-3 py-1.5 text-verity-ink underline underline-offset-4 hover:text-verity-accent"
+                >
+                  Informasi Kelembagaan
+                </Link>
+                <Link
+                  href="/kebijakan-privasi"
+                  className="border border-verity-rule bg-verity-paper-soft px-3 py-1.5 text-verity-ink underline underline-offset-4 hover:text-verity-accent"
+                >
+                  Kebijakan Privasi
+                </Link>
+                <Link
+                  href="/syarat-ketentuan"
+                  className="border border-verity-rule bg-verity-paper-soft px-3 py-1.5 text-verity-ink underline underline-offset-4 hover:text-verity-accent"
+                >
+                  Syarat dan Ketentuan
+                </Link>
+                <Link
+                  href="/kontak"
+                  className="border border-verity-rule bg-verity-paper-soft px-3 py-1.5 text-verity-ink underline underline-offset-4 hover:text-verity-accent"
+                >
+                  Kontak Redaksi
+                </Link>
+              </div>
+            </div>
+          </section>
         </div>
 
         {/* Sidebar Direktori Lembaga (Desktop lg:) */}
@@ -242,7 +316,7 @@ export default async function AboutPage() {
               </p>
               <nav aria-label="Menu navigasi lembaga" className="mt-4">
                 <ul className="space-y-2.5 border-l border-verity-rule pl-3">
-                  {INSTITUTIONAL_LINKS.map((link) => (
+                  {sidebarLinks.map((link) => (
                     <li key={link.href}>
                       <Link
                         href={link.href}

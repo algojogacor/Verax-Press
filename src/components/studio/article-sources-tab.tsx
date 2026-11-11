@@ -39,6 +39,7 @@ import { apiFetch, apiErrorMessage } from "@/components/studio/api";
 import { SOURCE_TYPE_LABELS, VERIFICATION_LABELS } from "@/lib/domain/constants";
 import { formatDate, formatDateTime } from "@/lib/format";
 import type { ArticleDetailDTO, SourceDTO, SourceType, VerificationStatus } from "@/types/verity";
+import { safeExternalHttpUrl } from "@/lib/url";
 import { cn } from "@/lib/utils";
 
 const VERIFICATION_COLOR: Record<VerificationStatus, string> = {
@@ -173,14 +174,16 @@ export function ArticleSourcesTab({ article }: { article: ArticleDetailDTO }) {
         </p>
       ) : (
         <ul className="space-y-3">
-          {article.sources.map((source) => (
+          {article.sources.map((source) => {
+            const safeSourceUrl = safeExternalHttpUrl(source.url);
+            return (
             <li key={source.id} className="border border-verity-rule bg-card p-4">
               <div className="flex flex-wrap items-start justify-between gap-3">
                 <div className="min-w-0 flex-1">
                   <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
-                    {source.url ? (
+                    {safeSourceUrl ? (
                       <a
-                        href={source.url}
+                        href={safeSourceUrl}
                         target="_blank"
                         rel="noopener noreferrer"
                         className="font-serif text-[0.95rem] font-medium text-verity-ink hover:text-verity-accent"
@@ -289,7 +292,8 @@ export function ArticleSourcesTab({ article }: { article: ArticleDetailDTO }) {
                 </div>
               </div>
             </li>
-          ))}
+            );
+          })}
         </ul>
       )}
 
@@ -452,7 +456,7 @@ export function ArticleSourcesTab({ article }: { article: ArticleDetailDTO }) {
           <AlertDialogFooter>
             <AlertDialogCancel disabled={deleteMutation.isPending}>Batal</AlertDialogCancel>
             <AlertDialogAction
-              className="bg-destructive text-white hover:bg-destructive/90"
+              className="bg-destructive text-verity-paper hover:bg-destructive/90"
               disabled={deleteMutation.isPending}
               onClick={() => {
                 if (!deleteTarget) return;

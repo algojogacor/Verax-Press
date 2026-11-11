@@ -1,22 +1,77 @@
-// Indeks opini: /opini (ruang perspektif terkurasi dengan disclaimer wajib).
-// Struktur sama dengan halaman desk (header anchor + unggulan + grid).
-// Identitas opini dibedakan lewat label aksen & byline menonjol.
+// Indeks opini: /opini (ruang perspektif terkurasi dengan disclaimer wajib dan paginasi).
 // Hanya artikel format OPINION berstatus PUBLISHED/CORRECTED.
 import type { Metadata } from "next";
+import Link from "next/link";
+import { notFound } from "next/navigation";
 import { db } from "@/lib/db";
 import {
   FeaturedArticleCard,
   OpinionArticleCard,
 } from "@/components/site/article-card";
 import { OPINION_DISCLAIMER } from "@/lib/domain/constants";
+import { Breadcrumbs } from "@/components/site/breadcrumbs";
+import { JsonLd } from "@/components/seo/json-ld";
+import { canonicalUrl, getCanonicalBaseUrl } from "@/lib/seo/constants";
+import { buildBreadcrumbJsonLd, buildCollectionPageJsonLd } from "@/lib/seo/structured-data";
 
 export const dynamic = "force-dynamic";
 
-export const metadata: Metadata = {
-  title: "Opini",
-  description:
-    "Ruang perspektif terkurasi Verax Press: kolom dan argumen yang diseleksi, disunting, dan diperiksa redaksi sebelum terbit.",
+const PAGE_SIZE = 24;
+
+type PageCtx = {
+  searchParams?: Promise<{ page?: string }>;
 };
+
+function parsePageParamStrict(rawPage: string | undefined): number {
+  if (!rawPage) return 1;
+  if (!/^\d+$/.test(rawPage.trim())) notFound();
+  const parsed = Number.parseInt(rawPage.trim(), 10);
+  if (!Number.isFinite(parsed) || parsed < 1) notFound();
+  return parsed;
+}
+
+export async function generateMetadata({ searchParams }: PageCtx): Promise<Metadata> {
+  const resolvedSearch = searchParams ? await searchParams : undefined;
+  const rawPage = resolvedSearch?.page;
+  if (rawPage && (!/^\d+$/.test(rawPage.trim()) || Number.parseInt(rawPage.trim(), 10) < 1)) {
+    return { title: "Halaman Tidak Ditemukan", robots: { index: false, follow: false } };
+  }
+
+  const page = rawPage ? Number.parseInt(rawPage.trim(), 10) : 1;
+  const path = page > 1 ? `/opini?page=${page}` : "/opini";
+  const title = page > 1 ? `Opini (Halaman ${page})` : "Opini";
+  const description =
+    "Ruang perspektif terkurasi Verax Press: kolom dan argumen yang diseleksi, disunting, dan diperiksa redaksi sebelum terbit.";
+
+  return {
+    title,
+    description,
+    alternates: { canonical: path },
+    robots: { index: true, follow: true },
+    openGraph: {
+      title: `${title} | Verax Press`,
+      description,
+      url: path,
+      siteName: "Verax Press",
+      type: "website",
+      locale: "id_ID",
+      images: [
+        {
+          url: "/brand/verax-press-og.png",
+          width: 1200,
+          height: 630,
+          alt: `${title} | Verax Press`,
+        },
+      ],
+    },
+    twitter: {
+      card: "summary_large_image",
+      title: `${title} | Verax Press`,
+      description,
+      images: ["/brand/verax-press-og.png"],
+    },
+  };
+}
 
 const publicSelect = {
   id: true,
@@ -30,16 +85,51 @@ const publicSelect = {
   desk: { select: { slug: true, name: true } },
 } as const;
 
-export default async function OpinionPage() {
-  const articles = await db.article.findMany({
-    where: { status: { in: ["PUBLISHED", "CORRECTED"] }, format: "OPINION" },
-    select: publicSelect,
-    orderBy: { publishedAt: "desc" },
-    take: 50,
-  });
+export default async function OpinionPage({ searchParams }: PageCtx) {
+  const resolvedSearch = searchParams ? await searchParams : undefined;
+  const page = parsePageParamStrict(resolvedSearch?.page);
+
+  const where = { status: { in: ["PUBLISHED", "CORRECTED"] }, format: "OPINION" };
+  const [totalCount, articles] = await Promise.all([
+    db.article.count({ where }),
+    db.article.findMany({
+      where,
+      select: publicSelect,
+      orderBy: { publishedAt: "desc" },
+      skip: (page - 1) * PAGE_SIZE,
+      take: PAGE_SIZE,
+    }),
+  ]);
+
+  if (page > 1 && articles.length === 0) {
+    notFound();
+  }
+
+  const totalPages = Math.max(1, Math.ceil(totalCount / PAGE_SIZE));
+  const baseUrl = getCanonicalBaseUrl();
+  const pagePath = page > 1 ? `/opini?page=${page}` : "/opini";
+  const description =
+    "Ruang perspektif terkurasi Verax Press: kolom dan argumen yang diseleksi, disunting, dan diperiksa redaksi sebelum terbit.";
 
   return (
     <div className="mx-auto max-w-6xl px-4 py-10 sm:px-6 sm:py-12">
+      <JsonLd
+        data={buildBreadcrumbJsonLd([
+          { name: "Beranda", url: canonicalUrl("/") },
+          { name: "Opini", url: canonicalUrl("/opini") },
+        ])}
+      />
+      <JsonLd
+        data={buildCollectionPageJsonLd({
+          baseUrl,
+          url: canonicalUrl(pagePath),
+          name: page > 1 ? `Opini (Halaman ${page})` : "Opini",
+          description,
+        })}
+      />
+
+      <Breadcrumbs items={[{ label: "Beranda", href: "/" }, { label: "Opini" }]} />
+
       {/* Header seksi: anchor berat + standfirst */}
       <header className="border-b-2 border-verity-ink pb-8">
         <p className="font-sans text-[0.85rem] font-semibold uppercase tracking-[0.2em] text-verity-accent">
@@ -79,6 +169,39 @@ export default async function OpinionPage() {
                   <OpinionArticleCard key={article.id} article={article} />
                 ))}
               </div>
+            ) : null}
+
+            {totalPages > 1 ? (
+              <nav
+                aria-label="Paginasi opini"
+                className="mt-12 flex items-center justify-between border-t border-verity-rule pt-6 font-mono text-xs"
+              >
+                {page > 1 ? (
+                  <Link
+                    href={page === 2 ? "/opini" : `/opini?page=${page - 1}`}
+                    rel="prev"
+                    className="border border-verity-rule px-3 py-1.5 text-verity-ink hover:border-verity-ink"
+                  >
+                    ← Sebelumnya
+                  </Link>
+                ) : (
+                  <span />
+                )}
+                <span className="text-verity-ink-faint">
+                  Halaman {page} dari {totalPages}
+                </span>
+                {page < totalPages ? (
+                  <Link
+                    href={`/opini?page=${page + 1}`}
+                    rel="next"
+                    className="border border-verity-rule px-3 py-1.5 text-verity-ink hover:border-verity-ink"
+                  >
+                    Berikutnya →
+                  </Link>
+                ) : (
+                  <span />
+                )}
+              </nav>
             ) : null}
           </>
         )}

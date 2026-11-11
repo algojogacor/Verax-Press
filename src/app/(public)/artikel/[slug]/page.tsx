@@ -1,7 +1,8 @@
 // Halaman artikel publik: /artikel/[slug]
-// Hanya status PUBLISHED/CORRECTED yang menampilkan isi; RETRACTED/ARCHIVED menampilkan
-// banner penarikan (integritas arsip); status lain → 404 (konten internal tidak bocor).
+// Hanya status PUBLISHED/CORRECTED yang menampilkan isi dan terindeks;
+// RETRACTED/ARCHIVED menampilkan banner penarikan dengan noindex; status lain -> 404.
 import type { Metadata } from "next";
+import { cache, Fragment } from "react";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { db } from "@/lib/db";
@@ -16,36 +17,148 @@ import {
 } from "@/lib/domain/constants";
 import { formatDate, formatDateTime } from "@/lib/format";
 import { CompactArticleCard } from "@/components/site/article-card";
+import { Breadcrumbs } from "@/components/site/breadcrumbs";
+import { JsonLd } from "@/components/seo/json-ld";
+import { canonicalUrl, getCanonicalBaseUrl } from "@/lib/seo/constants";
+import {
+  buildArticleJsonLd,
+  buildBreadcrumbJsonLd,
+  getArticleSeoDates,
+  isAnonymousMode,
+  isRasterImageUrl,
+  resolveAbsoluteAssetUrl,
+} from "@/lib/seo/structured-data";
+import { safeExternalHttpUrl, safeMediaSrcUrl } from "@/lib/url";
 
 export const dynamic = "force-dynamic";
 
 type Params = { params: Promise<{ slug: string }> };
 
-async function loadArticle(slug: string) {
+const loadArticle = cache(async (slug: string) => {
   return db.article.findUnique({
     where: { slug },
     include: {
       desk: true,
+      heroMedia: { select: { url: true, caption: true, title: true } },
+      contributions: {
+        where: { publicCredit: true },
+        orderBy: [{ displayOrder: "asc" }],
+        select: {
+          role: true,
+          person: { select: { id: true, publicName: true, anonymityMode: true } },
+        },
+      },
       sources: { orderBy: [{ isKeySource: "desc" }, { createdAt: "asc" }] },
-      corrections: { orderBy: { correctedAt: "desc" }, include: { approvedBy: { select: { name: true } } } },
+      corrections: {
+        orderBy: { correctedAt: "desc" },
+        include: { approvedBy: { select: { name: true } } },
+      },
     },
   });
+});
+
+function collectArticleRasterImages(
+  baseUrl: string,
+  heroUrl: string | null | undefined,
+  content: ReturnType<typeof parseContentSafe>,
+): string[] {
+  const candidates: string[] = [];
+  if (heroUrl && safeMediaSrcUrl(heroUrl)) {
+    candidates.push(heroUrl);
+  }
+  for (const block of content) {
+    if (block.type === "image" && safeMediaSrcUrl(block.url)) {
+      candidates.push(block.url);
+    }
+  }
+  const resolved = candidates
+    .map((url) => resolveAbsoluteAssetUrl(baseUrl, url))
+    .filter((url): url is string => url !== null && isRasterImageUrl(url));
+  return [...new Set(resolved)];
 }
 
 export async function generateMetadata({ params }: Params): Promise<Metadata> {
   const { slug } = await params;
   const article = await loadArticle(slug);
-  if (!article) return { title: "Artikel tidak ditemukan" };
+
+  const isLive = article && (article.status === "PUBLISHED" || article.status === "CORRECTED");
+  const isWithdrawn = article && (article.status === "RETRACTED" || article.status === "ARCHIVED");
+
+  if (!article || (!isLive && !isWithdrawn)) {
+    return {
+      title: "Artikel Tidak Ditemukan",
+      robots: { index: false, follow: false },
+    };
+  }
+
+  const canonicalPath = `/artikel/${article.slug}`;
+
+  if (isWithdrawn) {
+    return {
+      title: article.title,
+      description: article.deck ?? undefined,
+      alternates: { canonical: canonicalPath },
+      robots: { index: false, follow: true },
+    };
+  }
+
+  const baseUrl = getCanonicalBaseUrl();
+  const content = parseContentSafe(article.contentJson);
+  const seoDates = getArticleSeoDates({
+    status: article.status,
+    firstPublishedAt: article.firstPublishedAt,
+    publishedAt: article.publishedAt,
+    updatedAt: article.updatedAt,
+    corrections: article.corrections,
+  });
+
+  const writerProfileUrls = article.contributions
+    .filter(
+      (c) =>
+        !isAnonymousMode(c.person.anonymityMode) &&
+        ["AUTHOR", "WRITER", "REPORTER"].includes(c.role.toUpperCase()),
+    )
+    .map((c) => canonicalUrl(`/penulis/${c.person.id}`));
+
+  const articleImages = collectArticleRasterImages(baseUrl, article.heroMedia?.url, content);
+  const ogImages =
+    articleImages.length > 0
+      ? articleImages.map((url) => ({
+          url,
+          alt: article.heroMedia?.caption || article.title,
+        }))
+      : [
+          {
+            url: canonicalUrl("/brand/verax-press-og.png"),
+            width: 1200,
+            height: 630,
+            alt: article.title,
+          },
+        ];
+
   return {
     title: article.title,
     description: article.deck ?? undefined,
+    alternates: { canonical: canonicalPath },
+    robots: { index: true, follow: true },
     openGraph: {
       title: article.title,
       description: article.deck ?? undefined,
+      url: canonicalPath,
+      siteName: "Verax Press",
       type: "article",
       locale: "id_ID",
-      publishedTime: article.firstPublishedAt?.toISOString(),
-      modifiedTime: article.updatedAt.toISOString(),
+      section: article.desk.name,
+      ...(seoDates.publishedAt ? { publishedTime: seoDates.publishedAt.toISOString() } : {}),
+      ...(seoDates.modifiedAt ? { modifiedTime: seoDates.modifiedAt.toISOString() } : {}),
+      ...(writerProfileUrls.length > 0 ? { authors: writerProfileUrls } : {}),
+      images: ogImages,
+    },
+    twitter: {
+      card: "summary_large_image",
+      title: article.title,
+      description: article.deck ?? undefined,
+      images: ogImages.map((img) => img.url),
     },
   };
 }
@@ -54,6 +167,39 @@ function verificationClass(status: string) {
   if (status === "VERIFIED") return "text-verity-verified";
   if (status === "DISPUTED") return "text-verity-disputed";
   return "text-verity-unverified";
+}
+
+function renderLinkedByline(
+  byline: string,
+  writerCredits: Array<{ id: string; publicName: string }>,
+) {
+  if (byline.trim().toLowerCase() === "anonim" || writerCredits.length === 0) {
+    return byline;
+  }
+
+  if (writerCredits.length === 1) {
+    const writer = writerCredits[0];
+    const idx = byline.toLowerCase().indexOf(writer.publicName.toLowerCase());
+    if (idx >= 0) {
+      const before = byline.slice(0, idx);
+      const matched = byline.slice(idx, idx + writer.publicName.length);
+      const after = byline.slice(idx + writer.publicName.length);
+      return (
+        <>
+          {before}
+          <Link
+            href={`/penulis/${writer.id}`}
+            className="underline decoration-verity-rule-strong underline-offset-4 hover:text-verity-accent"
+          >
+            {matched}
+          </Link>
+          {after}
+        </>
+      );
+    }
+  }
+
+  return byline;
 }
 
 export default async function ArticlePage({ params }: Params) {
@@ -67,6 +213,35 @@ export default async function ArticlePage({ params }: Params) {
 
   const content = parseContentSafe(article.contentJson);
   const readingMinutes = estimateReadingMinutes(content);
+  const baseUrl = getCanonicalBaseUrl();
+  const seoDates = getArticleSeoDates({
+    status: article.status,
+    firstPublishedAt: article.firstPublishedAt,
+    publishedAt: article.publishedAt,
+    updatedAt: article.updatedAt,
+    corrections: article.corrections,
+  });
+
+  const publicPeople = article.contributions.filter(
+    (c) => !isAnonymousMode(c.person.anonymityMode),
+  );
+  const writerCredits = publicPeople
+    .filter((c) => ["AUTHOR", "WRITER", "REPORTER"].includes(c.role.toUpperCase()))
+    .map((c) => c.person);
+  const editorCredits = publicPeople
+    .filter((c) => c.role.toUpperCase() === "EDITOR")
+    .map((c) => c.person);
+
+  const bylineIncludesSingleWriter =
+    writerCredits.length === 1 &&
+    article.byline.toLowerCase().includes(writerCredits[0].publicName.toLowerCase());
+  const extraWriterCredits =
+    article.byline.trim().toLowerCase() === "anonim" || bylineIncludesSingleWriter
+      ? []
+      : writerCredits;
+
+  const articleImages = collectArticleRasterImages(baseUrl, article.heroMedia?.url, content);
+
   const related = await db.article.findMany({
     where: {
       status: { in: ["PUBLISHED", "CORRECTED"] },
@@ -92,6 +267,44 @@ export default async function ArticlePage({ params }: Params) {
 
   return (
     <article className="mx-auto max-w-6xl px-4 py-8 sm:px-6">
+      <JsonLd
+        data={buildBreadcrumbJsonLd([
+          { name: "Beranda", url: canonicalUrl("/") },
+          { name: article.desk.name, url: canonicalUrl(`/desk/${article.desk.slug}`) },
+          { name: article.title, url: canonicalUrl(`/artikel/${article.slug}`) },
+        ])}
+      />
+      {isLive ? (
+        <JsonLd
+          data={buildArticleJsonLd({
+            baseUrl,
+            slug: article.slug,
+            title: article.title,
+            deck: article.deck,
+            format: article.format,
+            byline: article.byline,
+            publishedAt: seoDates.publishedAt,
+            modifiedAt: seoDates.modifiedAt,
+            deskName: article.desk.name,
+            authorCredits: article.contributions.map((c) => ({
+              id: c.person.id,
+              publicName: c.person.publicName,
+              role: c.role,
+              anonymityMode: c.person.anonymityMode,
+            })),
+            imageUrls: articleImages,
+          })}
+        />
+      ) : null}
+
+      <Breadcrumbs
+        items={[
+          { label: "Beranda", href: "/" },
+          { label: article.desk.name, href: `/desk/${article.desk.slug}` },
+          { label: article.title },
+        ]}
+      />
+
       {/* Header Artikel */}
       <header className="border-b border-verity-rule pb-7">
         {/* Kicker */}
@@ -113,14 +326,58 @@ export default async function ArticlePage({ params }: Params) {
           </p>
         ) : null}
 
-        {/* Byline & tanggal */}
-        <div className="mt-6 flex flex-wrap items-center justify-between gap-y-2 border-t border-verity-rule pt-3.5 text-sm">
-          <p className="font-serif text-[1.05rem] font-medium text-verity-ink">{article.byline}</p>
+        {/* Byline, kredit redaksi, & tanggal */}
+        <div className="mt-6 flex flex-wrap items-start justify-between gap-y-2 border-t border-verity-rule pt-3.5 text-sm">
+          <div>
+            <p className="font-serif text-[1.05rem] font-medium text-verity-ink">
+              {renderLinkedByline(article.byline, writerCredits)}
+            </p>
+            {extraWriterCredits.length > 0 ? (
+              <p className="mt-0.5 font-mono text-[11px] text-verity-ink-faint">
+                Penulis:{" "}
+                {extraWriterCredits.map((person, idx) => (
+                  <Fragment key={person.id}>
+                    {idx > 0 ? ", " : ""}
+                    <Link
+                      href={`/penulis/${person.id}`}
+                      className="underline decoration-verity-rule-strong underline-offset-4 hover:text-verity-accent"
+                    >
+                      {person.publicName}
+                    </Link>
+                  </Fragment>
+                ))}
+              </p>
+            ) : null}
+            {editorCredits.length > 0 ? (
+              <p className="mt-0.5 font-mono text-[11px] text-verity-ink-faint">
+                Disunting oleh{" "}
+                {editorCredits.map((person, idx) => (
+                  <Fragment key={person.id}>
+                    {idx > 0 ? ", " : ""}
+                    <Link
+                      href={`/penulis/${person.id}`}
+                      className="underline decoration-verity-rule-strong underline-offset-4 hover:text-verity-accent"
+                    >
+                      {person.publicName}
+                    </Link>
+                  </Fragment>
+                ))}
+              </p>
+            ) : null}
+          </div>
           <p className="font-mono text-[11px] text-verity-ink-faint">
-            Diterbitkan {formatDate(article.firstPublishedAt ?? article.publishedAt)}
-            {article.status === "CORRECTED" || article.corrections.length > 0
-              ? ` · Diperbarui ${formatDateTime(article.updatedAt)}`
-              : ""}
+            Diterbitkan{" "}
+            <time dateTime={seoDates.publishedAt?.toISOString()}>
+              {formatDate(seoDates.publishedAt)}
+            </time>
+            {seoDates.modifiedAt ? (
+              <>
+                {" · Diperbarui "}
+                <time dateTime={seoDates.modifiedAt.toISOString()}>
+                  {formatDateTime(seoDates.modifiedAt)}
+                </time>
+              </>
+            ) : null}
             {isLive ? ` · ${readingMinutes} menit baca` : ""}
           </p>
         </div>
@@ -200,44 +457,47 @@ export default async function ArticlePage({ params }: Params) {
                 sebelum naskah disetujui.
               </p>
               <ul className="mt-6 space-y-5">
-                {article.sources.map((source) => (
-                  <li key={source.id} className="border-t border-verity-rule pt-4">
-                    <div className="flex flex-wrap items-baseline gap-x-3 gap-y-1">
-                      {source.url ? (
-                        <a
-                          href={source.url}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="font-serif text-[1rem] font-medium text-verity-ink underline decoration-verity-rule-strong underline-offset-4 hover:text-verity-accent"
-                        >
-                          {source.title}
-                        </a>
-                      ) : (
-                        <span className="font-serif text-[1rem] font-medium text-verity-ink">{source.title}</span>
-                      )}
-                      {source.isKeySource ? (
-                        <span className="font-mono text-[10px] uppercase tracking-[0.12em] text-verity-accent">
-                          Sumber kunci
-                        </span>
-                      ) : null}
-                    </div>
-                    <p className="mt-1 font-mono text-[11px] leading-relaxed text-verity-ink-faint">
-                      {source.publisher ? `${source.publisher} · ` : ""}
-                      {SOURCE_TYPE_LABELS[source.sourceType as keyof typeof SOURCE_TYPE_LABELS]}
-                      {source.accessedAt ? ` · Diakses ${formatDate(source.accessedAt)}` : ""}
-                    </p>
-                    {source.supports ? (
-                      <p className="mt-1.5 font-serif text-[0.88rem] leading-relaxed text-verity-ink-soft">
-                        Menopang klaim: {source.supports}
+                {article.sources.map((source) => {
+                  const safeUrl = safeExternalHttpUrl(source.url);
+                  return (
+                    <li key={source.id} className="border-t border-verity-rule pt-4">
+                      <div className="flex flex-wrap items-baseline gap-x-3 gap-y-1">
+                        {safeUrl ? (
+                          <a
+                            href={safeUrl}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="font-serif text-[1rem] font-medium text-verity-ink underline decoration-verity-rule-strong underline-offset-4 hover:text-verity-accent"
+                          >
+                            {source.title}
+                          </a>
+                        ) : (
+                          <span className="font-serif text-[1rem] font-medium text-verity-ink">{source.title}</span>
+                        )}
+                        {source.isKeySource ? (
+                          <span className="font-mono text-[10px] uppercase tracking-[0.12em] text-verity-accent">
+                            Sumber kunci
+                          </span>
+                        ) : null}
+                      </div>
+                      <p className="mt-1 font-mono text-[11px] leading-relaxed text-verity-ink-faint">
+                        {source.publisher ? `${source.publisher} · ` : ""}
+                        {SOURCE_TYPE_LABELS[source.sourceType as keyof typeof SOURCE_TYPE_LABELS]}
+                        {source.accessedAt ? ` · Diakses ${formatDate(source.accessedAt)}` : ""}
                       </p>
-                    ) : null}
-                    <p className={`mt-1 font-mono text-[11px] ${verificationClass(source.verificationStatus)}`}>
-                      {source.verificationStatus === "VERIFIED" ? "✓ " : source.verificationStatus === "DISPUTED" ? "✕ " : "• "}
-                      {VERIFICATION_LABELS[source.verificationStatus as keyof typeof VERIFICATION_LABELS]}
-                      {source.verifiedAt ? ` · ${formatDate(source.verifiedAt)}` : ""}
-                    </p>
-                  </li>
-                ))}
+                      {source.supports ? (
+                        <p className="mt-1.5 font-serif text-[0.88rem] leading-relaxed text-verity-ink-soft">
+                          Menopang klaim: {source.supports}
+                        </p>
+                      ) : null}
+                      <p className={`mt-1 font-mono text-[11px] ${verificationClass(source.verificationStatus)}`}>
+                        {source.verificationStatus === "VERIFIED" ? "✓ " : source.verificationStatus === "DISPUTED" ? "✕ " : "• "}
+                        {VERIFICATION_LABELS[source.verificationStatus as keyof typeof VERIFICATION_LABELS]}
+                        {source.verifiedAt ? ` · ${formatDate(source.verifiedAt)}` : ""}
+                      </p>
+                    </li>
+                  );
+                })}
               </ul>
             </section>
           ) : null}

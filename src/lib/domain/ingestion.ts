@@ -7,6 +7,7 @@
 import { z } from "zod";
 import { db } from "@/lib/db";
 import { articleContentSchema } from "@/lib/domain/content";
+import { httpUrlSchema, mediaUrlSchema } from "@/lib/url";
 import {
   INGESTION_ALLOWED_FORMATS,
   AI_INVOLVEMENTS,
@@ -16,7 +17,7 @@ import {
 export const sourceItemSchema = z.object({
   title: z.string().min(3, "Judul sumber minimal 3 karakter.").max(300),
   publisher: z.string().max(200).optional(),
-  url: z.string().url("URL sumber harus berupa format URL valid.").max(2_000),
+  url: httpUrlSchema("URL sumber harus berupa tautan http:// atau https:// yang valid.", 2_000),
   sourceType: z.enum(SOURCE_TYPES as [string, ...string[]]).default("SECONDARY"),
   publishedAt: z.string().optional(),
   accessedAt: z.string().optional(),
@@ -25,7 +26,7 @@ export const sourceItemSchema = z.object({
 });
 
 export const imageItemSchema = z.object({
-  url: z.string().url("URL gambar harus berupa format URL valid.").max(2_000),
+  url: mediaUrlSchema("URL gambar harus berupa URL http(s) atau path lokal yang diawali /.", 2_000),
   creator: z.string().max(200).optional(),
   license: z.string().max(200).optional(),
   permissionEvidence: z.string().max(600).optional(),
