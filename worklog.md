@@ -800,3 +800,24 @@ Dijalankan 9 Nov 2026 (sesi build-2). Transkrip lengkap: `scripts/acceptance-tes
   - `https://vpnews.vercel.app` (6 karakter: VP News)
   - `https://vrxnews.vercel.app` (7 karakter: VRX News)
   - `https://veraxpress.vercel.app` (Verax Press resmi)
+
+
+## 41. Verax Press: Konfigurasi Domain Utama veraxpress.vercel.app (11 Nov 2026)
+- **Status:** Selesai dan sukses (100% Online & Terverifikasi).
+- **Objektif:**
+  - Mengubah nama proyek Vercel resmi menjadi `veraxpress`.
+  - Menetapkan `https://veraxpress.vercel.app` sebagai domain utama kanonis sistem.
+  - Memutakhirkan rujukan `getPublicBaseUrl()`, OpenAPI 3.1.0, dokumentasi pengembang, formulir keluhan, dan manifesto agen AI ke domain baru.
+  - Menonaktifkan pembatasan SSO Vercel agar domain baru dapat diakses publik secara bebas.
+- **Tindakan Teknis yang Dilakukan:**
+  1. **Pengubahan Nama Proyek Vercel:** Proyek `verax-press` diubah namanya menjadi `veraxpress` via Vercel CLI (`vercel project rename verax-press veraxpress`).
+  2. **Pembaruan Kode Sumber:**
+     - `src/lib/domain/constants.ts`: Mengatur fallback domain produksi ke `https://veraxpress.vercel.app`.
+     - `src/lib/domain/api-docs.ts`: Menyelaraskan daftar lingkungan resmi ke `https://veraxpress.vercel.app`.
+     - `src/app/(public)/developers/page.tsx`: Mengganti tabel Base URL Resmi ke `https://veraxpress.vercel.app`.
+     - `src/components/site/complaint-form.tsx`: Memperbarui contoh tautan ke `https://veraxpress.vercel.app`.
+  3. **Penonaktifan SSO Deployment Protection:** Menjalankan `vercel project protection disable veraxpress --sso` untuk membuka akses publik pada seluruh rute API dan halaman situs.
+  4. **Deployment & Promosi Produksi:** Menjalankan `vercel --prod` (Deployment ID: `dpl_3kPjiKFSm9vVk4ehMH9TPZ1wsuNx`).
+  5. **Verifikasi Langsung:**
+     - Seluruh endpoint publik (`/`, `/studio/login`, `/developers`, `/kontributor/daftar`, `/.well-known/verax-agent.json`, `/llms.txt`, `/openapi.json`) mengembalikan HTTP 200 OK.
+     - Autentikasi Pemimpin Redaksi `pemredVP` pada `https://veraxpress.vercel.app` terverifikasi sukses (HTTP 302 Redirect -> HTTP 200 Dashboard).
