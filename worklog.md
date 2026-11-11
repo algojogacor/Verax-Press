@@ -754,3 +754,32 @@ Dijalankan 9 Nov 2026 (sesi build-2). Transkrip lengkap: `scripts/acceptance-tes
      - Penghitungan baris tabel produksi: 1 `StaffUser`, 1 `Person`, 3 `Desk`, 0 `Article`, 0 `ApiClient`, 0 `ContributorApplication`, 0 `StaffInvitation`.
   3. **Verifikasi Smoke Test Pra-Rilis:**
      - 32/32 pemeriksaan smoke test lulus 100% dengan isolasi ketat terhadap basis data pengujian lokal.
+
+
+## 39. Verax Press: Peluncuran Resmi ke Git Remote dan Verifikasi Produksi Vercel (11 Nov 2026)
+- **Status:** Selesai dan sukses (100% Online & Terverifikasi).
+- **Objektif:**
+  - Mendorong seluruh komit pembaruan kode dan migrasi ke repositori GitHub `main` (`https://github.com/algojogacor/Verax-Press.git`).
+  - Memverifikasi deployment Vercel Produksi yang dipicu secara otomatis.
+  - Menguji keaktifan endpoint publik dan sistem autentikasi Meja Redaksi langsung di lingkungan produksi.
+- **Tindakan Teknis yang Dilakukan:**
+  1. **Git Commit & Push:**
+     - Komit `37758e5`: `feat: complete Phase 1-3 implementation, audit remediation, and clean slate schema` (134 berkas termodifikasi/ditambahkan, 17.675 penambahan baris).
+     - Berhasil didorong ke `origin/main`.
+  2. **Deployment Vercel Produksi:**
+     - Deployment ID: `dpl_58DN7yEp1GoTruRdbAdbod9hBnCz`.
+     - Status: `READY` (Selesai dalam 1 menit).
+     - Domain Utama: `https://verax-press.vercel.app`.
+     - Alias Produksi: `https://verax-press-arya-rizkys-projects.vercel.app`, `https://verax-press-git-main-arya-rizkys-projects.vercel.app`.
+  3. **Verifikasi Produksi Langsung (*Live Probe*):**
+     - Rute Publik:
+       - `GET https://verax-press.vercel.app/` : 200 OK (Clean slate: "Belum ada artikel terbit").
+       - `GET /studio/login` : 200 OK (Formulir masuk aktif).
+       - `GET /developers` : 200 OK (Portal dokumentasi pengembang).
+       - `GET /kontributor/daftar` : 200 OK (Pendaftaran sukarelawan dengan verifikasi 18+).
+       - `GET /.well-known/verax-agent.json` : 200 OK.
+       - `GET /llms.txt` & `/openapi.json` : 200 OK.
+     - Autentikasi Produksi & Sesi Studio:
+       - Uji masuk via `POST /api/auth/callback/credentials` dengan akun Pemimpin Redaksi `pemredVP`: HTTP 302 Redirect, berhasil menerbitkan sesi kredensial NextAuth.
+       - Sesi aktif terverifikasi: `user.username = 'pemredVP'`, `user.role = 'CHIEF_EDITOR'`, `user.name = 'Arya Rizky Ardhi Pratama'`.
+       - Dashboard Meja Redaksi `GET /api/studio/dashboard`: HTTP 200 OK, menyajikan 0 naskah, 0 keluhan, dan otoritas penuh redaksi (`canPublish: true`, `canManageStaff: true`, `canManageApiClients: true`).
