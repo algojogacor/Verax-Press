@@ -913,3 +913,18 @@ Dijalankan 9 Nov 2026 (sesi build-2). Transkrip lengkap: `scripts/acceptance-tes
   - `bun run build`: `58/58` halaman statis berhasil dibangun (exit `0`).
   - `bun test`: **`170 pass, 0 fail`** (`831 expect()`), exit `0`.
   - Uji server terisolasi `.next/standalone` (`127.0.0.1:3089`, `db/isolated-test.db`) dan Chromium CDP: seluruh 7 aset ikon/OG mengembalikan HTTP `200 OK`; `0px` horizontal overflow, `0` galat konsol, `0` aset gagal di rute `/`, `/studio/login`, `/kontributor/login`, `/kontributor/daftar`, dan `/studio` (desktop `1440x900` serta mobile `390x844`).
+
+## 46. Push Produksi, Redeploy Vercel, Penyelarasan Alias, dan Verifikasi Live (12 Nov 2026)
+- **Status Produksi:** Aktif (`Ready`) pada `https://veraxpress.vercel.app`.
+- **Tindakan Pra-Push & Konfigurasi Alias:**
+  - Menambahkan 4 alias tambahan yang ditemukan lewat `vercel alias ls` (`veraxp.vercel.app`, `vp-press.vercel.app`, `vrx-press.vercel.app`, `verax-press-git-main-arya-rizkys-projects.vercel.app`) ke `NON_CANONICAL_PRODUCTION_HOSTS` di `src/lib/seo/constants.ts`, sehingga seluruh 13 alias non-kanonik melakukan pengalihan `308` dengan mempertahankan path dan query string.
+  - Uji pra-push lengkap lulus bersih: `typecheck` (0 galat), `lint` (0 galat/peringatan), `next build` (58 halaman statis), dan `bun test` (`170 pass, 0 fail`, `835 expect()`).
+- **Git Push & Deployment Vercel:**
+  - Komit rilis utama [`06bdaee`](https://github.com/algojogacor/Verax-Press/commit/06bdaee) (366 berkas) didorong ke `origin/main` dan memicu build produksi Vercel `dpl_4AbsCz2KW3N6VrHzDwyCvVVap2Cs` (`veraxpress-2fy2gpx2w-arya-rizkys-projects.vercel.app`).
+  - Temuan penting konfigurasi Vercel: pada daftar Domain Proyek Vercel (`Project Settings > Domains`), domain otomatis bawaan yang terdaftar hanya `verax-press.vercel.app` (sisa sebelum pengubahan nama proyek), sedangkan `veraxpress.vercel.app` dan 10 alias turunannya tertaut sebagai alias manual. Setiap redeploy otomatis dari Git tidak memperbarui `veraxpress.vercel.app` sampai dijalankan `vercel alias set` atau `veraxpress.vercel.app` didaftarkan langsung sebagai domain proyek di dashboard Vercel.
+  - Seluruh 11 alias manual (`veraxpress.vercel.app`, `veraxp.vercel.app`, `vrxp.vercel.app`, `vpid.vercel.app`, `vrxid.vercel.app`, `vp-press.vercel.app`, `vrx-press.vercel.app`, `vpnews.vercel.app`, `vrxnews.vercel.app`, `verax-press-arya-rizkys-projects.vercel.app`, `verax-press-git-main-arya-rizkys-projects.vercel.app`) diperbarui ke deployment terbaru.
+- **Catatan Pengalihan HTTP -> HTTPS:**
+  - Permintaan `http://verax-press.vercel.app/...` dialihkan terlebih dahulu oleh edge Vercel ke `https://verax-press.vercel.app/...` (hop 1, HTTP `308`), lalu middleware aplikasi mengalihkan ke `https://veraxpress.vercel.app/...` (hop 2, HTTP `308`) dengan path dan query tetap utuh. Untuk menyatukannya menjadi satu hop CDN edge, tambahkan `veraxpress.vercel.app` sebagai Primary Domain di dashboard Vercel dan atur alias lain menjadi edge redirect tanpa mengubah DNS eksternal.
+- **Verifikasi Produksi Langsung:**
+  - 17 rute publik HTTP `200`, tag `canonical` dan `og:url` mengarah ke `https://veraxpress.vercel.app/...`, `og:image` ke `verax-press-og.png`, JSON-LD valid, `/robots.txt` valid, `/sitemap.xml` berisi 17 URL kanonik valid (`check_sitemap.py`: 0 galat, 0 duplikat), 13/13 alias HTTPS melakukan `308`, seluruh rute privat memancarkan `X-Robots-Tag: noindex`, 7/7 aset ikon/merek `200 OK`, serta Chromium Headless live (`0` galat konsol, `0` aset gagal, `0px` overflow).
+
