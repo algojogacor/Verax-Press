@@ -1,11 +1,12 @@
-// Input gambar langsung untuk BlockEditor: unggah (klik, seret-lepas, tempel),
-// pemilih Pustaka Media Studio, pratinjau langsung, dan input URL eksternal opsional.
+// Input gambar langsung untuk BlockEditor: unggah tunggal atau massal (hingga 10 foto/sesi)
+// dalam kualitas asli (klik, seret-lepas, tempel), pemilih Pustaka Media, pratinjau, dan URL opsional.
 "use client";
 
 import { useEffect, useId, useRef, useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import {
   AlertCircle,
+  CheckCircle2,
   FolderOpen,
   ImageOff,
   Link2,
@@ -13,6 +14,7 @@ import {
   Sparkles,
   Trash2,
   Upload,
+  X,
 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -28,6 +30,12 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
 import { apiFetch, apiErrorMessage } from "@/components/studio/api";
+import {
+  MAX_BULK_PHOTOS,
+  formatFileBytes,
+  uploadOriginalPhotoAsset,
+  validateAndQueuePhotos,
+} from "@/components/studio/media-upload-helpers";
 import { safeMediaSrcUrl } from "@/lib/url";
 import type { ContentBlock } from "@/lib/domain/content";
 
@@ -44,36 +52,45 @@ interface MediaAssetItem {
   createdAt: string;
 }
 
-const ACCEPTED_MIME = ["image/jpeg", "image/png", "image/webp"] as const;
-const MAX_UPLOAD_BYTES = 5 * 1024 * 1024;
+type PendingItemStatus = "pending" | "uploading" | "success" | "error";
 
-function formatBytes(bytes: number): string {
-  if (bytes < 1024 * 1024) return `${Math.max(1, Math.round(bytes / 1024))} KB`;
-  return `${(bytes / (1024 * 1024)).toFixed(2)} MB`;
+interface PendingUploadItem {
+  id: string;
+  file: File;
+  previewUrl: string;
+  caption: string;
+  alt: string;
+  status: PendingItemStatus;
+  errorMessage?: string;
 }
 
 interface ImageBlockFieldProps {
   block: ImageBlock;
   onPatch: (patch: Partial<ImageBlock>) => void;
+  onReplaceWithBatch?: (items: ImageBlock[]) => void;
 }
 
-export function ImageBlockField({ block, onPatch }: ImageBlockFieldProps) {
+export function ImageBlockField({
+  block,
+  onPatch,
+  onReplaceWithBatch,
+}: ImageBlockFieldProps) {
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const fileInputRef = useRef<HTMLInputElement | null>(null);
+  const pendingRef = useRef<PendingUploadItem[]>([]);
   const uid = useId();
 
   const [isDragging, setIsDragging] = useState(false);
-  const [previewError, setPreviewError] = useState(false);
+  const [failedUrl, setFailedUrl] = useState<string | null>(null);
   const [showUrlInput, setShowUrlInput] = useState(false);
   const [libraryOpen, setLibraryOpen] = useState(false);
   const [librarySearch, setLibrarySearch] = useState("");
 
-  // State untuk dialog atribusi sebelum upload (Kebijakan Redaksi §3.4)
-  const [pendingFile, setPendingFile] = useState<File | null>(null);
-  const [pendingPreviewUrl, setPendingPreviewUrl] = useState<string | null>(null);
+  // State untuk dialog atribusi sebelum unggah (Kebijakan Redaksi §3.4)
+  const [pendingQueue, setPendingQueue] = useState<PendingUploadItem[]>([]);
   const [creator, setCreator] = useState("");
-  const [caption, setCaption] = useState("");
+  const [defaultCaption, setDefaultCaption] = useState("");
   const [altText, setAltText] = useState("");
   const [license, setLicense] = useState("");
   const [isSynthetic, setIsSynthetic] = useState(false);
@@ -81,16 +98,19 @@ export function ImageBlockField({ block, onPatch }: ImageBlockFieldProps) {
   const [uploading, setUploading] = useState(false);
 
   const safeUrl = safeMediaSrcUrl(block.url);
+  const isCurrentUrlFailed = Boolean(safeUrl && failedUrl === safeUrl);
 
   useEffect(() => {
-    setPreviewError(false);
-  }, [block.url]);
+    pendingRef.current = pendingQueue;
+  }, [pendingQueue]);
 
   useEffect(() => {
     return () => {
-      if (pendingPreviewUrl) URL.revokeObjectURL(pendingPreviewUrl);
+      for (const item of pendingRef.current) {
+        URL.revokeObjectURL(item.previewUrl);
+      }
     };
-  }, [pendingPreviewUrl]);
+  }, []);
 
   const mediaQuery = useQuery({
     queryKey: ["studio-media"],
@@ -100,94 +120,167 @@ export function ImageBlockField({ block, onPatch }: ImageBlockFieldProps) {
   });
 
   function resetPendingUpload() {
-    if (pendingPreviewUrl) URL.revokeObjectURL(pendingPreviewUrl);
-    setPendingFile(null);
-    setPendingPreviewUrl(null);
+    for (const item of pendingQueue) {
+      URL.revokeObjectURL(item.previewUrl);
+    }
+    setPendingQueue([]);
     setUploadError(null);
   }
 
-  function startFileSelection(file: File | null | undefined) {
-    if (!file) return;
-    if (!ACCEPTED_MIME.includes(file.type as (typeof ACCEPTED_MIME)[number])) {
-      toast({
-        title: "Format gambar belum didukung",
-        description: "Gunakan berkas JPEG, PNG, atau WebP.",
-        variant: "destructive",
-      });
-      return;
+  function enqueueSelection(files: FileList | File[]) {
+    const isFreshDialog = pendingQueue.length === 0;
+    const { accepted, rejectedReasons, overflowCount } = validateAndQueuePhotos(
+      files,
+      pendingQueue.length,
+    );
+
+    const noticeParts = [...rejectedReasons];
+    if (overflowCount > 0) {
+      noticeParts.push(
+        `Maksimal ${MAX_BULK_PHOTOS} foto per sesi unggah. ${overflowCount} foto berlebih dilewati.`,
+      );
     }
-    if (file.size > MAX_UPLOAD_BYTES) {
-      toast({
-        title: "Ukuran berkas terlalu besar",
-        description: "Ukuran gambar maksimal 5 MB.",
-        variant: "destructive",
-      });
+
+    if (accepted.length === 0) {
+      if (noticeParts.length > 0) {
+        toast({
+          title: "Berkas gambar belum dapat ditambahkan",
+          description: noticeParts.join(" "),
+          variant: "destructive",
+        });
+      }
       return;
     }
 
-    if (pendingPreviewUrl) URL.revokeObjectURL(pendingPreviewUrl);
-    setPendingFile(file);
-    setPendingPreviewUrl(URL.createObjectURL(file));
-    setCreator(block.credit?.trim() || "");
-    setCaption(block.caption?.trim() || "");
-    setAltText(block.alt?.trim() || "");
-    setLicense("");
-    setIsSynthetic(false);
-    setUploadError(null);
+    const additions: PendingUploadItem[] = accepted.map((file) => ({
+      id: `${file.name}-${file.size}-${crypto.randomUUID()}`,
+      file,
+      previewUrl: URL.createObjectURL(file),
+      caption: "",
+      alt: "",
+      status: "pending",
+    }));
+
+    if (isFreshDialog) {
+      setCreator(block.credit?.trim() || "");
+      setDefaultCaption(block.caption?.trim() || "");
+      setAltText(block.alt?.trim() || "");
+      setLicense("");
+      setIsSynthetic(false);
+    }
+
+    setPendingQueue((prev) => [...prev, ...additions]);
+    setUploadError(noticeParts.length > 0 ? noticeParts.join(" ") : null);
+  }
+
+  function removePendingItem(id: string) {
+    setPendingQueue((prev) => {
+      const target = prev.find((item) => item.id === id);
+      if (target) URL.revokeObjectURL(target.previewUrl);
+      return prev.filter((item) => item.id !== id);
+    });
+  }
+
+  function patchPendingItem(id: string, patch: Partial<PendingUploadItem>) {
+    setPendingQueue((prev) =>
+      prev.map((item) => (item.id === id ? { ...item, ...patch } : item)),
+    );
   }
 
   async function handleConfirmUpload(event: React.FormEvent) {
     event.preventDefault();
-    if (!pendingFile) return;
+    const targets = pendingQueue.filter((item) => item.status !== "success");
+    if (targets.length === 0) return;
 
     const cleanCreator = creator.trim();
-    const cleanCaption = caption.trim();
-    const cleanAlt = altText.trim();
+    const cleanDefaultCaption = defaultCaption.trim();
+    const cleanDefaultAlt = altText.trim();
     const cleanLicense = license.trim();
 
-    if (!cleanCreator || !cleanCaption) {
-      setUploadError("Pembuat/kredit dan keterangan gambar wajib diisi sesuai kebijakan atribusi.");
+    if (!cleanCreator) {
+      setUploadError("Pembuat/kredit fotografer wajib diisi sesuai kebijakan atribusi.");
+      return;
+    }
+
+    const missingCaption = targets.some(
+      (item) => !item.caption.trim() && !cleanDefaultCaption,
+    );
+    if (missingCaption) {
+      setUploadError(
+        "Keterangan gambar wajib diisi (isi keterangan dasar atau keterangan per foto).",
+      );
       return;
     }
 
     setUploading(true);
     setUploadError(null);
-    try {
-      const formData = new FormData();
-      formData.append("file", pendingFile);
-      formData.append("creator", cleanCreator);
-      formData.append("caption", cleanCaption);
-      if (cleanLicense) formData.append("license", cleanLicense);
-      formData.append("isSynthetic", String(isSynthetic));
 
-      const res = await fetch("/api/studio/media", {
-        method: "POST",
-        body: formData,
-      });
-      const data = await res.json().catch(() => null);
-      if (!res.ok) {
-        throw new Error(data?.error || `Gagal mengunggah gambar (${res.status}).`);
+    const insertedBlocks: ImageBlock[] = [];
+    let failCount = 0;
+
+    for (const item of targets) {
+      patchPendingItem(item.id, { status: "uploading", errorMessage: undefined });
+      const itemCaption = item.caption.trim() || cleanDefaultCaption;
+      const itemAlt = item.alt.trim() || cleanDefaultAlt || itemCaption;
+      try {
+        const asset = await uploadOriginalPhotoAsset({
+          file: item.file,
+          creator: cleanCreator,
+          caption: itemCaption,
+          license: cleanLicense,
+          isSynthetic,
+        });
+        patchPendingItem(item.id, { status: "success" });
+        insertedBlocks.push({
+          type: "image",
+          url: asset.url,
+          credit: asset.creator?.trim() || cleanCreator,
+          caption: asset.caption?.trim() || itemCaption,
+          alt: itemAlt,
+        });
+      } catch (err) {
+        failCount += 1;
+        patchPendingItem(item.id, {
+          status: "error",
+          errorMessage: err instanceof Error ? err.message : "Gagal mengunggah.",
+        });
       }
+    }
 
-      const uploadedUrl = data?.asset?.url;
-      if (typeof uploadedUrl !== "string" || !uploadedUrl) {
-        throw new Error("Server tidak mengembalikan URL aset media.");
-      }
+    setUploading(false);
 
-      onPatch({
-        url: uploadedUrl,
-        credit: cleanCreator,
-        caption: cleanCaption,
-        alt: cleanAlt || cleanCaption,
-      });
-
+    if (insertedBlocks.length > 0) {
       queryClient.invalidateQueries({ queryKey: ["studio-media"] });
-      toast({ title: "Gambar berhasil diunggah dan disisipkan" });
+      if (insertedBlocks.length === 1 && !onReplaceWithBatch) {
+        onPatch(insertedBlocks[0]);
+      } else if (onReplaceWithBatch && insertedBlocks.length > 1) {
+        onReplaceWithBatch(insertedBlocks);
+      } else {
+        onPatch(insertedBlocks[0]);
+      }
+      toast({
+        title:
+          insertedBlocks.length === 1
+            ? "Gambar berhasil diunggah dan disisipkan"
+            : `${insertedBlocks.length} foto berhasil diunggah (kualitas asli) dan disisipkan`,
+      });
+    }
+
+    if (failCount === 0) {
       resetPendingUpload();
-    } catch (err) {
-      setUploadError(err instanceof Error ? err.message : "Terjadi kesalahan saat mengunggah.");
-    } finally {
-      setUploading(false);
+    } else {
+      // Hanya sisakan yang gagal agar bisa diulang
+      setPendingQueue((prev) => {
+        const remaining: PendingUploadItem[] = [];
+        for (const item of prev) {
+          if (item.status === "success") URL.revokeObjectURL(item.previewUrl);
+          else remaining.push(item);
+        }
+        return remaining;
+      });
+      setUploadError(
+        `${failCount} foto gagal diunggah${insertedBlocks.length > 0 ? ` (${insertedBlocks.length} foto lainnya sudah disisipkan)` : ""}.`,
+      );
     }
   }
 
@@ -205,23 +298,25 @@ export function ImageBlockField({ block, onPatch }: ImageBlockFieldProps) {
   function handleDrop(event: React.DragEvent<HTMLDivElement>) {
     event.preventDefault();
     setIsDragging(false);
-    const file = event.dataTransfer.files?.[0];
-    startFileSelection(file);
+    if (event.dataTransfer.files?.length) {
+      enqueueSelection(event.dataTransfer.files);
+    }
   }
 
   function handlePaste(event: React.ClipboardEvent<HTMLDivElement>) {
     const items = event.clipboardData?.items;
     if (!items) return;
+    const files: File[] = [];
     for (let i = 0; i < items.length; i++) {
       const item = items[i];
       if (item.kind === "file" && item.type.startsWith("image/")) {
         const file = item.getAsFile();
-        if (file) {
-          event.preventDefault();
-          startFileSelection(file);
-          return;
-        }
+        if (file) files.push(file);
       }
+    }
+    if (files.length > 0) {
+      event.preventDefault();
+      enqueueSelection(files);
     }
   }
 
@@ -235,16 +330,21 @@ export function ImageBlockField({ block, onPatch }: ImageBlockFieldProps) {
       )
     : assets;
 
+  const isBulk = pendingQueue.length > 1;
+
   return (
     <div className="space-y-3 sm:col-span-2">
       <input
         ref={fileInputRef}
         type="file"
+        multiple
         accept="image/jpeg,image/png,image/webp"
         className="sr-only"
         aria-label="Pilih berkas gambar dari perangkat"
         onChange={(event) => {
-          startFileSelection(event.target.files?.[0]);
+          if (event.target.files?.length) {
+            enqueueSelection(event.target.files);
+          }
           event.target.value = "";
         }}
       />
@@ -273,7 +373,7 @@ export function ImageBlockField({ block, onPatch }: ImageBlockFieldProps) {
                 onClick={() => fileInputRef.current?.click()}
               >
                 <Upload className="size-3" aria-hidden="true" />
-                Ganti Gambar
+                Ganti / Tambah (maks. {MAX_BULK_PHOTOS})
               </Button>
               <Button
                 type="button"
@@ -314,7 +414,7 @@ export function ImageBlockField({ block, onPatch }: ImageBlockFieldProps) {
               (isDragging ? "border-verity-ink border-dashed" : "border-verity-rule")
             }
           >
-            {previewError ? (
+            {isCurrentUrlFailed ? (
               <div className="flex flex-col items-center gap-1.5 p-6 text-center text-verity-ink-faint">
                 <ImageOff className="size-6 stroke-[1.5]" aria-hidden="true" />
                 <p className="font-mono text-[11px]">Gambar tidak dapat dimuat dari URL ini.</p>
@@ -324,7 +424,9 @@ export function ImageBlockField({ block, onPatch }: ImageBlockFieldProps) {
                 src={safeUrl}
                 alt={block.alt || block.caption || "Pratinjau gambar artikel"}
                 className="max-h-72 w-full object-contain"
-                onError={() => setPreviewError(true)}
+                onError={() => {
+                  if (safeUrl) setFailedUrl(safeUrl);
+                }}
               />
             )}
           </div>
@@ -350,10 +452,10 @@ export function ImageBlockField({ block, onPatch }: ImageBlockFieldProps) {
             <Upload className="size-5 text-verity-ink-soft stroke-[1.6]" aria-hidden="true" />
             <div className="space-y-1">
               <p className="text-sm font-medium text-verity-ink">
-                Seret gambar ke sini, tempel (Ctrl+V), atau pilih langsung
+                Pilih 1 hingga {MAX_BULK_PHOTOS} foto, seret ke sini, atau tempel (Ctrl+V)
               </p>
               <p className="font-mono text-[10.5px] text-verity-ink-faint">
-                JPEG, PNG, WebP · Maksimal 5 MB · Tersimpan permanen ke Pustaka Media
+                JPEG, PNG, WebP · Maks. 5 MB/foto · Kualitas asli tanpa kompresi
               </p>
             </div>
             <div className="flex flex-wrap items-center justify-center gap-2 pt-1">
@@ -411,18 +513,22 @@ export function ImageBlockField({ block, onPatch }: ImageBlockFieldProps) {
         </div>
       )}
 
-      {/* Dialog Konfirmasi Atribusi & Upload */}
+      {/* Dialog Konfirmasi Atribusi & Upload (1 atau hingga 10 foto) */}
       <Dialog
-        open={pendingFile !== null}
+        open={pendingQueue.length > 0}
         onOpenChange={(open) => {
           if (!open && !uploading) resetPendingUpload();
         }}
       >
-        <DialogContent className="sm:max-w-lg">
+        <DialogContent className={isBulk ? "sm:max-w-2xl" : "sm:max-w-lg"}>
           <DialogHeader>
-            <DialogTitle className="font-serif">Unggah &amp; Sisipkan Gambar</DialogTitle>
+            <DialogTitle className="font-serif">
+              {isBulk
+                ? `Unggah & Sisipkan ${pendingQueue.length} Foto`
+                : "Unggah & Sisipkan Gambar"}
+            </DialogTitle>
             <DialogDescription>
-              Lengkapi kredit pembuat dan keterangan sesuai standar atribusi redaksi.
+              Berkas dikirim dalam kualitas asli (tanpa kompresi). Lengkapi atribusi sesuai standar redaksi.
             </DialogDescription>
           </DialogHeader>
 
@@ -437,21 +543,89 @@ export function ImageBlockField({ block, onPatch }: ImageBlockFieldProps) {
               </div>
             ) : null}
 
-            {pendingPreviewUrl && pendingFile ? (
-              <div className="flex items-center gap-3 border border-verity-rule bg-verity-paper-soft p-2.5">
-                <img
-                  src={pendingPreviewUrl}
-                  alt="Pratinjau berkas yang dipilih"
-                  className="size-16 shrink-0 border border-verity-rule bg-verity-paper object-cover"
-                />
-                <div className="min-w-0 flex-1 space-y-0.5">
-                  <p className="truncate text-xs font-medium text-verity-ink">{pendingFile.name}</p>
-                  <p className="font-mono text-[10.5px] text-verity-ink-faint">
-                    {pendingFile.type} · {formatBytes(pendingFile.size)}
-                  </p>
-                </div>
+            {/* Daftar berkas yang dipilih */}
+            <div className="space-y-2">
+              <div className="flex items-center justify-between">
+                <span className="font-mono text-[10px] uppercase tracking-[0.12em] text-verity-ink-faint">
+                  Antrean Berkas ({pendingQueue.length}/{MAX_BULK_PHOTOS}) · Original Quality
+                </span>
+                {!uploading && pendingQueue.length < MAX_BULK_PHOTOS ? (
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="sm"
+                    className="h-7 px-2 text-[11px]"
+                    onClick={() => fileInputRef.current?.click()}
+                  >
+                    <Upload className="size-3" aria-hidden="true" />
+                    Tambah Foto
+                  </Button>
+                ) : null}
               </div>
-            ) : null}
+
+              <ul className="max-h-52 divide-y divide-verity-rule overflow-y-auto border border-verity-rule bg-verity-paper-soft">
+                {pendingQueue.map((item, idx) => (
+                  <li key={item.id} className="flex flex-col gap-2 p-2.5 sm:flex-row sm:items-center">
+                    <div className="flex items-center gap-2.5 sm:w-52 shrink-0">
+                      <img
+                        src={item.previewUrl}
+                        alt={item.file.name}
+                        className="size-12 shrink-0 border border-verity-rule bg-verity-paper object-cover"
+                      />
+                      <div className="min-w-0 flex-1 space-y-0.5">
+                        <p className="truncate text-xs font-medium text-verity-ink" title={item.file.name}>
+                          {String(idx + 1).padStart(2, "0")}. {item.file.name}
+                        </p>
+                        <p className="font-mono text-[10px] text-verity-ink-faint">
+                          {formatFileBytes(item.file.size)}
+                        </p>
+                        {item.status === "uploading" ? (
+                          <span className="inline-flex items-center gap-1 font-mono text-[10px] text-verity-ink">
+                            <Loader2 className="size-3 animate-spin" aria-hidden="true" />
+                            Mengunggah…
+                          </span>
+                        ) : item.status === "success" ? (
+                          <span className="inline-flex items-center gap-1 font-mono text-[10px] text-verity-verified">
+                            <CheckCircle2 className="size-3" aria-hidden="true" />
+                            Tersisip
+                          </span>
+                        ) : item.status === "error" ? (
+                          <span className="block font-mono text-[10px] text-verity-disputed">
+                            {item.errorMessage}
+                          </span>
+                        ) : null}
+                      </div>
+                    </div>
+
+                    {isBulk ? (
+                      <div className="flex-1">
+                        <Input
+                          value={item.caption}
+                          disabled={uploading || item.status === "success"}
+                          onChange={(e) => patchPendingItem(item.id, { caption: e.target.value })}
+                          placeholder="Keterangan khusus foto (opsional)"
+                          className="h-8 bg-card text-xs"
+                          aria-label={`Keterangan untuk ${item.file.name}`}
+                        />
+                      </div>
+                    ) : null}
+
+                    {!uploading && pendingQueue.length > 1 ? (
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="icon"
+                        onClick={() => removePendingItem(item.id)}
+                        aria-label={`Hapus ${item.file.name}`}
+                        className="size-7 shrink-0 text-verity-ink-faint hover:text-verity-disputed"
+                      >
+                        <X className="size-3.5" aria-hidden="true" />
+                      </Button>
+                    ) : null}
+                  </li>
+                ))}
+              </ul>
+            </div>
 
             <div className="space-y-3">
               <div className="space-y-1.5">
@@ -461,6 +635,7 @@ export function ImageBlockField({ block, onPatch }: ImageBlockFieldProps) {
                 <Input
                   id={`${uid}-creator`}
                   value={creator}
+                  disabled={uploading}
                   onChange={(event) => setCreator(event.target.value)}
                   placeholder="Mis. Foto: Nama / Arsip Redaksi"
                   required
@@ -469,14 +644,15 @@ export function ImageBlockField({ block, onPatch }: ImageBlockFieldProps) {
 
               <div className="space-y-1.5">
                 <Label htmlFor={`${uid}-caption`} className="font-mono text-[10.5px] uppercase tracking-[0.1em]">
-                  Keterangan Gambar (Caption) *
+                  {isBulk ? "Keterangan Dasar Gambar (Caption) *" : "Keterangan Gambar (Caption) *"}
                 </Label>
                 <Input
                   id={`${uid}-caption`}
-                  value={caption}
-                  onChange={(event) => setCaption(event.target.value)}
+                  value={defaultCaption}
+                  disabled={uploading}
+                  onChange={(event) => setDefaultCaption(event.target.value)}
                   placeholder="Keterangan faktual yang tampil di bawah gambar"
-                  required
+                  required={!pendingQueue.every((item) => item.caption.trim().length > 0)}
                 />
               </div>
 
@@ -488,6 +664,7 @@ export function ImageBlockField({ block, onPatch }: ImageBlockFieldProps) {
                   <Input
                     id={`${uid}-alt`}
                     value={altText}
+                    disabled={uploading}
                     onChange={(event) => setAltText(event.target.value)}
                     placeholder="Opsional (otomatis dari keterangan)"
                   />
@@ -500,6 +677,7 @@ export function ImageBlockField({ block, onPatch }: ImageBlockFieldProps) {
                   <Input
                     id={`${uid}-license`}
                     value={license}
+                    disabled={uploading}
                     onChange={(event) => setLicense(event.target.value)}
                     placeholder="Mis. Arsip Redaksi, CC BY 4.0"
                   />
@@ -510,6 +688,7 @@ export function ImageBlockField({ block, onPatch }: ImageBlockFieldProps) {
                 <input
                   type="checkbox"
                   checked={isSynthetic}
+                  disabled={uploading}
                   onChange={(event) => setIsSynthetic(event.target.checked)}
                   className="size-4 rounded-xs border-verity-rule-strong text-verity-accent focus:ring-verity-accent"
                 />
@@ -536,7 +715,7 @@ export function ImageBlockField({ block, onPatch }: ImageBlockFieldProps) {
                 ) : (
                   <Upload className="size-4" aria-hidden="true" />
                 )}
-                Unggah &amp; Sisipkan
+                {isBulk ? `Unggah & Sisipkan ${pendingQueue.length} Foto` : "Unggah & Sisipkan"}
               </Button>
             </DialogFooter>
           </form>

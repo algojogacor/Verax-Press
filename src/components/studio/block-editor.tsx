@@ -109,6 +109,13 @@ export function BlockEditor({ blocks, onChange }: BlockEditorProps) {
     );
   }
 
+  function replaceWithImageBatch(index: number, items: Extract<ContentBlock, { type: "image" }>[]) {
+    if (items.length === 0) return;
+    const next = [...blocks];
+    next.splice(index, 1, ...items);
+    onChange(next);
+  }
+
   function moveBlock(index: number, direction: -1 | 1) {
     const target = index + direction;
     if (target < 0 || target >= blocks.length) return;
@@ -270,6 +277,7 @@ export function BlockEditor({ blocks, onChange }: BlockEditorProps) {
                 <ImageBlockField
                   block={block}
                   onPatch={(patch) => patchBlock(index, patch)}
+                  onReplaceWithBatch={(items) => replaceWithImageBatch(index, items)}
                 />
                 <div className="space-y-1.5">
                   <Label className="font-mono text-[10px] uppercase tracking-[0.12em]">Alt</Label>
