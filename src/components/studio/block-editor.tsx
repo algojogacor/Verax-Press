@@ -23,6 +23,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { articleContentSchema, type ContentBlock } from "@/lib/domain/content";
+import { ImageBlockField } from "@/components/studio/image-block-field";
 
 export type BlockType = ContentBlock["type"];
 
@@ -41,7 +42,7 @@ const BLOCK_TYPE_DESCRIPTIONS: Record<BlockType, string> = {
   heading: "Sub-judul bagian (level 2 atau 3).",
   quote: "Kutipan dengan atribusi narasumber.",
   list: "Daftar butir poin (simbol atau bernomor).",
-  image: "Gambar via URL, dengan alt, keterangan, dan kredit.",
+  image: "Unggah gambar langsung, pilih dari pustaka media, atau tempel URL.",
   note: "Kotak catatan konteks atau koreksi.",
   qa: "Pasangan pertanyaan dan jawaban.",
 };
@@ -266,15 +267,10 @@ export function BlockEditor({ blocks, onChange }: BlockEditorProps) {
 
             {block.type === "image" ? (
               <div className="grid gap-3 sm:grid-cols-2">
-                <div className="space-y-1.5 sm:col-span-2">
-                  <Label className="font-mono text-[10px] uppercase tracking-[0.12em]">URL</Label>
-                  <Input
-                    type="url"
-                    placeholder="https://…"
-                    value={block.url}
-                    onChange={(event) => patchBlock(index, { url: event.target.value })}
-                  />
-                </div>
+                <ImageBlockField
+                  block={block}
+                  onPatch={(patch) => patchBlock(index, patch)}
+                />
                 <div className="space-y-1.5">
                   <Label className="font-mono text-[10px] uppercase tracking-[0.12em]">Alt</Label>
                   <Input

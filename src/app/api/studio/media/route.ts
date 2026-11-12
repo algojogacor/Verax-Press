@@ -3,7 +3,7 @@
 import { db } from "@/lib/db";
 import { requireSession, ok, jsonError, ApiError } from "@/lib/api";
 import { writeAudit } from "@/lib/domain/audit";
-import { uploadToMediaStorage, deleteFromMediaStorage } from "@/lib/media-client";
+import { uploadToMediaStorage, deleteFromMediaStorage, isMediaConfigured } from "@/lib/media-client";
 import crypto from "node:crypto";
 import { writeFile, mkdir } from "node:fs/promises";
 import { existsSync } from "node:fs";
@@ -94,17 +94,30 @@ export async function POST(req: Request) {
     // Save file: Use remote persistent VM storage when configured, fallback to local uploads for dev.
     let url: string;
     let storageKey: string;
+    const hasRemoteMediaUrl = Boolean(
+      process.env.VERAX_MEDIA_API_URL?.replace(/[\uFEFF\u200B-\u200D\u2060]/g, "").trim(),
+    );
 
-    if (process.env.VERAX_MEDIA_API_URL) {
+    if (hasRemoteMediaUrl || isMediaConfigured()) {
       const ext = MIME_TO_EXT[finalMime];
-      const remote = await uploadToMediaStorage({
-        buffer,
-        filename: file.name || `asset.${ext}`,
-        mimeType: finalMime,
-        visibility: "public",
-        category: "articles",
-        uploadedBy: user.id,
-      });
+      let remote: Awaited<ReturnType<typeof uploadToMediaStorage>>;
+      try {
+        remote = await uploadToMediaStorage({
+          buffer,
+          filename: file.name || `asset.${ext}`,
+          mimeType: finalMime,
+          visibility: "public",
+          category: "articles",
+          uploadedBy: user.id,
+        });
+      } catch (storageErr) {
+        console.error("[media.upload] remote storage error:", storageErr);
+        throw new ApiError(
+          502,
+          "MEDIA_STORAGE_ERROR",
+          "Gagal mengunggah berkas ke server penyimpanan media. Periksa konfigurasi atau coba lagi nanti.",
+        );
+      }
       url = remote.publicUrl || `/uploads/${remote.storedFilename}`;
       storageKey = `media/${remote.id}`;
 
@@ -144,6 +157,12 @@ export async function POST(req: Request) {
         }
         throw dbErr;
       }
+    } else if (process.env.VERCEL === "1") {
+      throw new ApiError(
+        503,
+        "MEDIA_NOT_CONFIGURED",
+        "Penyimpanan media jarak jauh belum dikonfigurasi pada lingkungan produksi.",
+      );
     } else {
       if (!existsSync(UPLOAD_DIR)) await mkdir(UPLOAD_DIR, { recursive: true });
       const ext = MIME_TO_EXT[finalMime];

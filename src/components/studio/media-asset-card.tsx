@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { ImageOff, Sparkles } from "lucide-react";
+import { Check, Copy, ImageOff, Sparkles } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { safeMediaSrcUrl } from "@/lib/url";
 
@@ -27,7 +27,19 @@ export function MediaAssetCard({
   createdAt,
 }: MediaAssetCardProps) {
   const [hasError, setHasError] = useState(false);
+  const [copied, setCopied] = useState(false);
   const safeUrl = safeMediaSrcUrl(url);
+
+  async function handleCopyUrl() {
+    if (!safeUrl || typeof navigator === "undefined" || !navigator.clipboard) return;
+    try {
+      await navigator.clipboard.writeText(safeUrl);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 1800);
+    } catch {
+      // Abaikan jika clipboard ditolak peramban
+    }
+  }
 
   return (
     <li className="border border-verity-rule bg-card overflow-hidden transition-colors hover:border-verity-rule-strong">
@@ -72,9 +84,30 @@ export function MediaAssetCard({
             {creator ? `${creator} · ` : ""}
             <span className="text-verity-ink-faint">{license ?? "tanpa lisensi"}</span>
           </p>
-          <div className="flex items-center justify-between font-mono text-[10px] text-verity-ink-faint">
-            <span className="truncate max-w-[140px]" title={id}>{id}</span>
-            <span>{createdAt}</span>
+          <div className="flex items-center justify-between gap-2 font-mono text-[10px] text-verity-ink-faint">
+            <span className="truncate max-w-[120px]" title={id}>{id}</span>
+            <div className="flex items-center gap-2">
+              {safeUrl ? (
+                <button
+                  type="button"
+                  onClick={handleCopyUrl}
+                  className="inline-flex items-center gap-1 border border-verity-rule px-1.5 py-0.5 text-[9.5px] uppercase tracking-[0.08em] text-verity-ink-soft transition-colors hover:border-verity-ink hover:text-verity-ink"
+                >
+                  {copied ? (
+                    <>
+                      <Check className="size-2.5 text-verity-verified" aria-hidden="true" />
+                      Tersalin
+                    </>
+                  ) : (
+                    <>
+                      <Copy className="size-2.5" aria-hidden="true" />
+                      Salin URL
+                    </>
+                  )}
+                </button>
+              ) : null}
+              <span>{createdAt}</span>
+            </div>
           </div>
         </div>
       </div>

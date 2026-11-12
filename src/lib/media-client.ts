@@ -27,17 +27,47 @@ export interface UploadMediaResult {
   createdAt: string;
 }
 
+const INVISIBLE_ENV_CHARS_RE = /[\uFEFF\u200B-\u200D\u2060]/g;
+const REQUEST_TIMEOUT_MS = 30_000;
+
+function sanitizeEnvValue(raw: string | undefined): string {
+  return (raw ?? "").replace(INVISIBLE_ENV_CHARS_RE, "").trim();
+}
+
 export function isMediaConfigured(): boolean {
-  return Boolean(process.env.VERAX_MEDIA_API_URL && process.env.VERAX_MEDIA_SECRET);
+  return Boolean(
+    sanitizeEnvValue(process.env.VERAX_MEDIA_API_URL) &&
+      sanitizeEnvValue(process.env.VERAX_MEDIA_SECRET),
+  );
 }
 
 function getMediaConfig() {
-  const apiUrl = process.env.VERAX_MEDIA_API_URL;
-  const secret = process.env.VERAX_MEDIA_SECRET;
+  const apiUrl = sanitizeEnvValue(process.env.VERAX_MEDIA_API_URL).replace(/\/+$/, "");
+  const secret = sanitizeEnvValue(process.env.VERAX_MEDIA_SECRET);
   if (!apiUrl || !secret) {
     throw new Error('VERAX_MEDIA_API_URL and VERAX_MEDIA_SECRET must be configured');
   }
-  return { apiUrl: apiUrl.replace(/\/$/, ''), secret };
+  try {
+    const parsed = new URL(apiUrl);
+    if (parsed.protocol !== 'http:' && parsed.protocol !== 'https:') {
+      throw new Error(`Unsupported protocol: ${parsed.protocol}`);
+    }
+  } catch (err) {
+    throw new Error(
+      `VERAX_MEDIA_API_URL is invalid (${err instanceof Error ? err.message : 'parse error'})`,
+    );
+  }
+  return { apiUrl, secret };
+}
+
+async function readJsonSafe(res: Response): Promise<Record<string, unknown> | null> {
+  const text = await res.text();
+  if (!text) return null;
+  try {
+    return JSON.parse(text) as Record<string, unknown>;
+  } catch {
+    return null;
+  }
 }
 
 export function generateMediaAuthHeaders(options: {
@@ -92,10 +122,11 @@ export async function uploadToMediaStorage(params: UploadMediaParams): Promise<U
     category: params.category || 'articles',
   });
 
+  const safeFilename = params.filename.replace(/[\r\n"\\]/g, '_');
   const boundary = `----VeraxMediaBoundary${crypto.randomBytes(8).toString('hex')}`;
   const head = Buffer.from(
     `--${boundary}\r\n` +
-    `Content-Disposition: form-data; name="file"; filename="${params.filename}"\r\n` +
+    `Content-Disposition: form-data; name="file"; filename="${safeFilename}"\r\n` +
     `Content-Type: ${params.mimeType}\r\n\r\n`
   );
   const tail = Buffer.from(`\r\n--${boundary}--\r\n`);
@@ -109,14 +140,19 @@ export async function uploadToMediaStorage(params: UploadMediaParams): Promise<U
       ...authHeaders,
     },
     body,
+    signal: AbortSignal.timeout(REQUEST_TIMEOUT_MS),
   });
 
-  const data = await res.json();
+  const data = await readJsonSafe(res);
   if (!res.ok) {
-    throw new Error(data?.error || `Media storage upload failed with HTTP ${res.status}`);
+    const remoteError = typeof data?.error === 'string' ? data.error : null;
+    throw new Error(remoteError || `Media storage upload failed with HTTP ${res.status}`);
+  }
+  if (!data) {
+    throw new Error(`Media storage returned empty or non-JSON response (HTTP ${res.status})`);
   }
 
-  return data as UploadMediaResult;
+  return data as unknown as UploadMediaResult;
 }
 
 export async function deleteFromMediaStorage(id: string, uploadedBy: string = 'system'): Promise<void> {
