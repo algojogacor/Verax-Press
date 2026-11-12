@@ -8,6 +8,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { VeraxMark } from "@/components/site/verax-mark";
+import { VeraxWordmark } from "@/components/site/verax-wordmark";
 
 export function ContributorApplicationClient() {
   const [name, setName] = useState("");
@@ -84,10 +85,11 @@ export function ContributorApplicationClient() {
         <div className="max-w-4xl mx-auto flex items-center justify-between gap-4">
           <Link
             href="/"
-            className="inline-flex items-center gap-2.5 font-serif text-xl font-bold tracking-tight text-verity-ink transition-colors hover:text-verity-accent focus-visible:outline-2 focus-visible:outline-verity-accent sm:text-2xl"
+            className="inline-flex items-center gap-2.5 text-verity-ink transition-colors hover:text-verity-accent focus-visible:outline-2 focus-visible:outline-verity-accent"
           >
             <VeraxMark className="size-6 shrink-0 sm:size-7" />
-            <span>Verax Press</span>
+            <VeraxWordmark className="h-[1.45rem] w-auto sm:h-[1.6rem]" />
+            <span className="sr-only">Verax Press</span>
           </Link>
           <Link
             href="/pedoman-kontributor"

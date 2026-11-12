@@ -15,6 +15,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { apiFetch, apiErrorMessage } from "@/components/studio/api";
 import { VeraxMark } from "@/components/site/verax-mark";
+import { VeraxWordmark } from "@/components/site/verax-wordmark";
 
 interface InvitationData {
   name: string;
@@ -95,9 +96,8 @@ export function StaffActivationClient({ token }: { token: string }) {
           className="inline-flex items-center justify-center gap-2.5 text-verity-ink transition-colors hover:text-verity-accent focus-visible:outline-2 focus-visible:outline-verity-accent"
         >
           <VeraxMark className="size-7 shrink-0" />
-          <span className="font-serif text-2xl font-bold tracking-tight">
-            Verax Press
-          </span>
+          <VeraxWordmark className="h-[1.6rem] w-auto" />
+          <span className="sr-only">Verax Press</span>
         </Link>
         <p className="font-mono text-[11px] uppercase tracking-[0.16em] text-verity-ink-soft mt-1">
           Ex Fontibus Veritas · Ruang Redaksi

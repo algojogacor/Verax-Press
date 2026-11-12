@@ -8,6 +8,7 @@ import { getActiveDesks } from "@/lib/domain/desks";
 import { formatMastheadDate } from "@/lib/format";
 import { DeskNav, type NavItem } from "@/components/site/desk-nav";
 import { SiteMobileNav } from "@/components/site/site-mobile-nav";
+import { VeraxWordmark } from "@/components/site/verax-wordmark";
 
 export async function Masthead() {
   const desks = await getActiveDesks();
@@ -99,10 +100,11 @@ export async function Masthead() {
             </p>
             <Link
               href="/"
-              className="mt-1 block font-serif text-[1.65rem] font-semibold leading-none tracking-[0.16em] text-verity-ink"
+              className="mt-1.5 inline-flex justify-center text-verity-ink transition-colors hover:text-verity-accent"
               aria-label="Verax Press, halaman utama"
             >
-              VERAX PRESS
+              <VeraxWordmark className="h-[2.1rem] w-auto max-w-full" />
+              <span className="sr-only">VERAX PRESS</span>
             </Link>
           </div>
           <div className="w-9" aria-hidden="true" />
@@ -125,11 +127,11 @@ export async function Masthead() {
           </div>
           <Link
             href="/"
-            className="mt-4 block text-center font-serif text-[2.6rem] font-semibold leading-none tracking-[0.24em] text-verity-ink pl-[0.24em] lg:text-[3rem]"
-            style={{ fontOpticalSizing: "auto" }}
+            className="mt-4 flex justify-center text-verity-ink transition-colors hover:text-verity-accent"
             aria-label="Verax Press, halaman utama"
           >
-            VERAX PRESS
+            <VeraxWordmark className="h-[3.25rem] w-auto lg:h-[3.75rem]" />
+            <span className="sr-only">VERAX PRESS</span>
           </Link>
         </div>
 

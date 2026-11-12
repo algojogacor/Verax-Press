@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { getActiveDesks } from "@/lib/domain/desks";
 import { VeraxMark } from "@/components/site/verax-mark";
+import { VeraxWordmark } from "@/components/site/verax-wordmark";
 
 export async function SiteFooter() {
   const desks = await getActiveDesks();
@@ -19,9 +20,8 @@ export async function SiteFooter() {
             >
               <VeraxMark className="size-8 shrink-0" />
               <span>
-                <span className="block font-serif text-xl font-semibold leading-none tracking-[0.22em]">
-                  VERAX PRESS
-                </span>
+                <VeraxWordmark className="block h-[1.65rem] w-auto" />
+                <span className="sr-only">VERAX PRESS</span>
                 <span className="mt-1.5 block font-mono text-[10px] uppercase tracking-[0.24em] text-verity-ink-faint">
                   Ex Fontibus Veritas
                 </span>

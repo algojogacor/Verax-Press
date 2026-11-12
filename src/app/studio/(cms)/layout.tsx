@@ -27,6 +27,7 @@ import { ROLE_LABELS } from "@/lib/domain/constants";
 import type { SessionUser } from "@/types/verity";
 import { cn } from "@/lib/utils";
 import { VeraxMark } from "@/components/site/verax-mark";
+import { VeraxWordmark } from "@/components/site/verax-wordmark";
 
 interface DashboardData {
   user: SessionUser;
@@ -160,10 +161,11 @@ export default function CmsLayout({ children }: { children: React.ReactNode }) {
                 <div className="flex items-center gap-2.5">
                   <VeraxMark className="size-7 shrink-0 text-verity-ink" />
                   <div>
-                    <SheetTitle className="font-serif text-lg font-semibold leading-tight tracking-tight text-verity-ink">
-                      Verax Press
+                    <SheetTitle className="text-verity-ink">
+                      <VeraxWordmark className="h-[1.35rem] w-auto" />
+                      <span className="sr-only">Verax Press</span>
                     </SheetTitle>
-                    <p className="mt-0.5 font-mono text-[11px] uppercase tracking-[0.12em] text-verity-ink-soft">
+                    <p className="mt-1 font-mono text-[11px] uppercase tracking-[0.12em] text-verity-ink-soft">
                       Ruang Redaksi
                     </p>
                   </div>
@@ -177,9 +179,10 @@ export default function CmsLayout({ children }: { children: React.ReactNode }) {
               </div>
             </SheetContent>
           </Sheet>
-          <span className="inline-flex items-center gap-2 font-serif text-lg font-semibold tracking-tight text-verity-ink">
+          <span className="inline-flex items-center gap-2 text-verity-ink">
             <VeraxMark className="size-5 shrink-0" />
-            Verax Press
+            <VeraxWordmark className="h-[1.35rem] w-auto" />
+            <span className="sr-only">Verax Press</span>
           </span>
         </div>
         <span className="font-mono text-[11px] uppercase tracking-[0.14em] text-verity-ink-soft">
@@ -198,9 +201,8 @@ export default function CmsLayout({ children }: { children: React.ReactNode }) {
               >
                 <VeraxMark className="size-7 shrink-0" />
                 <span>
-                  <span className="block font-serif text-xl font-semibold leading-none tracking-tight">
-                    Verax Press
-                  </span>
+                  <VeraxWordmark className="block h-[1.45rem] w-auto" />
+                  <span className="sr-only">Verax Press</span>
                   <span className="mt-1.5 block font-mono text-[11px] uppercase tracking-[0.14em] text-verity-ink-soft">
                     Ruang Redaksi
                   </span>

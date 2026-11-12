@@ -16,6 +16,7 @@ import {
   BookOpen,
 } from "lucide-react";
 import { VeraxMark } from "@/components/site/verax-mark";
+import { VeraxWordmark } from "@/components/site/verax-wordmark";
 
 function PortalHeader() {
   const pathname = usePathname();
@@ -38,9 +39,8 @@ function PortalHeader() {
                 className="flex items-center gap-2 text-verity-ink transition-colors hover:text-verity-accent focus-visible:outline-2 focus-visible:outline-verity-accent sm:gap-2.5"
               >
                 <VeraxMark className="size-5 shrink-0 sm:size-6" />
-                <span className="font-serif text-lg font-bold tracking-tight whitespace-nowrap sm:text-xl">
-                  VERAX PRESS
-                </span>
+                <VeraxWordmark className="h-[1.35rem] w-auto sm:h-[1.5rem]" />
+                <span className="sr-only">VERAX PRESS</span>
                 <span className="font-mono text-[9.5px] uppercase tracking-widest text-verity-accent font-semibold px-1.5 py-0.5 rounded-xs bg-verity-paper-soft border border-verity-rule whitespace-nowrap sm:text-[10px] sm:px-2">
                   KONTRIBUTOR
                 </span>

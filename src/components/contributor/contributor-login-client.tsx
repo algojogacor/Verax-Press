@@ -9,6 +9,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { AlertCircle, Loader2, PenTool, CheckCircle2 } from "lucide-react";
 import { VeraxMark } from "@/components/site/verax-mark";
+import { VeraxWordmark } from "@/components/site/verax-wordmark";
 
 function ContributorLoginForm() {
   const router = useRouter();
@@ -65,9 +66,11 @@ function ContributorLoginForm() {
         </p>
         <Link
           href="/"
-          className="mt-1.5 inline-block font-serif text-[2.2rem] font-semibold tracking-[0.2em] text-verity-ink hover:text-verity-accent transition-colors focus-visible:outline-2 focus-visible:outline-verity-accent"
+          className="mt-2 inline-flex justify-center text-verity-ink hover:text-verity-accent transition-colors focus-visible:outline-2 focus-visible:outline-verity-accent"
+          aria-label="Verax Press, halaman utama"
         >
-          VERAX PRESS
+          <VeraxWordmark className="h-[2.6rem] w-auto sm:h-[2.9rem]" />
+          <span className="sr-only">VERAX PRESS</span>
         </Link>
         <p className="mt-1 font-mono text-[11px] uppercase tracking-[0.16em] text-verity-ink-soft">
           Portal Penulis Kontributor Eksternal

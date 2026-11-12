@@ -7,6 +7,7 @@ import { ShieldCheck, AlertCircle, CheckCircle2, Loader2, ArrowRight } from "luc
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { VeraxMark } from "@/components/site/verax-mark";
+import { VeraxWordmark } from "@/components/site/verax-wordmark";
 
 interface InvitationData {
   name: string;
@@ -111,9 +112,8 @@ export function ContributorActivationClient({ token }: { token: string }) {
           className="inline-flex items-center justify-center gap-2.5 text-verity-ink transition-colors hover:text-verity-accent focus-visible:outline-2 focus-visible:outline-verity-accent"
         >
           <VeraxMark className="size-7 shrink-0" />
-          <span className="font-serif text-2xl font-bold tracking-tight">
-            Verax Press
-          </span>
+          <VeraxWordmark className="h-[1.6rem] w-auto" />
+          <span className="sr-only">Verax Press</span>
         </Link>
       </header>
 

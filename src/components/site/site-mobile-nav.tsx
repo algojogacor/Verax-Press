@@ -6,6 +6,7 @@ import Link from "next/link";
 import { Menu, X } from "lucide-react";
 import type { NavItem } from "@/components/site/desk-nav";
 import { VeraxMark } from "@/components/site/verax-mark";
+import { VeraxWordmark } from "@/components/site/verax-wordmark";
 
 export function SiteMobileNav({ items = [] }: { items?: NavItem[] }) {
   const [open, setOpen] = useState(false);
@@ -63,9 +64,10 @@ export function SiteMobileNav({ items = [] }: { items?: NavItem[] }) {
             className="fixed inset-x-0 top-0 z-50 max-h-[85vh] overflow-y-auto border-b-2 border-verity-ink bg-verity-paper shadow-xl sm:hidden"
           >
             <div className="flex items-center justify-between border-b border-verity-rule px-4 py-3">
-              <span className="inline-flex items-center gap-2 font-serif text-sm font-semibold tracking-[0.2em] text-verity-ink">
+              <span className="inline-flex items-center gap-2 text-verity-ink">
                 <VeraxMark className="size-5 shrink-0" />
-                VERAX PRESS
+                <VeraxWordmark className="h-[1.35rem] w-auto" />
+                <span className="sr-only">VERAX PRESS</span>
               </span>
               <button
                 type="button"
