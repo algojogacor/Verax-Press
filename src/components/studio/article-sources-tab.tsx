@@ -3,7 +3,7 @@
 
 import { useState } from "react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
-import { ExternalLink, Loader2, Plus, Trash2 } from "lucide-react";
+import { CheckCheck, ExternalLink, Loader2, Plus, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -67,6 +67,9 @@ export function ArticleSourcesTab({ article }: { article: ArticleDetailDTO }) {
   const [verifyTarget, setVerifyTarget] = useState<{ source: SourceDTO; status: "VERIFIED" | "DISPUTED" } | null>(null);
   const [verifyNote, setVerifyNote] = useState("");
   const [deleteTarget, setDeleteTarget] = useState<SourceDTO | null>(null);
+  const [batchOpen, setBatchOpen] = useState(false);
+  const [batchNote, setBatchNote] = useState("");
+  const [batchMarkKey, setBatchMarkKey] = useState(false);
 
   function applyDetail(data: ArticleDetailDTO) {
     queryClient.setQueryData(["article", article.id], data);
@@ -107,6 +110,31 @@ export function ArticleSourcesTab({ article }: { article: ArticleDetailDTO }) {
     },
     onError: (error) => {
       toast({ title: "Gagal memverifikasi", description: apiErrorMessage(error), variant: "destructive" });
+    },
+  });
+
+  const verifyAllMutation = useMutation({
+    mutationFn: (payload: { note?: string; markAsKeySources?: boolean }) =>
+      apiFetch<ArticleDetailDTO>(`/api/studio/articles/${article.id}/sources/verify-all`, {
+        method: "POST",
+        body: JSON.stringify(payload),
+      }),
+    onSuccess: (data) => {
+      applyDetail(data);
+      queryClient.invalidateQueries({ queryKey: ["dashboard"] });
+      setBatchOpen(false);
+      setBatchNote("");
+      toast({
+        title: "Semua sumber berhasil diverifikasi",
+        description: "Status verifikasi seluruh sumber referensi telah diperbarui.",
+      });
+    },
+    onError: (error) => {
+      toast({
+        title: "Gagal memverifikasi semua sumber",
+        description: apiErrorMessage(error),
+        variant: "destructive",
+      });
     },
   });
 
@@ -153,6 +181,11 @@ export function ArticleSourcesTab({ article }: { article: ArticleDetailDTO }) {
     });
   }
 
+  const canVerifyAny = article.sources.some((s) => s.canVerify);
+  const unverifiedSources = article.sources.filter(
+    (s) => s.verificationStatus !== "VERIFIED",
+  );
+
   return (
     <div className="space-y-5">
       <div className="flex flex-wrap items-center justify-between gap-3">
@@ -162,10 +195,33 @@ export function ArticleSourcesTab({ article }: { article: ArticleDetailDTO }) {
             {article.keySourceCount} sumber kunci · {article.unverifiedKeySourceCount} belum diverifikasi
           </p>
         </div>
-        <Button variant="outline" onClick={() => setAddOpen(true)}>
-          <Plus className="size-4" aria-hidden="true" />
-          Tambah Sumber
-        </Button>
+        <div className="flex flex-wrap items-center gap-2">
+          {canVerifyAny && unverifiedSources.length > 0 ? (
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              disabled={verifyAllMutation.isPending}
+              onClick={() => {
+                setBatchNote("");
+                setBatchMarkKey(article.keySourceCount === 0);
+                setBatchOpen(true);
+              }}
+              className="border-verity-verified/40 text-verity-ink hover:border-verity-verified hover:bg-verity-verified/5"
+            >
+              {verifyAllMutation.isPending ? (
+                <Loader2 className="size-4 animate-spin" aria-hidden="true" />
+              ) : (
+                <CheckCheck className="size-4 text-verity-verified" aria-hidden="true" />
+              )}
+              Verifikasi Semua ({unverifiedSources.length})
+            </Button>
+          ) : null}
+          <Button variant="outline" size="sm" onClick={() => setAddOpen(true)}>
+            <Plus className="size-4" aria-hidden="true" />
+            Tambah Sumber
+          </Button>
+        </div>
       </div>
 
       {article.sources.length === 0 ? (
@@ -440,6 +496,79 @@ export function ArticleSourcesTab({ article }: { article: ArticleDetailDTO }) {
               Simpan
             </Button>
           </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Dialog: verifikasi semua sumber */}
+      <Dialog open={batchOpen} onOpenChange={(open) => (!verifyAllMutation.isPending ? setBatchOpen(open) : undefined)}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle className="font-serif">Verifikasi Semua Sumber</DialogTitle>
+            <DialogDescription>
+              Tandai {unverifiedSources.length} sumber referensi yang belum diverifikasi menjadi Terverifikasi secara serentak.
+            </DialogDescription>
+          </DialogHeader>
+
+          <form
+            onSubmit={(e) => {
+              e.preventDefault();
+              verifyAllMutation.mutate({
+                note: batchNote.trim() ? batchNote.trim() : undefined,
+                markAsKeySources: batchMarkKey,
+              });
+            }}
+            className="space-y-4"
+          >
+            <div className="space-y-2">
+              <Label htmlFor="batch-verify-note">Catatan verifikasi (opsional)</Label>
+              <Textarea
+                id="batch-verify-note"
+                rows={2}
+                placeholder="Mis. Seluruh dokumen rujukan primer telah diperiksa meja redaksi."
+                value={batchNote}
+                onChange={(e) => setBatchNote(e.target.value)}
+              />
+            </div>
+
+            <div className="rounded border border-verity-rule bg-verity-paper-soft p-3 space-y-1.5">
+              <div className="flex items-center gap-2.5">
+                <Switch
+                  id="batch-mark-key"
+                  checked={batchMarkKey}
+                  onCheckedChange={setBatchMarkKey}
+                />
+                <Label htmlFor="batch-mark-key" className="cursor-pointer text-sm font-medium text-verity-ink">
+                  Tandai juga sebagai Sumber Kunci
+                </Label>
+              </div>
+              <p className="font-mono text-[10.5px] leading-relaxed text-verity-ink-faint pl-9">
+                Publikasi mensyaratkan minimal 1 sumber kunci terverifikasi sebelum naskah dapat diterbitkan.
+              </p>
+            </div>
+
+            <DialogFooter>
+              <Button
+                type="button"
+                variant="outline"
+                disabled={verifyAllMutation.isPending}
+                onClick={() => setBatchOpen(false)}
+              >
+                Batal
+              </Button>
+              <Button
+                type="submit"
+                disabled={verifyAllMutation.isPending}
+                className="bg-verity-ink text-verity-paper hover:bg-verity-ink/90"
+              >
+                {verifyAllMutation.isPending ? (
+                  <Loader2 className="size-4 animate-spin" aria-hidden="true" />
+                ) : (
+                  <CheckCheck className="size-4" aria-hidden="true" />
+                )}
+                Verifikasi Semua
+              </Button>
+            </DialogFooter>
+          </form>
         </DialogContent>
       </Dialog>
 
