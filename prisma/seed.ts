@@ -12,6 +12,7 @@ import { readFileSync, existsSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { hashPassword } from "../src/lib/password";
 import { hashClientSecret, generateClientCredential } from "../src/lib/api-key";
+import { AI_PLACEHOLDER_BYLINE } from "../src/lib/domain/constants";
 
 const db = new PrismaClient();
 
@@ -221,7 +222,7 @@ async function main() {
     create: {
       username: "chief",
       email: CHIEF_EMAIL,
-      name: "Ratna Dewanti",
+      name: "Arya Rizky Ardhi Pratama",
       role: "CHIEF_EDITOR",
       passwordHash: hashPassword(envPassword("VERITY_SEED_PASSWORD_CHIEF", "VerityChief!2026")),
     },
@@ -463,7 +464,7 @@ async function main() {
     firstPublishedAt: daysAgo(1, 10),
     content: [
       p("Setiap kali sebuah media baru diluncurkan, pertanyaan pertama saya bukan tentang desainnya, melainkan tentang dapurnya: siapa yang memeriksa fakta, bagaimana kesalahan ditangani, dan apakah pembaca bisa menelusuri klaim hingga ke sumbernya."),
-      p("Di titik itulah media independen punya peluang sekaligus beban. Pelanggannya: tanpa tekanan komersial pemilik besar, redaksi bekerja untuk pembaca. bebannya: tanpa nama besar yang diwariskan, kepercayaan harus dibangun dari nol, artikel demi artikel."),
+      p("Di titik itulah media independen punya peluang sekaligus beban. Peluangnya: tanpa tekanan komersial pemilik besar, redaksi bekerja untuk pembaca. Bebannya: tanpa nama besar yang diwariskan, kepercayaan harus dibangun dari nol, artikel demi artikel."),
       h2("Transparansi bukan gaya, melainkan infrastruktur"),
       p("Menampilkan daftar sumber dan status verifikasinya di setiap artikel terasa tidak lazim. Tetapi saya berpendapat itu akan menjadi standar baru media yang serius. Pembaca dewasa tidak butuh dilindungi dari kerumitan; mereka butuh alat untuk menilai sendiri."),
       quote("Kejujuran tentang proses adalah bentuk rasa hormat yang paling mendasar kepada pembaca.", "Catatan penulis"),
@@ -514,7 +515,7 @@ async function main() {
       note("Catatan proses", "Artikel ini sendiri melewati kelima tahap tersebut; riwayat versi dan keputusannya tercatat pada sistem redaksi."),
     ],
     sources: [
-      { title: "Kode Etik Jurnalistik (Peraturan Dewan Pers No. 6/Peraturan-DP/V/2008)", publisher: "Dewan Pers", url: "https://jdih.dewanpers.or.id/dokumen/peraturan/peraturan-dewan-pers-nomor-6peraturan-dpv2008-tentang-surat-keputusan-dewan-pers-nomor-03sk-dpiii2006-tentang-kode-etik-jurnalistik-sebagai-peraturan-dewan-pers", sourceType: "OFFICIAL", supports: "Kewajiban verifikasi dan pembedaan fakta-opini yang menjadi dasar alur editorial.", isKeySource: true, verificationStatus: "VERIFIED" },
+      { title: "Kode Etik Jurnalistik (Peraturan Dewan Pers No. 6/Peraturan-DP/V/2008)", publisher: "Dewan Pers", url: "https://jdih.dewanpers.or.id/dokumen/peraturan/peraturan-dewan-pers-nomor-6peraturan-dpv2008-tentang-pengesahan-surat-keputusan-dewan-pers-nomor-03sk-dpiii2006-tentang-kode-etik-jurnalistik-sebagai-peraturan-dewan-pers", sourceType: "OFFICIAL", supports: "Kewajiban verifikasi dan pembedaan fakta-opini yang menjadi dasar alur editorial.", isKeySource: true, verificationStatus: "VERIFIED" },
       { title: "Pedoman Pemberitaan Media Siber (2012)", publisher: "Dewan Pers", url: "https://www.dewanpers.or.id/assets/documents/pedoman/1907090253_-2012_PEDOMAN_PEMBERITAAN_MEDIA_SIBER.pdf", sourceType: "OFFICIAL", supports: "Standar penyuntingan dan koreksi pemberitaan siber.", isKeySource: false, verificationStatus: "VERIFIED" },
     ],
     verifiedByStaffId: editor.id,
@@ -641,7 +642,7 @@ async function main() {
       p("Tulisan ini adalah opini. Saya tidak menuntut semua media meniru Verax Press — saya hanya menuntut mereka berhenti berpura-pura bahwa kecepatan masih menggantikan ketelitian."),
     ],
     sources: [
-      { title: "Kode Etik Jurnalistik (Peraturan Dewan Pers No. 6/Peraturan-DP/V/2008)", publisher: "Dewan Pers", url: "https://jdih.dewanpers.or.id/dokumen/peraturan/peraturan-dewan-pers-nomor-6peraturan-dpv2008-tentang-surat-keputusan-dewan-pers-nomor-03sk-dpiii2006-tentang-kode-etik-jurnalistik-sebagai-peraturan-dewan-pers", sourceType: "OFFICIAL", supports: "Rujukan etika verifikasi informasi yang dikutip penulis.", isKeySource: true, verificationStatus: "VERIFIED" },
+      { title: "Kode Etik Jurnalistik (Peraturan Dewan Pers No. 6/Peraturan-DP/V/2008)", publisher: "Dewan Pers", url: "https://jdih.dewanpers.or.id/dokumen/peraturan/peraturan-dewan-pers-nomor-6peraturan-dpv2008-tentang-pengesahan-surat-keputusan-dewan-pers-nomor-03sk-dpiii2006-tentang-kode-etik-jurnalistik-sebagai-peraturan-dewan-pers", sourceType: "OFFICIAL", supports: "Rujukan etika verifikasi informasi yang dikutip penulis.", isKeySource: true, verificationStatus: "VERIFIED" },
     ],
     verifiedByStaffId: editor.id,
     contributions: [
@@ -681,7 +682,7 @@ async function main() {
     ],
     sources: [
       { title: "UU No. 40 Tahun 1999 tentang Pers", publisher: "BPK RI", url: "https://peraturan.bpk.go.id/Details/45370/uu-no-40-tahun-1999", sourceType: "OFFICIAL", supports: "Kerangka kebebasan pers dan tanggung jawab pers yang dirujuk piagam redaksi.", isKeySource: true, verificationStatus: "VERIFIED" },
-      { title: "Kode Etik Jurnalistik (Peraturan Dewan Pers No. 6/Peraturan-DP/V/2008)", publisher: "Dewan Pers", url: "https://jdih.dewanpers.or.id/dokumen/peraturan/peraturan-dewan-pers-nomor-6peraturan-dpv2008-tentang-surat-keputusan-dewan-pers-nomor-03sk-dpiii2006-tentang-kode-etik-jurnalistik-sebagai-peraturan-dewan-pers", sourceType: "OFFICIAL", supports: "Standar etika yang diadopsi standar editorial internal.", isKeySource: false, verificationStatus: "VERIFIED" },
+      { title: "Kode Etik Jurnalistik (Peraturan Dewan Pers No. 6/Peraturan-DP/V/2008)", publisher: "Dewan Pers", url: "https://jdih.dewanpers.or.id/dokumen/peraturan/peraturan-dewan-pers-nomor-6peraturan-dpv2008-tentang-pengesahan-surat-keputusan-dewan-pers-nomor-03sk-dpiii2006-tentang-kode-etik-jurnalistik-sebagai-peraturan-dewan-pers", sourceType: "OFFICIAL", supports: "Standar etika yang diadopsi standar editorial internal.", isKeySource: false, verificationStatus: "VERIFIED" },
     ],
     verifiedByStaffId: editor.id,
     contributions: [
@@ -720,7 +721,7 @@ async function main() {
     ],
     sources: [
       { title: "UU No. 40 Tahun 1999 tentang Pers", publisher: "BPK RI", url: "https://peraturan.bpk.go.id/Details/45370/uu-no-40-tahun-1999", sourceType: "OFFICIAL", supports: "Jaminan hak wartawan menolak mengungkapkan sumber berita.", isKeySource: true, verificationStatus: "VERIFIED" },
-      { title: "Kode Etik Jurnalistik (Peraturan Dewan Pers No. 6/Peraturan-DP/V/2008)", publisher: "Dewan Pers", url: "https://jdih.dewanpers.or.id/dokumen/peraturan/peraturan-dewan-pers-nomor-6peraturan-dpv2008-tentang-surat-keputusan-dewan-pers-nomor-03sk-dpiii2006-tentang-kode-etik-jurnalistik-sebagai-peraturan-dewan-pers", sourceType: "OFFICIAL", supports: "Kewajiban menghormati kerahasiaan sumber.", isKeySource: false, verificationStatus: "VERIFIED" },
+      { title: "Kode Etik Jurnalistik (Peraturan Dewan Pers No. 6/Peraturan-DP/V/2008)", publisher: "Dewan Pers", url: "https://jdih.dewanpers.or.id/dokumen/peraturan/peraturan-dewan-pers-nomor-6peraturan-dpv2008-tentang-pengesahan-surat-keputusan-dewan-pers-nomor-03sk-dpiii2006-tentang-kode-etik-jurnalistik-sebagai-peraturan-dewan-pers", sourceType: "OFFICIAL", supports: "Kewajiban menghormati kerahasiaan sumber.", isKeySource: false, verificationStatus: "VERIFIED" },
     ],
     verifiedByStaffId: editor.id,
     contributions: [
@@ -761,7 +762,7 @@ async function main() {
       p("Praktik keamanan web menempatkan pemisahan struktur dari presentasi sebagai pertahanan pertama terhadap injeksi skrip — dan itu persis alasan arsitektur ini dipilih."),
     ],
     sources: [
-      { title: "OWASP Cheat Sheet Series — Cross Site Scripting Prevention", publisher: "OWASP Foundation", url: "https://cheatsheetseries.owasp.org/cheatsheets/Cross_Site_Scripting_Prevention_Cheat_Sheet.html", sourceType: "SECONDARY", supports: "Standar industri soal risikonya HTML tak tersanitasi.", isKeySource: true, verificationStatus: "VERIFIED" },
+      { title: "OWASP Cheat Sheet Series — Cross Site Scripting Prevention", publisher: "OWASP Foundation", url: "https://cheatsheetseries.owasp.org/cheatsheets/Cross_Site_Scripting_Prevention_Cheat_Sheet.html", sourceType: "SECONDARY", supports: "Standar industri soal risiko HTML tak tersanitasi.", isKeySource: true, verificationStatus: "VERIFIED" },
       { title: "UU No. 27 Tahun 2022 — Pelindungan Data Pribadi", publisher: "BPK RI", url: "https://peraturan.bpk.go.id/Details/229798/uu-no-27-tahun-2022", sourceType: "OFFICIAL", supports: "Kerangka keamanan pengolahan data yang menjadi pertimbangan arsitektur.", isKeySource: false, verificationStatus: "VERIFIED" },
     ],
     verifiedByStaffId: editor.id,
@@ -801,11 +802,11 @@ async function main() {
         "Koreksi terbuka — kesalahan material dikoreksi di tempat dan dicatat pada log publik.",
       ]),
       h2("Yang belum kami klaim"),
-      p("Verax Press belum mengantongi verifikasi lembaga pers, dan status badan hukumnya masih dalam proses. Alih-alih berpura-pura, kami menuliskannya apa adanya — pada halaman Tentang dan catatan kaki situs."),
+      p("Verax Press belum memiliki badan hukum pers dan belum mengajukan verifikasi Dewan Pers. Alih-alih berpura-pura, kami menuliskannya apa adanya pada halaman Informasi Kelembagaan dan catatan kaki situs."),
       quote("Kredibilitas tidak dibeli stiker; ia dibangun dari kebiasaan yang bisa diperiksa.", "Catatan redaksi"),
     ],
     sources: [
-      { title: "Kode Etik Jurnalistik (Peraturan Dewan Pers No. 6/Peraturan-DP/V/2008)", publisher: "Dewan Pers", url: "https://jdih.dewanpers.or.id/dokumen/peraturan/peraturan-dewan-pers-nomor-6peraturan-dpv2008-tentang-surat-keputusan-dewan-pers-nomor-03sk-dpiii2006-tentang-kode-etik-jurnalistik-sebagai-peraturan-dewan-pers", sourceType: "OFFICIAL", supports: "Isi kode etik yang dijadikan rujukan harian redaksi.", isKeySource: true, verificationStatus: "VERIFIED" },
+      { title: "Kode Etik Jurnalistik (Peraturan Dewan Pers No. 6/Peraturan-DP/V/2008)", publisher: "Dewan Pers", url: "https://jdih.dewanpers.or.id/dokumen/peraturan/peraturan-dewan-pers-nomor-6peraturan-dpv2008-tentang-pengesahan-surat-keputusan-dewan-pers-nomor-03sk-dpiii2006-tentang-kode-etik-jurnalistik-sebagai-peraturan-dewan-pers", sourceType: "OFFICIAL", supports: "Isi kode etik yang dijadikan rujukan harian redaksi.", isKeySource: true, verificationStatus: "VERIFIED" },
       { title: "Pedoman Pemberitaan Media Siber (2012)", publisher: "Dewan Pers", url: "https://www.dewanpers.or.id/assets/documents/pedoman/1907090253_-2012_PEDOMAN_PEMBERITAAN_MEDIA_SIBER.pdf", sourceType: "OFFICIAL", supports: "Standar pemberitaan digital yang diadopsi kebijakan internal.", isKeySource: false, verificationStatus: "VERIFIED" },
     ],
     verifiedByStaffId: editor.id,
@@ -876,7 +877,7 @@ async function main() {
     content: [
       p("Hak jawab dan hak koreksi adalah dua instrumen yang dimiliki masyarakat terhadap pemberitaan media. Keduanya diatur peraturan Dewan Pers dan menjadi bagian dari tata kelola media yang bertanggung jawab."),
       h2("Hak jawab"),
-      p("Hak jawab adalah hak pihak yang diberitakan untuk membantau atau menanggapi pemberitaan yang merugikannya. Redaksi wajib menimbang dan menanggapi permohonan tersebut sesuai pedoman."),
+      p("Hak jawab adalah hak pihak yang diberitakan untuk membantah atau menanggapi pemberitaan yang merugikannya. Redaksi wajib menimbang dan menanggapi permohonan tersebut sesuai pedoman."),
       h2("Hak koreksi"),
       p("Hak koreksi adalah hak siapa pun — termasuk pembaca — meminta perbaikan atas kesalahan faktual. Di Verax Press, koreksi material tampil pada artikel terkait dan tercatat pada log koreksi publik, lengkap dengan waktu pembaruan."),
       bullets([
@@ -910,7 +911,7 @@ async function main() {
     format: "EXPLAINER",
     status: "DRAFT",
     origin: "INGESTION_API",
-    byline: "Redaksi Verax Press",
+    byline: AI_PLACEHOLDER_BYLINE,
     aiInvolvement: "substantive",
     aiDisclosureNote: "Draf awal disusun agent internal melalui Content Ingestion API; belum diperiksa editor manusia.",
     createdById: editor.id,
@@ -936,7 +937,7 @@ async function main() {
 
   // Submission record untuk artikel #7
   await db.submission.upsert({
-    where: { idempotencyKey: "seed-ingest-demo-001" },
+    where: { articleId: agentArticle.id },
     create: {
       origin: "INGESTION_API",
       articleId: agentArticle.id,

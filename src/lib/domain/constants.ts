@@ -29,10 +29,53 @@ export const ARTICLE_STATUSES: ArticleStatus[] = [
 
 export const ARTICLE_FORMATS: ArticleFormat[] = ["NEWS", "OPINION", "ANALYSIS", "EXPLAINER", "FEATURE", "INTERVIEW"];
 
-/** Seluruh format artikel jurnalistik didukung untuk intake ingestion agen AI, tetap dengan status awal DRAFT dan sumber UNVERIFIED. */
-export const INGESTION_ALLOWED_FORMATS: ArticleFormat[] = ARTICLE_FORMATS;
+/** Format Berita (NEWS) ditahan sementara pada jalur Ingestion API hingga Pemimpin Redaksi mengesahkan otorisasi format AI NEWS. */
+export const INGESTION_PENDING_FORMATS: ArticleFormat[] = ["NEWS"];
 
-/** Format Berita (NEWS) diproduksi ruang redaksi internal atau agen AI, tertutup bagi kontributor relawan eksternal. */
+/** Format aktif yang diizinkan untuk intake ingestion agen AI (NEWS sementara ditahan fail-closed). */
+export const INGESTION_ALLOWED_FORMATS: ArticleFormat[] = [
+  "OPINION",
+  "ANALYSIS",
+  "EXPLAINER",
+  "FEATURE",
+  "INTERVIEW",
+];
+
+export interface ConditionalFormatRule {
+  format: ArticleFormat;
+  requiredSourceTypes: string[];
+  minSupportsLength: number;
+  minVerificationNotesLength: number;
+  requirementSummary: string;
+}
+
+/** Aturan prasyarat bersyarat untuk format berisiko tinggi klaim peliputan pada jalur Ingestion API. */
+export const INGESTION_CONDITIONAL_FORMAT_RULES: Record<"FEATURE" | "INTERVIEW", ConditionalFormatRule> = {
+  FEATURE: {
+    format: "FEATURE",
+    requiredSourceTypes: ["INTERVIEW", "PRIMARY"],
+    minSupportsLength: 20,
+    minVerificationNotesLength: 20,
+    requirementSummary:
+      "Wajib menyertakan minimal satu sumber rujukan bertipe INTERVIEW atau PRIMARY dengan keterangan supports spesifik (>= 20 karakter) yang menunjuk transkrip atau berkas peliputan nyata serta mengisi verificationNotes (>= 20 karakter).",
+  },
+  INTERVIEW: {
+    format: "INTERVIEW",
+    requiredSourceTypes: ["INTERVIEW"],
+    minSupportsLength: 20,
+    minVerificationNotesLength: 20,
+    requirementSummary:
+      "Wajib menyertakan minimal satu sumber rujukan bertipe INTERVIEW dengan keterangan supports spesifik (>= 20 karakter) yang menunjuk transkrip/rekaman wawancara nyata serta mengisi verificationNotes (>= 20 karakter).",
+  },
+};
+
+/** Penanda byline sementara bagi draf asal Ingestion API sebelum penetapan atribusi oleh editor manusia. */
+export const AI_PLACEHOLDER_BYLINE = "Draf Agen AI (Menunggu Penetapan Byline)";
+
+/** Byline kolektif ruang redaksi untuk karya internal yang telah disunting dan diverifikasi manusia. */
+export const COLLECTIVE_NEWSROOM_BYLINE = "Redaksi Verax Press";
+
+/** Format Berita (NEWS) diproduksi ruang redaksi internal, tertutup bagi kontributor relawan eksternal. */
 export const CONTRIBUTOR_ALLOWED_FORMATS: ArticleFormat[] = [
   "OPINION",
   "ANALYSIS",
@@ -195,6 +238,46 @@ export function getPublicBaseUrl(): string {
     return `https://${process.env.VERCEL_URL.replace(/\/+$/, "")}`;
   }
   return "http://localhost:3000";
+}
+
+const SAFE_LOCAL_HOST_PORT_RE = /^(localhost|127\.0\.0\.1|0\.0\.0\.0|\[::1\])(:\d{1,5})?$/i;
+
+export function resolveBaseUrlFromHeaders(
+  headerSource: Pick<Headers, "get">,
+  fallbackUrl?: string,
+): string {
+  if (typeof process !== "undefined" && process.env.VERCEL_ENV === "production") {
+    return getPublicBaseUrl();
+  }
+  const rawHost =
+    headerSource.get("x-forwarded-host")?.split(",")[0]?.trim() ||
+    headerSource.get("host")?.split(",")[0]?.trim();
+  if (rawHost && SAFE_LOCAL_HOST_PORT_RE.test(rawHost)) {
+    const protoHeader = headerSource.get("x-forwarded-proto")?.split(",")[0]?.trim().toLowerCase();
+    let protocol = "http";
+    if (protoHeader === "https") {
+      protocol = "https";
+    } else if (fallbackUrl) {
+      try {
+        protocol = new URL(fallbackUrl).protocol.replace(/:$/, "") || "http";
+      } catch {
+        protocol = "http";
+      }
+    }
+    return `${protocol}://${rawHost}`.replace(/\/+$/, "");
+  }
+  return getPublicBaseUrl();
+}
+
+/**
+ * Menyelaraskan origin loopback lokal (`http://localhost:3000` vs `http://127.0.0.1:3000`)
+ * untuk endpoint mesin & editorial saat tidak berjalan pada lingkungan produksi Vercel.
+ */
+export function resolveRequestBaseUrl(request?: Request): string {
+  if (!request) {
+    return getPublicBaseUrl();
+  }
+  return resolveBaseUrlFromHeaders(request.headers, request.url);
 }
 
 export function getSystemEnvironment(): "production" | "preview" | "development" {

@@ -2,6 +2,9 @@ import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
   output: "standalone",
+  outputFileTracingIncludes: {
+    "/**": ["./docs/editorial/public/**/*"],
+  },
   /* config options here */
   typescript: {
     ignoreBuildErrors: false,
@@ -26,6 +29,8 @@ const nextConfig: NextConfig = {
       { source: "/kontributor/portal", headers: noindexNofollow },
       { source: "/kontributor/portal/:path*", headers: noindexNofollow },
       { source: "/kontributor/daftar", headers: noindexFollow },
+      { source: "/editorial", headers: noindexNofollow },
+      { source: "/editorial/:path*", headers: noindexNofollow },
       { source: "/api/:path*", headers: noindexNofollow },
       { source: "/openapi.json", headers: noindexNofollow },
       { source: "/llms.txt", headers: noindexNofollow },

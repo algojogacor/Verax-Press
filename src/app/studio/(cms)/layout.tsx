@@ -100,7 +100,7 @@ function UserFooter({ onNavigate }: { onNavigate?: () => void }) {
     <div className="border-t border-verity-rule p-4">
       <p className="truncate text-sm font-medium text-verity-ink">{user?.name ?? ""}</p>
       <p className="mt-0.5 font-mono text-[11px] uppercase tracking-[0.12em] text-verity-ink-faint">
-        {user ? ROLE_LABELS[user.role] : ""}
+        {user?.role ? ROLE_LABELS[user.role] : ""}
       </p>
       <Button
         variant="outline"

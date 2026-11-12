@@ -16,7 +16,7 @@ export default function InstitutionalInfoPage() {
     <InstitutionalShell
       kicker="Transparansi Publikasi"
       title="Informasi Kelembagaan & Tata Kelola"
-      intro="Halaman ini menyajikan informasi faktual mengenai status kelembagaan, struktur kepemimpinan redaksi, dan tata kelola administratif Verax Press secara jujur, lugas, dan transparan."
+      intro="Status kelembagaan, kepemimpinan redaksi, dan tata kelola administratif Verax Press saat ini."
       canonicalPath="/informasi-kelembagaan"
       breadcrumbLabel="Informasi Kelembagaan"
     >
@@ -62,9 +62,8 @@ export default function InstitutionalInfoPage() {
 
       <h2>3. Komitmen Etika dan Standar Redaksional</h2>
       <p>
-        Ketiadaan pengakuan administratif di atas tidak mengurangi komitmen moral dan disiplin jurnalistik kami.
-        Verax Press secara sukarela menerapkan standar editorial ketat yang menempatkan kebenaran faktual
-        dan kepentingan publik di atas segalanya:
+        Ketiadaan status administratif di atas tidak mengubah disiplin kerja redaksi.
+        Verax Press menerapkan standar editorial berikut pada setiap naskah:
       </p>
       <ul className="list-disc pl-6 space-y-2">
         <li>
@@ -139,9 +138,8 @@ export default function InstitutionalInfoPage() {
       </div>
 
       <LegalNote>
-        Informasi kelembagaan ini diperbarui secara berkala sesuai dengan perkembangan formalitas
-        organisasi. Kami mengundang pengawasan publik demi terciptanya praktik jurnalisme yang sehat,
-        bertanggung jawab, dan dapat dipercaya.
+        Informasi kelembagaan ini diperbarui sesuai perkembangan status organisasi.
+        Masukan dan koreksi publik dapat disampaikan melalui saluran pengaduan resmi redaksi.
       </LegalNote>
     </InstitutionalShell>
   );

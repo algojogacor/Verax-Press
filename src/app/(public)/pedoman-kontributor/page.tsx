@@ -55,6 +55,11 @@ export default function PedomanKontributorPage() {
         Analisis, Penjelas (Explainer), Feature, dan Wawancara. Format Berita
         Harian (News) tidak dibuka untuk jalur kontributor karena membutuhkan
         peliputan lapangan berkala dan koordinasi harian oleh staf redaksi tetap.
+        Integrasi klien agen AI terotorisasi dikelola secara terpisah melalui{" "}
+        <Link href="/developers" className="text-verity-accent underline underline-offset-4">
+          Dokumentasi Pengembang (/developers)
+        </Link>
+        .
       </p>
 
       <h2>Standar Naskah dan Orisinalitas</h2>

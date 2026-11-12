@@ -2,7 +2,7 @@
 
 > **"Ex Fontibus Veritas"** | *Kebenaran Bersumber dari Asalnya. Publikasi Media Digital Independen dengan Kendali Editorial Redaktur.*
 
-Verax Press adalah publikasi jurnalisme digital independen yang menempatkan verifikasi sumber primer, transparansi penelusuran fakta, dan pertanggungjawaban manusia di atas kecepatan publikasi. Sistem ini dibangun dengan arsitektur web modern yang memisahkan gerbang redaksi, repositori artikel, dan penyimpanan aset media secara tegas.
+Verax Press adalah publikasi jurnalisme digital independen yang mengutamakan verifikasi sumber primer dan peninjauan redaksi sebelum terbit. Aplikasi ini memisahkan portal pembaca, ruang kerja redaksi, dan layanan penyimpanan aset media.
 
 ---
 
@@ -11,7 +11,7 @@ Verax Press adalah publikasi jurnalisme digital independen yang menempatkan veri
 1. **Kendali Penuh Redaktur:** Naskah hanya dapat terbit melalui persetujuan berjenjang redaktur manusia. Agen kecerdasan buatan hanya diperlakukan sebagai asisten penyusunan draf awal melalui gerbang pemasukan data (ingestion API) dan tidak memiliki wewenang penerbitan langsung.
 2. **Gerbang Verifikasi Sumber:** Setiap rujukan penting wajib berstatus terverifikasi sebelum naskah dapat diterbitkan. Sistem secara teknis menolak transisi status ke `PUBLISHED` bila masih terdapat sumber primer berkategori kunci yang belum ditelaah redaksi.
 3. **Pencatatan Koreksi Terbuka:** Kekeliruan faktual yang ditemukan pasca-penerbitan diperbaiki dengan mencantumkan catatan revisi pada naskah bersangkutan serta diarsipkan pada halaman `/koreksi`.
-4. **Tipografi Broadsheet Klasik:** Mengadaptasi hierarki visual surat kabar dengan rupa huruf Newsreader, penanda akhir naskah tombstone, dan tata letak berjenjang yang memprioritaskan kenyamanan baca serta kepatuhan kontras aksesibilitas.
+4. **Tipografi Broadsheet Klasik:** Mengadopsi tata letak surat kabar dengan rupa huruf Newsreader, penanda akhir naskah, dan kontras warna yang terbaca jelas.
 
 ---
 
@@ -28,7 +28,7 @@ Verax Press adalah publikasi jurnalisme digital independen yang menempatkan veri
 - **Basis Data Lokal:** SQLite berkas lokal (`db/custom.db`, mode WAL) untuk lingkungan pengembangan mandiri
 - **Penyimpanan Media:** Layanan terisolasi Verax Media Storage Service pada mesin virtual Azure (`https://media.aryariap.my.id`), verifikasi HMAC SHA-256, jalur penyimpanan kanonikal di `/var/lib/verax/media`
 - **Autentikasi Redaksi:** [NextAuth.js v4](https://next-auth.js.org/) dengan fungsi hashing `scrypt` (native `node:crypto`)
-- **Pemeriksa Mutu Otomatis:** Bun Test (51 pengujian otomatis untuk domain, alur kerja, keamanan, dan persistensi)
+- **Pemeriksa Mutu Otomatis:** Bun Test (rangkaian pengujian otomatis untuk domain, alur kerja, keamanan, dan persistensi)
 
 ---
 
@@ -44,7 +44,7 @@ D:\Projects\verax\
 │   ├── custom.db           # Berkas basis data SQLite untuk pengembangan lokal
 │   └── backups/            # Salinan cadangan SQLite (VACUUM INTO)
 ├── docs/
-│   ├── editorial/          # Standar penulisan redaksional (VERAX_WRITING_STANDARDS.md)
+│   ├── editorial/          # Standar penulisan sistem dan pedoman editorial modular
 │   ├── adr/                # Catatan keputusan arsitektur (ADR-001 hingga ADR-005)
 │   └── runbooks/           # Panduan operasional dan pemulihan sistem
 ├── public/
@@ -66,7 +66,7 @@ D:\Projects\verax\
 │   │   ├── db.ts           # Inisialisasi koneksi basis data (Turso / SQLite)
 │   │   ├── auth.ts         # Konfigurasi otentikasi staf redaksi
 │   │   └── media-client.ts # Klien integrasi layanan penyimpanan media via HMAC
-│   └── tests/              # Kumpulan pengujian otomatis
+├── tests/                  # Kumpulan pengujian otomatis
 ├── AGENTS.md               # Pedoman instruksi agen pengembang
 └── worklog.md              # Catatan kronologis kemajuan proyek
 ```
@@ -88,7 +88,7 @@ cp .env.example .env
 Lengkapi konfigurasi berikut di berkas `.env`:
 - `DATABASE_URL`: Alamat koneksi database (URL libSQL Turso atau file lokal SQLite).
 - `TURSO_AUTH_TOKEN`: Token otentikasi Turso Cloud (jika menggunakan koneksi jarak jauh).
-- `NEXTAUTH_SECRET`: Kunci enkripsi sesi redaksi.
+- `AUTH_SECRET` (atau `NEXTAUTH_SECRET`): Kunci enkripsi sesi redaksi.
 - `VERAX_MEDIA_API_URL`: URL layanan media (`https://media.aryariap.my.id`).
 - `VERAX_MEDIA_SECRET`: Kunci rahasia penandatanganan HMAC media.
 
@@ -144,4 +144,4 @@ Seluruh berkas gambar dan lampiran dokumen dikelola oleh layanan khusus Verax Me
 
 ## Kepatuhan dan Standar Redaksional
 
-Seluruh teks sistem, antarmuka CMS, dokumentasi teknis, dan komunikasi publik dalam repositori ini wajib mematuhi standar penulisan institusional Verax Press yang terdokumentasi di [docs/editorial/VERAX_WRITING_STANDARDS.md](file:///d:/Projects/verax/docs/editorial/VERAX_WRITING_STANDARDS.md). Aturan ini melarang penggunaan tanda pisah em dash, kata klise kecerdasan buatan, metrik fiktif, serta ornamen visual yang berlebihan.
+Teks sistem, antarmuka CMS, dokumentasi teknis, dan salinan publik dalam repositori ini mengikuti standar penulisan Verax Press di `docs/editorial/VERAX_WRITING_STANDARDS.md`. Aturan ini melarang penggunaan tanda pisah em dash, kosakata klise AI, metrik fiktif, serta klaim tanpa bukti.

@@ -77,10 +77,11 @@ export async function middleware(request: NextRequest) {
       return withRobotsHeader(NextResponse.redirect(loginUrl), pathname);
     }
 
-    // Hanya akun staf redaksi yang diizinkan mengakses studio
-    if (token.accountType && token.accountType !== "STAFF") {
+    // Hanya akun staf redaksi yang diizinkan mengakses studio (fail-closed jika accountType hilang/asing)
+    if (token.accountType !== "STAFF") {
+      const fallbackPath = token.accountType === "CONTRIBUTOR" ? "/kontributor/portal" : "/studio/login";
       return withRobotsHeader(
-        NextResponse.redirect(new URL("/kontributor/portal", request.url)),
+        NextResponse.redirect(new URL(fallbackPath, request.url)),
         pathname,
       );
     }

@@ -443,7 +443,7 @@ describe("SEO & Indexing HTTP Integration", () => {
       zeroWorkPersonId: zeroWorkPerson.id,
       createdPersonIds: [namedPerson.id, anonPerson.id, zeroWorkPerson.id],
     };
-  });
+  }, 30000);
 
   afterAll(async () => {
     const db = getTestDb();

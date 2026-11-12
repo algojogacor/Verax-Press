@@ -7,6 +7,7 @@ import { ApiError, jsonError, ok, parseJsonBody, requireSession } from "@/lib/ap
 import { articleDetailInclude, isOwnerOf, toArticleDetail } from "@/lib/domain/serializers";
 import { canExecuteRule, getRule } from "@/lib/domain/workflow";
 import { parseContentSafe } from "@/lib/domain/content";
+import { AI_PLACEHOLDER_BYLINE, COLLECTIVE_NEWSROOM_BYLINE } from "@/lib/domain/constants";
 import { writeAudit } from "@/lib/domain/audit";
 import type { TransitionAction } from "@/types/verity";
 
@@ -72,6 +73,13 @@ export async function POST(request: Request, { params }: Params) {
 
     // ===== Gerbang khusus PUBLISH (acceptance criteria TA §12.1) =====
     if (rule.gate === "PUBLISH") {
+      if (user.role !== "CHIEF_EDITOR" || user.accountType !== "STAFF") {
+        throw new ApiError(
+          403,
+          "FORBIDDEN",
+          "Hanya Pemimpin Redaksi yang dapat mengonfirmasi byline dan menerbitkan artikel.",
+        );
+      }
       const keySources = article.sources.filter((s) => s.isKeySource);
       const blocking = keySources.filter(
         (s) => s.verificationStatus === "UNVERIFIED" || s.verificationStatus === "DISPUTED",
@@ -89,16 +97,40 @@ export async function POST(request: Request, { params }: Params) {
         );
       }
       const content = parseContentSafe(article.contentJson);
-      const hasText = content.some(
-        (b) =>
-          (b.type === "paragraph" || b.type === "quote" || b.type === "list" || b.type === "qa") &&
-          ("text" in b ? b.text.trim().length > 0 : true),
-      );
+      const hasText = content.some((b) => {
+        if (b.type === "paragraph" || b.type === "quote") {
+          return b.text.trim().length > 0;
+        }
+        if (b.type === "list") {
+          return b.items.some((item) => item.trim().length > 0);
+        }
+        if (b.type === "qa") {
+          return b.question.trim().length > 0 && b.answer.trim().length > 0;
+        }
+        return false;
+      });
       if (!hasText) {
         throw new ApiError(422, "GATE_EMPTY_CONTENT", "Artikel belum memiliki isi yang dapat diterbitkan.");
       }
       if (!article.deck?.trim()) {
         throw new ApiError(422, "GATE_NO_DECK", "Artikel membutuhkan deck (ringkasan) sebelum terbit.");
+      }
+      const trimmedByline = article.byline?.trim() ?? "";
+      const hasHumanContributor = article.contributions.some((c) =>
+        ["AUTHOR", "EDITOR", "REPORTER"].includes(c.role),
+      );
+      if (
+        !trimmedByline ||
+        trimmedByline === AI_PLACEHOLDER_BYLINE ||
+        (article.origin === "INGESTION_API" &&
+          trimmedByline === COLLECTIVE_NEWSROOM_BYLINE &&
+          !hasHumanContributor)
+      ) {
+        throw new ApiError(
+          422,
+          "GATE_BYLINE_UNCONFIRMED",
+          "Publikasi diblokir: byline final atau penetapan kontributor manusia belum dikonfirmasi editor sebelum terbit.",
+        );
       }
       if (article.aiInvolvement === "substantive" && !article.aiDisclosurePublic) {
         throw new ApiError(
@@ -115,6 +147,13 @@ export async function POST(request: Request, { params }: Params) {
         ? { publishedAt: now, firstPublishedAt: article.firstPublishedAt ?? now }
         : {};
 
+    const syncedSubmissionStatus =
+      rule.to === "DRAFT"
+        ? "SUBMITTED"
+        : ["PENDING_REVIEW", "FACT_CHECK", "REVISION_NEEDED", "PENDING_APPROVAL"].includes(rule.to)
+          ? "EDITORIAL_REVIEW"
+          : "RESOLVED";
+
     const [updated] = await db.$transaction([
       db.article.update({ where: { id: article.id }, data: { status: rule.to, ...publishData } }),
       db.editorialReview.create({
@@ -126,6 +165,10 @@ export async function POST(request: Request, { params }: Params) {
           decision: rule.action,
           notes: body.reason ?? null,
         },
+      }),
+      db.submission.updateMany({
+        where: { articleId: article.id },
+        data: { status: syncedSubmissionStatus },
       }),
     ]);
 

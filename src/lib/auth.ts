@@ -142,7 +142,7 @@ export const authOptions: NextAuthOptions = {
           name: publicName,
           username: contributor.username || "",
           email: contributor.email,
-          role: "WRITER" as Role,
+          role: null,
           accountType: "CONTRIBUTOR" as const,
         };
       },
@@ -151,19 +151,22 @@ export const authOptions: NextAuthOptions = {
   callbacks: {
     async jwt({ token, user }) {
       if (user) {
+        const accountType = (user as unknown as { accountType?: "STAFF" | "CONTRIBUTOR" }).accountType ?? "STAFF";
         token.id = user.id as string;
-        token.role = (user as unknown as { role: Role }).role ?? "WRITER";
         token.username = (user as unknown as { username: string }).username ?? "";
-        token.accountType = (user as unknown as { accountType: "STAFF" | "CONTRIBUTOR" }).accountType ?? "STAFF";
+        token.accountType = accountType;
+        // Akun kontributor eksternal tidak boleh mewarisi role staf redaksi apa pun (mis. WRITER)
+        token.role = accountType === "CONTRIBUTOR" ? null : ((user as unknown as { role?: Role | null }).role ?? null);
       }
       return token;
     },
     async session({ session, token }) {
       if (session.user) {
+        const accountType = (token.accountType as "STAFF" | "CONTRIBUTOR" | undefined) ?? "STAFF";
         session.user.id = (token.id as string) ?? "";
-        session.user.role = (token.role as Role) ?? "WRITER";
         session.user.username = (token.username as string) ?? "";
-        session.user.accountType = (token.accountType as "STAFF" | "CONTRIBUTOR") ?? "STAFF";
+        session.user.accountType = accountType;
+        session.user.role = accountType === "CONTRIBUTOR" ? null : ((token.role as Role | null | undefined) ?? null);
       }
       return session;
     },
@@ -177,13 +180,13 @@ declare module "next-auth" {
       name: string;
       username: string;
       email: string | null;
-      role: Role;
+      role: Role | null;
       accountType: "STAFF" | "CONTRIBUTOR";
     };
   }
   interface User {
     username?: string;
-    role?: Role;
+    role?: Role | null;
     accountType?: "STAFF" | "CONTRIBUTOR";
   }
 }
@@ -192,7 +195,7 @@ declare module "next-auth/jwt" {
   interface JWT {
     id?: string;
     username?: string;
-    role?: Role;
+    role?: Role | null;
     accountType?: "STAFF" | "CONTRIBUTOR";
   }
 }

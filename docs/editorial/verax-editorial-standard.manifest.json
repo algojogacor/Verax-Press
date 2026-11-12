@@ -1,0 +1,342 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "standardId": "VERAX-EDITORIAL-AI",
+  "semanticVersion": "1.0.0",
+  "status": "PROPOSED",
+  "authoredDate": "2026-11-12",
+  "lastReviewed": "2026-11-12",
+  "effectiveDate": null,
+  "ownerRole": "CHIEF_EDITOR",
+  "architecture": "modular-knowledge-base-v1",
+  "indexDocument": "docs/editorial/README.md",
+  "legacyPointerDocument": "docs/editorial/VERAX_EDITORIAL_AI_WRITING_STANDARD.md",
+  "technicalIntegrationDocument": "docs/editorial/VERAX_EDITORIAL_API_INTEGRATION.md",
+  "coreDocuments": [
+    "docs/editorial/core/VERAX_EDITORIAL_IDENTITY.md",
+    "docs/editorial/core/VERAX_JOURNALISTIC_PRINCIPLES.md",
+    "docs/editorial/core/VERAX_RESEARCH_AND_VERIFICATION.md",
+    "docs/editorial/core/VERAX_ETHICS_AND_RESPONSIBILITY.md",
+    "docs/editorial/core/VERAX_LANGUAGE_AND_STYLE.md"
+  ],
+  "deskProfiles": [
+    "docs/editorial/desks/hukum-keadilan.md",
+    "docs/editorial/desks/teknologi-kebijakan.md",
+    "docs/editorial/desks/nasional-publik.md"
+  ],
+  "formatProfiles": [
+    "docs/editorial/formats/news.md",
+    "docs/editorial/formats/analysis.md",
+    "docs/editorial/formats/opinion.md",
+    "docs/editorial/formats/explainer.md",
+    "docs/editorial/formats/feature.md",
+    "docs/editorial/formats/interview.md"
+  ],
+  "operationDocuments": [
+    "docs/editorial/operations/VERAX_AI_AGENT_WORKFLOW.md",
+    "docs/editorial/operations/VERAX_EDITORIAL_QUALITY_ASSESSMENT.md",
+    "docs/editorial/operations/VERAX_EDITORIAL_REVIEW_CHECKLIST.md"
+  ],
+  "exampleDocuments": [
+    "docs/editorial/examples/good-and-bad-examples.md",
+    "docs/editorial/examples/desk-format-examples.md"
+  ],
+  "companionStandards": [
+    {
+      "path": "docs/editorial/VERAX_WRITING_STANDARDS.md",
+      "scope": "system_owned_copy_only",
+      "relationship": "separate_companion"
+    },
+    {
+      "path": "docs/baseline/01_Verity_Editorial_Charter_V1.1.md",
+      "documentId": "VRT-ED-001",
+      "scope": "legacy_baseline_policy_working_draft",
+      "relationship": "harmonized_with_actual_code"
+    },
+    {
+      "path": "docs/baseline/02_Verity_Contributor_Policy_Agreement_V1.1.md",
+      "documentId": "VRT-CP-002",
+      "scope": "legacy_contributor_policy_draft_legal_review_required",
+      "relationship": "harmonized_with_actual_code"
+    }
+  ],
+  "institutionalStatusNote": "Verax Press adalah nama kerja media digital independen percontohan dan belum berbadan hukum pers, belum terverifikasi Dewan Pers, serta belum terdaftar sebagai PSE. Rujukan regulasi eksternal berstatus LEGAL REVIEW REQUIRED.",
+  "loadingProtocol": {
+    "mode": "selective_by_desk_and_format",
+    "alwaysLoad": [
+      "docs/editorial/README.md",
+      "docs/editorial/core/VERAX_EDITORIAL_IDENTITY.md",
+      "docs/editorial/core/VERAX_JOURNALISTIC_PRINCIPLES.md",
+      "docs/editorial/core/VERAX_RESEARCH_AND_VERIFICATION.md",
+      "docs/editorial/core/VERAX_ETHICS_AND_RESPONSIBILITY.md",
+      "docs/editorial/core/VERAX_LANGUAGE_AND_STYLE.md"
+    ],
+    "loadSingleAssignedDeskFrom": "desks[].profileDocument",
+    "loadSingleAssignedFormatFrom": "formats[].profileDocument",
+    "loadForAiAgentDrafting": [
+      "docs/editorial/operations/VERAX_AI_AGENT_WORKFLOW.md",
+      "docs/editorial/operations/VERAX_EDITORIAL_REVIEW_CHECKLIST.md",
+      "docs/editorial/VERAX_EDITORIAL_API_INTEGRATION.md"
+    ],
+    "loadForQualityReview": [
+      "docs/editorial/operations/VERAX_EDITORIAL_QUALITY_ASSESSMENT.md",
+      "docs/editorial/operations/VERAX_EDITORIAL_REVIEW_CHECKLIST.md"
+    ],
+    "optionalOnDemand": [
+      "docs/editorial/examples/good-and-bad-examples.md",
+      "docs/editorial/examples/desk-format-examples.md"
+    ],
+    "failClosedOnInactiveOrUnknownDesk": true,
+    "mustNotCrossLoadUnassignedDesksOrFormats": true
+  },
+  "conflictResolutionHierarchy": [
+    {
+      "priority": 1,
+      "layer": "Universal Integrity, Ethics, and Non-Fabrication",
+      "source": "docs/editorial/core/* + FAIL-01..FAIL-07"
+    },
+    {
+      "priority": 2,
+      "layer": "Assigned Desk Evidentiary and Legal Rules",
+      "source": "docs/editorial/desks/<slug>.md"
+    },
+    {
+      "priority": 3,
+      "layer": "Assigned Format Voice, Structure, and Origin Rules",
+      "source": "docs/editorial/formats/<format_lowercase>.md"
+    },
+    {
+      "priority": 4,
+      "layer": "Specific Assignment Context (Layer D)",
+      "source": "docs/editorial/operations/VERAX_AI_AGENT_WORKFLOW.md"
+    }
+  ],
+  "normativeKeywords": {
+    "MUST": "WAJIB",
+    "MUST_NOT": "DILARANG",
+    "SHOULD": "DIANJURKAN",
+    "MAY": "OPSIONAL"
+  },
+  "layeredArchitecture": {
+    "compositionFormula": "Layer A (Inti Universal) + Layer B (Satu Desk Aktif) + Layer C (Satu Format) + Layer D (Konteks Penugasan)",
+    "layerDParameters": [
+      "desk",
+      "format",
+      "topic",
+      "mainEditorialQuestion",
+      "intendedAudience",
+      "proposedAngle",
+      "availableSources",
+      "currentnessAndChronology",
+      "geographicInstitutionalContext",
+      "requestedDepth",
+      "knownInformationGaps"
+    ]
+  },
+  "desks": [
+    {
+      "slug": "hukum-keadilan",
+      "name": "Hukum & Keadilan",
+      "sortOrder": 1,
+      "isActive": true,
+      "systemDescription": "Regulasi, peradilan, penegakan hukum, hak masyarakat, dan kebijakan hukum.",
+      "documentId": "VERAX-DESK-HUKUM-01",
+      "profileDocument": "docs/editorial/desks/hukum-keadilan.md",
+      "preferredSourceTypes": ["OFFICIAL", "DOCUMENT", "DATA", "INTERVIEW", "SECONDARY"]
+    },
+    {
+      "slug": "teknologi-kebijakan",
+      "name": "Teknologi & Kebijakan",
+      "sortOrder": 2,
+      "isActive": true,
+      "systemDescription": "AI, inovasi digital, keamanan data, regulasi teknologi, dan dampaknya bagi masyarakat.",
+      "documentId": "VERAX-DESK-TEKNOLOGI-02",
+      "profileDocument": "docs/editorial/desks/teknologi-kebijakan.md",
+      "preferredSourceTypes": ["DOCUMENT", "OFFICIAL", "PRIMARY", "DATA", "INTERVIEW", "SECONDARY"]
+    },
+    {
+      "slug": "nasional-publik",
+      "name": "Nasional & Publik",
+      "sortOrder": 3,
+      "isActive": true,
+      "systemDescription": "Kebijakan pemerintah, pendidikan, sosial, ekonomi publik, dan peristiwa nasional.",
+      "documentId": "VERAX-DESK-NASIONAL-03",
+      "profileDocument": "docs/editorial/desks/nasional-publik.md",
+      "preferredSourceTypes": ["OFFICIAL", "DOCUMENT", "DATA", "INTERVIEW", "PRIMARY", "SECONDARY"]
+    }
+  ],
+  "inactiveCharterExpansionDesks": [
+    "Ekonomi & Bisnis",
+    "Sosial & Budaya",
+    "Internasional"
+  ],
+  "formats": [
+    {
+      "code": "NEWS",
+      "systemLabel": "Berita",
+      "documentId": "VERAX-FORMAT-NEWS-01",
+      "profileDocument": "docs/editorial/formats/news.md",
+      "eligibleOrigins": ["NEWSROOM", "INGESTION_API"],
+      "disallowedOrigins": ["CONTRIBUTOR"],
+      "requiresOpinionDisclaimer": false,
+      "recommendedWordRange": null
+    },
+    {
+      "code": "ANALYSIS",
+      "systemLabel": "Analisis",
+      "documentId": "VERAX-FORMAT-ANALYSIS-02",
+      "profileDocument": "docs/editorial/formats/analysis.md",
+      "eligibleOrigins": ["NEWSROOM", "INGESTION_API", "CONTRIBUTOR"],
+      "disallowedOrigins": [],
+      "requiresOpinionDisclaimer": false,
+      "recommendedWordRange": {
+        "min": 900,
+        "max": 1800,
+        "orientationOnly": true
+      }
+    },
+    {
+      "code": "OPINION",
+      "systemLabel": "Opini",
+      "documentId": "VERAX-FORMAT-OPINION-03",
+      "profileDocument": "docs/editorial/formats/opinion.md",
+      "eligibleOrigins": ["NEWSROOM", "INGESTION_API", "CONTRIBUTOR"],
+      "disallowedOrigins": [],
+      "requiresOpinionDisclaimer": true,
+      "recommendedWordRange": {
+        "min": 600,
+        "max": 1200,
+        "orientationOnly": true
+      }
+    },
+    {
+      "code": "EXPLAINER",
+      "systemLabel": "Penjelas",
+      "documentId": "VERAX-FORMAT-EXPLAINER-04",
+      "profileDocument": "docs/editorial/formats/explainer.md",
+      "eligibleOrigins": ["NEWSROOM", "INGESTION_API", "CONTRIBUTOR"],
+      "disallowedOrigins": [],
+      "requiresOpinionDisclaimer": false,
+      "recommendedWordRange": {
+        "min": 600,
+        "max": 1200,
+        "orientationOnly": true
+      }
+    },
+    {
+      "code": "FEATURE",
+      "systemLabel": "Kisah Khas",
+      "documentId": "VERAX-FORMAT-FEATURE-05",
+      "profileDocument": "docs/editorial/formats/feature.md",
+      "eligibleOrigins": ["NEWSROOM", "INGESTION_API", "CONTRIBUTOR"],
+      "disallowedOrigins": [],
+      "requiresOpinionDisclaimer": false,
+      "recommendedWordRange": {
+        "min": 800,
+        "max": 1500,
+        "orientationOnly": true
+      }
+    },
+    {
+      "code": "INTERVIEW",
+      "systemLabel": "Wawancara",
+      "documentId": "VERAX-FORMAT-INTERVIEW-06",
+      "profileDocument": "docs/editorial/formats/interview.md",
+      "eligibleOrigins": ["NEWSROOM", "INGESTION_API", "CONTRIBUTOR"],
+      "disallowedOrigins": [],
+      "requiresOpinionDisclaimer": false,
+      "recommendedWordRange": {
+        "min": 700,
+        "max": 1500,
+        "orientationOnly": true
+      }
+    }
+  ],
+  "rulesIndex": {
+    "universalPrinciples": [
+      { "id": "VERAX-R01", "name": "Akurasi dan Tanggung Jawab Faktual", "normativeLevel": "MUST", "document": "docs/editorial/core/VERAX_JOURNALISTIC_PRINCIPLES.md" },
+      { "id": "VERAX-R02", "name": "Independensi dan Integritas Editorial", "normativeLevel": "MUST", "document": "docs/editorial/core/VERAX_JOURNALISTIC_PRINCIPLES.md" },
+      { "id": "VERAX-R03", "name": "Kelengkapan Kontekstual", "normativeLevel": "MUST", "document": "docs/editorial/core/VERAX_JOURNALISTIC_PRINCIPLES.md" },
+      { "id": "VERAX-R04", "name": "Proporsionalitas", "normativeLevel": "MUST", "document": "docs/editorial/core/VERAX_JOURNALISTIC_PRINCIPLES.md" },
+      { "id": "VERAX-R05", "name": "Keberimbangan dan Kesempatan Tanggapan", "normativeLevel": "MUST", "document": "docs/editorial/core/VERAX_JOURNALISTIC_PRINCIPLES.md" },
+      { "id": "VERAX-R06", "name": "Kejujuran Intelektual", "normativeLevel": "MUST_NOT", "document": "docs/editorial/core/VERAX_JOURNALISTIC_PRINCIPLES.md" },
+      { "id": "VERAX-R07", "name": "Pemisahan Fakta, Dugaan, Opini, Interpretasi, dan Prediksi", "normativeLevel": "MUST", "document": "docs/editorial/core/VERAX_JOURNALISTIC_PRINCIPLES.md" },
+      { "id": "VERAX-R08", "name": "Perlakuan Transparan terhadap Ketidakpastian", "normativeLevel": "MUST", "document": "docs/editorial/core/VERAX_JOURNALISTIC_PRINCIPLES.md" },
+      { "id": "VERAX-R09", "name": "Penggunaan Bahasa yang Bertanggung Jawab", "normativeLevel": "MUST", "document": "docs/editorial/core/VERAX_JOURNALISTIC_PRINCIPLES.md" },
+      { "id": "VERAX-R10", "name": "Penghormatan terhadap Pihak Terdampak Liputan", "normativeLevel": "MUST", "document": "docs/editorial/core/VERAX_JOURNALISTIC_PRINCIPLES.md" }
+    ],
+    "moduleMandates": [
+      { "module": "docs/editorial/core/VERAX_RESEARCH_AND_VERIFICATION.md", "scope": "5 tingkat sumber, claim-level supports, uji 7 titik, 8 larangan fabrikasi, ketidakpastian, visual & aset sintetis" },
+      { "module": "docs/editorial/core/VERAX_ETHICS_AND_RESPONSIBILITY.md", "scope": "Konflik kepentingan, kewaspadaan hukum Indonesia (LEGAL REVIEW REQUIRED), privasi rentan, anti-plagiarisme, risk-edit, byline jujur" },
+      { "module": "docs/editorial/core/VERAX_LANGUAGE_AND_STYLE.md", "scope": "9 prinsip prosa EYD V, 7 batas keras non-evasion anti-AI, ledger skill lokal MIT" },
+      { "module": "docs/editorial/operations/VERAX_AI_AGENT_WORKFLOW.md", "scope": "11 parameter Layer D, 10 langkah Agen AI, 7 larangan keras AI, format verificationNotes & aiUsageNote" }
+    ]
+  },
+  "rubricIndex": {
+    "document": "docs/editorial/operations/VERAX_EDITORIAL_QUALITY_ASSESSMENT.md",
+    "autoPublishAuthorized": false,
+    "highScoreOverridesFailure": false,
+    "nonNegotiableFailures": [
+      { "code": "FAIL-01", "name": "Sumber atau URL Rekaan", "defaultAction": "REJECT_OR_HOLD_REVISION" },
+      { "code": "FAIL-02", "name": "Kutipan, Wawancara, atau Adegan Rekaan", "defaultAction": "REJECT" },
+      { "code": "FAIL-03", "name": "Kekeliruan Fakta Material", "defaultAction": "REVISION_NEEDED_OR_REJECT" },
+      { "code": "FAIL-04", "name": "Tuduhan Serius Tanpa Pembuktian dan Hak Tanggapan", "defaultAction": "HOLD_REVISION_OR_FACT_CHECK" },
+      { "code": "FAIL-05", "name": "Penyajian Keliru Dokumen Resmi atau Peradilan", "defaultAction": "REVISION_NEEDED_OR_REJECT" },
+      { "code": "FAIL-06", "name": "Plagiarisme atau Pelanggaran Hak Cipta", "defaultAction": "REJECT" },
+      { "code": "FAIL-07", "name": "Penyamaran Keterlibatan AI atau Catatan Verifikasi Palsu", "defaultAction": "REJECT_OR_MANDATORY_CORRECTION" }
+    ],
+    "qualityDimensions": [
+      { "code": "DIM-01", "name": "Akurasi dan Keterlacakan Sumber", "scaleMin": 1, "scaleMax": 4 },
+      { "code": "DIM-02", "name": "Kedalaman dan Kelengkapan Kontekstual", "scaleMin": 1, "scaleMax": 4 },
+      { "code": "DIM-03", "name": "Keberimbangan dan Proporsionalitas", "scaleMin": 1, "scaleMax": 4 },
+      { "code": "DIM-04", "name": "Struktur dan Koherensi Logika", "scaleMin": 1, "scaleMax": 4 },
+      { "code": "DIM-05", "name": "Bahasa, Presisi Istilah, dan Kejelasan", "scaleMin": 1, "scaleMax": 4 },
+      { "code": "DIM-06", "name": "Transparansi AI dan Kejujuran Batasan", "scaleMin": 1, "scaleMax": 4 }
+    ]
+  },
+  "systemContractReference": {
+    "technicalDocument": "docs/editorial/VERAX_EDITORIAL_API_INTEGRATION.md",
+    "authoritativeContentSchemaFile": "src/lib/domain/content.ts",
+    "authoritativeIngestionSchemaFile": "src/lib/domain/ingestion.ts",
+    "validContentBlockTypes": ["paragraph", "heading", "quote", "list", "image", "note", "qa"],
+    "contentBlockRequirements": {
+      "maxBlocks": 300,
+      "headingLevels": [2, 3],
+      "listRequiredStyles": ["bullet", "number"],
+      "firstParagraphDropCapMinChars": 120
+    },
+    "aiInvolvementEnum": ["none", "assistive", "substantive"],
+    "sourceTypes": ["PRIMARY", "SECONDARY", "DOCUMENT", "INTERVIEW", "DATA", "OFFICIAL"],
+    "endpoints": {
+      "capabilities": "GET /api/internal/v1/capabilities",
+      "validate": "POST /api/internal/v1/ai-submissions/validate",
+      "submit": "POST /api/internal/v1/ai-submissions",
+      "status": "GET /api/internal/v1/ai-submissions/{submissionId}"
+    },
+    "initialArticleStatus": "DRAFT",
+    "initialSourceVerificationStatus": "UNVERIFIED",
+    "deckRequiredForPublish": true,
+    "publishGates": [
+      "GATE_NO_KEY_SOURCES",
+      "GATE_SOURCE_VERIFICATION",
+      "GATE_EMPTY_CONTENT",
+      "GATE_NO_DECK",
+      "GATE_AI_DISCLOSURE"
+    ],
+    "identifiedSystemConflicts": ["C1", "C2", "C3", "C4", "C5", "C6", "C7", "C8"]
+  },
+  "exposureTargets": [
+    "/api/internal/v1/capabilities",
+    "/.well-known/verax-agent.json",
+    "/llms.txt",
+    "/llms-full.txt",
+    "/developers"
+  ],
+  "revisionHistory": [
+    {
+      "version": "1.0.0",
+      "date": "2026-11-12",
+      "status": "PROPOSED",
+      "summary": "Refaktorisasi standar editorial menjadi basis pengetahuan modular dengan pemuatan konteks selektif per desk dan format."
+    }
+  ]
+}

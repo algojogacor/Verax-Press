@@ -11,24 +11,61 @@ import { NextResponse } from "next/server";
 import { createHash } from "node:crypto";
 import { db } from "@/lib/db";
 import { verifyApiClientDetailed } from "@/lib/api-key";
-import { rateLimit, sweepRateLimits } from "@/lib/rate-limit";
+import { getClientIp, rateLimit, sweepRateLimits } from "@/lib/rate-limit";
+import { AI_PLACEHOLDER_BYLINE } from "@/lib/domain/constants";
 import { writeAudit } from "@/lib/domain/audit";
 import { serializeContent } from "@/lib/domain/content";
 import { uniqueArticleSlug } from "@/lib/domain/slug";
 import { createArticleVersion } from "@/lib/domain/serializers";
-import { validateIngestionPayload } from "@/lib/domain/ingestion";
+import {
+  parseOptionalIsoDate,
+  validateIngestionPayload,
+} from "@/lib/domain/ingestion";
 import { generateRequestId, logApiRequest } from "@/lib/request-logger";
 
 export async function POST(request: Request) {
   const startTime = Date.now();
   const requestId = request.headers.get("x-request-id") || generateRequestId();
-  const ipAddress = request.headers.get("x-forwarded-for") || request.headers.get("x-real-ip");
+  const ipAddress = getClientIp(request);
   const userAgent = request.headers.get("user-agent");
 
   try {
     sweepRateLimits();
 
-    // 1. Autentikasi API client (scope submit-only)
+    // 1. Pembatasan laju permintaan SEBELUM autentikasi (12 req/menit per IP)
+    // Mencegah brute-force token tak terbatas oleh pemanggil tak terautentikasi.
+    const limit = rateLimit(`ingest:${ipAddress}`, 12, 60_000);
+    if (!limit.allowed) {
+      const durationMs = Date.now() - startTime;
+      await logApiRequest({
+        requestId,
+        method: "POST",
+        endpoint: "/api/internal/v1/ai-submissions",
+        statusCode: 429,
+        durationMs,
+        ipAddress,
+        userAgent,
+        errorCode: "RATE_LIMITED",
+        errorMessage: "Terlalu banyak submission.",
+      });
+
+      return NextResponse.json(
+        {
+          error: "Batas laju permintaan terlampaui. Silakan coba kembali setelah jeda waktu yang ditentukan.",
+          code: "RATE_LIMITED",
+          requestId,
+        },
+        {
+          status: 429,
+          headers: {
+            "Retry-After": String(limit.retryAfterSeconds),
+            "x-request-id": requestId,
+          },
+        },
+      );
+    }
+
+    // 2. Autentikasi API client (scope submit-only)
     const proxyToken = request.headers.get("x-verax-proxy-token");
     const proxyClientId = request.headers.get("x-verax-proxy-client-id");
     const authRes = await verifyApiClientDetailed(request.headers.get("authorization"), proxyToken, proxyClientId);
@@ -61,39 +98,6 @@ export async function POST(request: Request) {
       );
     }
     const client = authRes.client;
-
-    // 2. Pembatasan laju permintaan (Rate limit per client: 12 req/menit)
-    const limit = rateLimit(`ingest:${client.id}`, 12, 60_000);
-    if (!limit.allowed) {
-      const durationMs = Date.now() - startTime;
-      await logApiRequest({
-        requestId,
-        apiClientId: client.id,
-        method: "POST",
-        endpoint: "/api/internal/v1/ai-submissions",
-        statusCode: 429,
-        durationMs,
-        ipAddress,
-        userAgent,
-        errorCode: "RATE_LIMITED",
-        errorMessage: "Terlalu banyak submission.",
-      });
-
-      return NextResponse.json(
-        {
-          error: "Batas laju permintaan terlampaui. Silakan coba kembali setelah jeda waktu yang ditentukan.",
-          code: "RATE_LIMITED",
-          requestId,
-        },
-        {
-          status: 429,
-          headers: {
-            "Retry-After": String(limit.retryAfterSeconds),
-            "x-request-id": requestId,
-          },
-        },
-      );
-    }
 
     // 3. Baca dan parsing JSON
     let rawBody: unknown;
@@ -166,7 +170,17 @@ export async function POST(request: Request) {
     const payloadHash = createHash("sha256").update(JSON.stringify(payloadForHash)).digest("hex");
 
     const existing = await db.submission.findUnique({
-      where: { idempotencyKey: payload.idempotencyKey },
+      where: {
+        apiClientId_idempotencyKey: {
+          apiClientId: client.id,
+          idempotencyKey: payload.idempotencyKey,
+        },
+      },
+      include: {
+        article: {
+          select: { status: true },
+        },
+      },
     });
 
     if (existing) {
@@ -189,6 +203,8 @@ export async function POST(request: Request) {
           {
             submissionId: existing.id,
             articleId: existing.articleId,
+            submissionStatus: existing.status,
+            articleStatus: existing.article.status,
             status: existing.status,
             receivedAt: existing.submittedAt.toISOString(),
             idempotentReplay: true,
@@ -237,15 +253,15 @@ export async function POST(request: Request) {
         data: {
           slug,
           title: payload.title,
-          deck: payload.deck ?? null,
+          deck: payload.deck?.trim() || null,
           deskId: desk.id,
           format: payload.format,
           status: "DRAFT",
           contentJson,
           origin: "INGESTION_API",
-          byline: "Redaksi Verax Press", // Byline final ditetapkan oleh tim editorial manusia
+          byline: AI_PLACEHOLDER_BYLINE, // Byline final wajib ditetapkan editor manusia sebelum terbit
           aiInvolvement: payload.aiInvolvement,
-          aiDisclosureNote: payload.aiUsageNote ?? null,
+          aiDisclosureNote: payload.aiUsageNote?.trim() || null,
           createdById: null,
         },
       });
@@ -270,8 +286,8 @@ export async function POST(request: Request) {
             publisher: source.publisher ?? null,
             url: source.url,
             sourceType: source.sourceType,
-            publishedAt: source.publishedAt ? new Date(source.publishedAt) : null,
-            accessedAt: source.accessedAt ? new Date(source.accessedAt) : new Date(),
+            publishedAt: parseOptionalIsoDate(source.publishedAt),
+            accessedAt: parseOptionalIsoDate(source.accessedAt) ?? new Date(),
             supports: source.supports ?? null,
             isKeySource: source.isKeySource ?? false,
             verificationStatus: "UNVERIFIED", // Selalu UNVERIFIED walau agen mengklaim verifikasi
@@ -303,8 +319,8 @@ export async function POST(request: Request) {
           agentId: payload.agentId,
           status: "SUBMITTED",
           aiInvolvementDeclared: payload.aiInvolvement,
-          aiUsageNote: payload.aiUsageNote ?? null,
-          verificationNotes: payload.verificationNotes ?? null,
+          aiUsageNote: payload.aiUsageNote?.trim() || null,
+          verificationNotes: payload.verificationNotes?.trim() || null,
           idempotencyKey: payload.idempotencyKey,
           payloadHash,
           tagsJson: payload.tags ? JSON.stringify(payload.tags) : null,
@@ -350,7 +366,9 @@ export async function POST(request: Request) {
       {
         submissionId: submission.id,
         articleId: article.id,
-        status: "DRAFT",
+        submissionStatus: submission.status,
+        articleStatus: article.status,
+        status: submission.status,
         receivedAt: submission.submittedAt.toISOString(),
         idempotentReplay: false,
         requestId,
@@ -389,12 +407,50 @@ export async function POST(request: Request) {
   }
 }
 
-export async function GET() {
-  return NextResponse.json(
+async function methodNotAllowed(request: Request, method: string) {
+  const startTime = Date.now();
+  const requestId = request.headers.get("x-request-id") || generateRequestId();
+  const ipAddress = getClientIp(request);
+  const userAgent = request.headers.get("user-agent");
+  const message = `Metode ${method} tidak diizinkan pada endpoint ini. Gunakan POST untuk mengirim naskah.`;
+
+  try {
+    await logApiRequest({
+      requestId,
+      method,
+      endpoint: "/api/internal/v1/ai-submissions",
+      statusCode: 405,
+      durationMs: Date.now() - startTime,
+      ipAddress,
+      userAgent,
+      errorCode: "METHOD_NOT_ALLOWED",
+      errorMessage: message,
+    });
+  } catch {
+    // Abaikan kegagalan pencatatan log method 405
+  }
+
+  return new NextResponse(
+    method === "HEAD"
+      ? null
+      : JSON.stringify({
+          error: message,
+          code: "METHOD_NOT_ALLOWED",
+          requestId,
+        }),
     {
-      error: "Metode GET tidak diizinkan pada endpoint ini. Gunakan POST untuk mengirim naskah.",
-      code: "METHOD_NOT_ALLOWED",
+      status: 405,
+      headers: {
+        "Content-Type": "application/json; charset=utf-8",
+        "Allow": "POST",
+        "x-request-id": requestId,
+      },
     },
-    { status: 405 },
   );
 }
+
+export async function GET(request: Request) { return methodNotAllowed(request, "GET"); }
+export async function HEAD(request: Request) { return methodNotAllowed(request, "HEAD"); }
+export async function PUT(request: Request) { return methodNotAllowed(request, "PUT"); }
+export async function PATCH(request: Request) { return methodNotAllowed(request, "PATCH"); }
+export async function DELETE(request: Request) { return methodNotAllowed(request, "DELETE"); }

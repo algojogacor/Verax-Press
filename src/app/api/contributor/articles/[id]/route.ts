@@ -7,7 +7,6 @@ import { ApiError, jsonError, ok, parseJsonBody, requireContributorSession } fro
 import { articleContentSchema, serializeContent } from "@/lib/domain/content";
 import { createArticleVersion } from "@/lib/domain/serializers";
 import { writeAudit } from "@/lib/domain/audit";
-import { AI_INVOLVEMENTS } from "@/lib/domain/constants";
 
 type Params = { params: Promise<{ id: string }> };
 
@@ -117,7 +116,8 @@ const updateContributorArticleSchema = z.object({
   title: z.string().min(5, "Judul naskah minimal 5 karakter.").max(200).optional(),
   deck: z.string().max(400).optional().nullable(),
   deskSlug: z.string().min(1).optional(),
-  aiInvolvement: z.enum(AI_INVOLVEMENTS as [string, ...string[]]).optional(),
+  // Kebijakan Kontributor V1.1 (/editorial/context?channel=CONTRIBUTOR): hanya "none" atau "assistive"
+  aiInvolvement: z.enum(["none", "assistive"]).optional(),
   content: articleContentSchema.optional(),
 });
 

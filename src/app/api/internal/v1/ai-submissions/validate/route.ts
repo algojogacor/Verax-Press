@@ -3,20 +3,53 @@
 
 import { NextResponse } from "next/server";
 import { verifyApiClientDetailed } from "@/lib/api-key";
-import { rateLimit, sweepRateLimits } from "@/lib/rate-limit";
+import { getClientIp, rateLimit, sweepRateLimits } from "@/lib/rate-limit";
 import { validateIngestionPayload } from "@/lib/domain/ingestion";
 import { generateRequestId, logApiRequest } from "@/lib/request-logger";
 
 export async function POST(request: Request) {
   const startTime = Date.now();
   const requestId = request.headers.get("x-request-id") || generateRequestId();
-  const ipAddress = request.headers.get("x-forwarded-for") || request.headers.get("x-real-ip");
+  const ipAddress = getClientIp(request);
   const userAgent = request.headers.get("user-agent");
 
   try {
     sweepRateLimits();
 
-    // 1. Autentikasi API client
+    // 1. Rate limit SEBELUM autentikasi (30 per menit per IP untuk validasi dry-run)
+    // Mencegah brute-force token tak terbatas sebelum verifikasi kredensial.
+    const limit = rateLimit(`validate:${ipAddress}`, 30, 60_000);
+    if (!limit.allowed) {
+      const durationMs = Date.now() - startTime;
+      await logApiRequest({
+        requestId,
+        method: "POST",
+        endpoint: "/api/internal/v1/ai-submissions/validate",
+        statusCode: 429,
+        durationMs,
+        ipAddress,
+        userAgent,
+        errorCode: "RATE_LIMITED",
+        errorMessage: "Terlalu banyak permintaan validasi.",
+      });
+
+      return NextResponse.json(
+        {
+          error: "Batas laju permintaan validasi terlampaui. Coba beberapa saat lagi.",
+          code: "RATE_LIMITED",
+          requestId,
+        },
+        {
+          status: 429,
+          headers: {
+            "Retry-After": String(limit.retryAfterSeconds),
+            "x-request-id": requestId,
+          },
+        },
+      );
+    }
+
+    // 2. Autentikasi API client
     const proxyToken = request.headers.get("x-verax-proxy-token");
     const proxyClientId = request.headers.get("x-verax-proxy-client-id");
     const authRes = await verifyApiClientDetailed(request.headers.get("authorization"), proxyToken, proxyClientId);
@@ -49,39 +82,6 @@ export async function POST(request: Request) {
       );
     }
     const client = authRes.client;
-
-    // 2. Rate limit (30 per menit untuk validasi dry-run)
-    const limit = rateLimit(`validate:${client.id}`, 30, 60_000);
-    if (!limit.allowed) {
-      const durationMs = Date.now() - startTime;
-      await logApiRequest({
-        requestId,
-        apiClientId: client.id,
-        method: "POST",
-        endpoint: "/api/internal/v1/ai-submissions/validate",
-        statusCode: 429,
-        durationMs,
-        ipAddress,
-        userAgent,
-        errorCode: "RATE_LIMITED",
-        errorMessage: "Terlalu banyak permintaan validasi.",
-      });
-
-      return NextResponse.json(
-        {
-          error: "Batas laju permintaan validasi terlampaui. Coba beberapa saat lagi.",
-          code: "RATE_LIMITED",
-          requestId,
-        },
-        {
-          status: 429,
-          headers: {
-            "Retry-After": String(limit.retryAfterSeconds),
-            "x-request-id": requestId,
-          },
-        },
-      );
-    }
 
     // 3. Baca JSON
     let rawBody: unknown;
@@ -203,3 +203,51 @@ export async function POST(request: Request) {
     );
   }
 }
+
+async function methodNotAllowed(request: Request, method: string) {
+  const startTime = Date.now();
+  const requestId = request.headers.get("x-request-id") || generateRequestId();
+  const ipAddress = getClientIp(request);
+  const userAgent = request.headers.get("user-agent");
+  const message = `Metode ${method} tidak diizinkan pada endpoint ini. Gunakan POST untuk validasi dry-run payload.`;
+
+  try {
+    await logApiRequest({
+      requestId,
+      method,
+      endpoint: "/api/internal/v1/ai-submissions/validate",
+      statusCode: 405,
+      durationMs: Date.now() - startTime,
+      ipAddress,
+      userAgent,
+      errorCode: "METHOD_NOT_ALLOWED",
+      errorMessage: message,
+    });
+  } catch {
+    // Abaikan kegagalan pencatatan log method 405
+  }
+
+  return new NextResponse(
+    method === "HEAD"
+      ? null
+      : JSON.stringify({
+          error: message,
+          code: "METHOD_NOT_ALLOWED",
+          requestId,
+        }),
+    {
+      status: 405,
+      headers: {
+        "Content-Type": "application/json; charset=utf-8",
+        "Allow": "POST",
+        "x-request-id": requestId,
+      },
+    },
+  );
+}
+
+export async function GET(request: Request) { return methodNotAllowed(request, "GET"); }
+export async function HEAD(request: Request) { return methodNotAllowed(request, "HEAD"); }
+export async function PUT(request: Request) { return methodNotAllowed(request, "PUT"); }
+export async function PATCH(request: Request) { return methodNotAllowed(request, "PATCH"); }
+export async function DELETE(request: Request) { return methodNotAllowed(request, "DELETE"); }

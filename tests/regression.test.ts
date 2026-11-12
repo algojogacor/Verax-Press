@@ -6,7 +6,7 @@ import { test, describe, beforeAll, afterAll, expect } from 'bun:test'
 import fs from 'node:fs'
 import path from 'node:path'
 import { spawn, execSync, type ChildProcess } from 'node:child_process'
-import { seedTestFixtures, cleanupTestData, getTestDb, BASE, DB_URL, assertApprovedTestDatabase } from './lib/test-db'
+import { seedTestFixtures, cleanupTestData, getTestDb, BASE, DB_URL, assertApprovedTestDatabase, syncStandaloneAssets } from './lib/test-db'
 import { loginAs, get, postJson, patchJson, submitAi, createArticle, transition, apiAuthHeader } from './lib/http'
 
 let chief: Awaited<ReturnType<typeof loginAs>>
@@ -28,6 +28,7 @@ beforeAll(async () => {
     if (!fs.existsSync(serverScript)) {
       execSync('bun run build', { stdio: 'pipe' })
     }
+    syncStandaloneAssets()
 
     const childEnv = { ...process.env };
     delete childEnv.TURSO_DATABASE_URL;
@@ -303,8 +304,15 @@ suiteDescribe('AI API submission-only behavior', () => {
       idempotencyKey: 'itest-' + Date.now(),
     })
     expect(res.status).toBe(201)
-    const data = (await res.json()) as { status: string; articleId: string }
-    expect(data.status.toUpperCase()).toBe('DRAFT')
+    const data = (await res.json()) as {
+      status: string
+      submissionStatus: string
+      articleStatus: string
+      articleId: string
+    }
+    expect(data.submissionStatus).toBe('SUBMITTED')
+    expect(data.articleStatus).toBe('DRAFT')
+    expect(data.status).toBe('SUBMITTED')
     expect(data.articleId).toBeTruthy()
   })
 
@@ -647,9 +655,9 @@ suiteDescribe('Canonical Negative Validation Tests', () => {
     expect(res.status).toBe(422)
   })
 
-  test('AI submission attempting format NEWS is accepted as DRAFT (201)', async () => {
+  test('AI submission attempting format NEWS is rejected fail-closed while pending authorization (422)', async () => {
     const res = await submitAi({
-      title: 'AI Ingestion News Format Permitted Test',
+      title: 'AI Ingestion News Format Pending Test',
       desk: 'teknologi-kebijakan',
       format: 'NEWS',
       content: [{ type: 'paragraph', text: 'Teks berita pemantauan teknologi terverifikasi.' }],
@@ -658,9 +666,10 @@ suiteDescribe('Canonical Negative Validation Tests', () => {
       agentId: 'agent-d2',
       idempotencyKey: 'itest-news-' + Date.now(),
     })
-    expect(res.status).toBe(201)
-    const data = (await res.json()) as { status: string; articleId: string }
-    expect(data.status).toBe('DRAFT')
+    expect(res.status).toBe(422)
+    const data = (await res.json()) as { code: string; details?: Array<{ code?: string }> }
+    expect(data.code).toBe('FORMAT_REJECTED')
+    expect(data.details?.[0]?.code).toBe('FORMAT_PENDING_AUTHORIZATION')
   })
 
   test('AI submission with invalid format enum is rejected (422 FORMAT_REJECTED)', async () => {

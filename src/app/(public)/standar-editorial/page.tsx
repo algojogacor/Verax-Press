@@ -20,17 +20,17 @@ const AI_LEVELS: { name: string; description: string }[] = [
   {
     name: "Tanpa AI",
     description:
-      "Naskah disusun sepenuhnya oleh manusia; tidak ada bantuan AI dalam proses pembuatannya.",
+      "Naskah disusun sepenuhnya oleh manusia tanpa bantuan AI dalam penulisan; catatan proses AI tidak diperlukan.",
   },
   {
     name: "Asistif",
     description:
-      "AI membantu pekerjaan teknis, seperti riset awal atau perapian struktur, sementara substansi, bahasa, dan keputusan editorial sepenuhnya dikerjakan manusia.",
+      "AI membantu pekerjaan teknis seperti riset awal atau perapian struktur sementara substansi, bahasa, dan keputusan editorial dikerjakan manusia; pengisian catatan proses bersifat opsional atau dianjurkan untuk mencatat lingkup bantuan.",
   },
   {
     name: "Substantif",
     description:
-      "AI terlibat dalam penyusunan substansi draf; wajib disertai catatan proses yang tampil publik pada artikel.",
+      "AI terlibat dalam penyusunan substansi draf awal; wajib mengaktifkan catatan proses yang tampil publik sebelum artikel disetujui terbit.",
   },
 ];
 
@@ -124,8 +124,28 @@ export default function StandardsPage() {
                 naskah apa pun tanpa keputusan manusia. AI tidak pernah dijadikan sumber fakta.
               </p>
               <p>
-                Agen AI eksternal hanya dapat mengirim draf melalui API internal Verax Press, tanpa hak
-                menyetujui atau menerbitkan naskah.
+                Pada kebijakan platform yang aktif berjalan saat ini, agen AI eksternal hanya dapat
+                mengirim draf awal ke API internal (tanpa hak persetujuan atau publikasi) dengan
+                penanda byline kerja sementara sampai ditetapkan penyunting manusia. Sementara itu,
+                dokumen standar editorial modular (<code>VERAX-EDITORIAL-AI v1.0.0</code>) berstatus{" "}
+                <code>PROPOSED</code> (pratinjau teknis non-mengikat, <code>effectiveDate: null</code>);
+                selama status tersebut berlangsung, pengiriman format <code>NEWS</code> melalui jalur
+                API agen ditahan sementara dan format <code>FEATURE</code>/<code>INTERVIEW</code>{" "}
+                bersyarat atas bukti berkas wawancara atau observasi nyata. Panduan teknis tersedia di{" "}
+                <Link
+                  href="/developers"
+                  className="text-verity-accent underline underline-offset-4 hover:text-verity-accent-deep"
+                >
+                  halaman pengembang (/developers)
+                </Link>{" "}
+                serta{" "}
+                <Link
+                  href="/editorial/manifest.json"
+                  className="text-verity-accent underline underline-offset-4 hover:text-verity-accent-deep"
+                >
+                  manifest standar modular
+                </Link>
+                .
               </p>
             </div>
           </section>
@@ -223,6 +243,18 @@ export default function StandardsPage() {
                   className="block text-verity-accent underline underline-offset-4 hover:text-verity-accent-deep"
                 >
                   Kebijakan AI Lengkap →
+                </Link>
+                <Link
+                  href="/editorial/manifest.json"
+                  className="block text-verity-accent underline underline-offset-4 hover:text-verity-accent-deep"
+                >
+                  Manifest Standar Modular (PROPOSED) →
+                </Link>
+                <Link
+                  href="/developers"
+                  className="block text-verity-accent underline underline-offset-4 hover:text-verity-accent-deep"
+                >
+                  Dokumentasi Pengembang &amp; AI →
                 </Link>
                 <Link
                   href="/keluhan"

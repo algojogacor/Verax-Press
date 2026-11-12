@@ -15,11 +15,11 @@ export const metadata: Metadata = buildPublicMetadata({
 const FORMATS = [
   {
     title: "Opini & Sudut Pandang",
-    desc: "Argumen terstruktur atas isu hukum, teknologi, ekonomi, atau kebijakan publik terkini dengan analisis berbasis fakta.",
+    desc: "Argumen terstruktur atas isu hukum, kebijakan teknologi, atau urusan publik terkini dengan analisis berbasis fakta.",
   },
   {
     title: "Analisis Mendalam",
-    desc: "Bedah kebijakan, regulasi, atau dampak fenomena sosial-ekonomi dengan data dan dokumen rujukan primer.",
+    desc: "Bedah kebijakan, regulasi, atau dampak fenomena sosial dan urusan publik dengan data serta dokumen rujukan primer.",
   },
   {
     title: "Artikel Penjelas (Explainer)",
@@ -142,6 +142,11 @@ export default function KirimTulisanPage() {
       <p className="mt-4 text-sm text-verity-ink-soft italic">
         Catatan: Format Berita Harian (News) tidak dibuka untuk kontributor luar karena memerlukan
         peliputan lapangan berkala dan koordinasi ruang redaksi harian oleh staf redaksi tetap.
+        Ketentuan jalur integrasi mesin bagi klien AI berizin didokumentasikan terpisah pada halaman{" "}
+        <Link href="/developers" className="text-verity-accent underline underline-offset-4">
+          /developers
+        </Link>
+        .
       </p>
 
       <h2>Siapa yang Dapat Mengajukan Tulisan?</h2>
@@ -225,6 +230,12 @@ export default function KirimTulisanPage() {
           className="border border-verity-rule bg-verity-paper-soft px-3 py-1.5 text-verity-ink underline underline-offset-4 hover:text-verity-accent"
         >
           Kebijakan Penggunaan AI
+        </Link>
+        <Link
+          href="/developers"
+          className="border border-verity-rule bg-verity-paper-soft px-3 py-1.5 text-verity-ink underline underline-offset-4 hover:text-verity-accent"
+        >
+          Integrasi Agen AI (API)
         </Link>
       </div>
 

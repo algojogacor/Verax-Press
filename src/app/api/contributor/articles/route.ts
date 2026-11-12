@@ -8,7 +8,6 @@ import { articleContentSchema, serializeContent } from "@/lib/domain/content";
 import { uniqueArticleSlug } from "@/lib/domain/slug";
 import { createArticleVersion } from "@/lib/domain/serializers";
 import { writeAudit } from "@/lib/domain/audit";
-import { AI_INVOLVEMENTS } from "@/lib/domain/constants";
 
 // Format yang diizinkan untuk kontributor eksternal (Charter & Contributor Policy V1.1)
 // Format NEWS dilarang untuk naskah kontributor eksternal.
@@ -95,7 +94,8 @@ const createContributorArticleSchema = z.object({
   }, {
     message: "Format Berita (NEWS) hanya dapat diproduksi oleh redaksi internal Verax Press.",
   }),
-  aiInvolvement: z.enum(AI_INVOLVEMENTS as [string, ...string[]]).default("none"),
+  // Kebijakan Kontributor V1.1 (/editorial/context?channel=CONTRIBUTOR): hanya "none" atau "assistive"
+  aiInvolvement: z.enum(["none", "assistive"]).default("none"),
   content: articleContentSchema.default([]),
 });
 

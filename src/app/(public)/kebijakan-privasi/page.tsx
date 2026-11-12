@@ -16,7 +16,7 @@ export default function PrivacyPolicyPage() {
     <InstitutionalShell
       kicker="Privasi & Perlindungan Data"
       title="Kebijakan Privasi Verax Press"
-      intro="Verax Press berkomitmen melindungi data pribadi pengunjung, pembaca yang mengajukan hak jawab, dan kontributor yang mendaftar. Dokumen ini menjelaskan secara jujur dan faktual informasi apa yang kami kumpulkan dan bagaimana data tersebut dikelola."
+      intro="Kebijakan ini menjelaskan data yang dikumpulkan dari pembaca, pengirim hak jawab, dan pendaftar kontributor, serta cara pengelolaannya."
       canonicalPath="/kebijakan-privasi"
       breadcrumbLabel="Kebijakan Privasi"
     >
@@ -65,7 +65,7 @@ export default function PrivacyPolicyPage() {
           <p className="font-serif font-semibold text-verity-ink">D. Pengguna Terdaftar (Staf dan Kontributor)</p>
           <p className="mt-1 text-sm text-verity-ink-soft leading-relaxed">
             Untuk akun kontributor aktif dan staf redaksi, sistem menyimpan nama pengguna, surel,
-            dan representasi kriptografis kata sandi yang dienkripsi menggunakan fungsi penurunan kunci scrypt.
+            dan representasi kriptografis kata sandi menggunakan hash satu arah yang aman.
             Kata sandi asli dalam bentuk teks polos tidak pernah disimpan atau diketahui pengelola.
           </p>
         </div>

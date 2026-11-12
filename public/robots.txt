@@ -5,6 +5,7 @@
 
 User-agent: *
 Allow: /
+Allow: /api/internal/v1/capabilities
 Disallow: /api/
 
 Sitemap: https://veraxpress.vercel.app/sitemap.xml

@@ -6,13 +6,13 @@ import { db } from "@/lib/db";
 import { jsonError, ok, parseJsonBody } from "@/lib/api";
 import { createComplaintWithRetry } from "@/lib/domain/complaint";
 import { writeAudit } from "@/lib/domain/audit";
-import { rateLimit, sweepRateLimits } from "@/lib/rate-limit";
+import { getClientIp, rateLimit, sweepRateLimits } from "@/lib/rate-limit";
 import { COMPLAINT_TYPES } from "@/lib/domain/constants";
 
 export async function POST(request: Request) {
   try {
     sweepRateLimits();
-    const ip = request.headers.get("x-real-ip") ?? request.headers.get("x-forwarded-for") ?? "unknown";
+    const ip = getClientIp(request);
     const limit = rateLimit(`public-complaint:${ip}`, 5, 60 * 60 * 1000);
     if (!limit.allowed) {
       return NextResponse.json(

@@ -33,6 +33,11 @@ export const metadata: Metadata = {
     "Berita, analisis, opini, dan penjelas tentang hukum, teknologi, serta kebijakan publik Indonesia dengan verifikasi sumber primer dan log koreksi terbuka.",
   alternates: {
     canonical: "/",
+    types: {
+      "application/json": "/editorial/manifest.json",
+      "application/vnd.oai.openapi+json": "/openapi.json",
+      "text/plain": "/llms.txt",
+    },
   },
   robots: { index: true, follow: true },
   openGraph: {

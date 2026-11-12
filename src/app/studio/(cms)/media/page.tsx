@@ -12,7 +12,17 @@ function formatDate(d: Date): string {
 
 export default async function MediaPage() {
   const session = await getServerSession(authOptions);
-  if (!session?.user?.id) redirect("/studio/login");
+  if (!session?.user?.id || session.user.accountType !== "STAFF") {
+    redirect(session?.user?.accountType === "CONTRIBUTOR" ? "/kontributor/portal" : "/studio/login");
+  }
+
+  const staff = await db.staffUser.findUnique({
+    where: { id: session.user.id },
+    select: { status: true, role: true },
+  });
+  if (!staff || staff.status !== "ACTIVE" || (staff.role !== "CHIEF_EDITOR" && staff.role !== "WRITER")) {
+    redirect("/studio/login");
+  }
 
   const assets = await db.mediaAsset.findMany({
     orderBy: { createdAt: "desc" },

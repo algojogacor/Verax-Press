@@ -1,20 +1,22 @@
-// GET /api/internal/v1/ai-submissions/[submissionId] — Submission Status Endpoint (Fase 3).
+// GET / HEAD /api/internal/v1/ai-submissions/[submissionId] — Submission Status Endpoint (Fase 3).
 // Memungkinkan agen AI memantau status editorial atas naskah yang dikirimkannya.
 // Keamanan ketat: Hanya pemilik submission yang dapat mengakses rekaman miliknya.
 
 import { NextResponse } from "next/server";
 import { db } from "@/lib/db";
 import { verifyApiClientDetailed } from "@/lib/api-key";
+import { getClientIp } from "@/lib/rate-limit";
 import { generateRequestId, logApiRequest } from "@/lib/request-logger";
 
 type Params = { params: Promise<{ submissionId: string }> };
 
-export async function GET(request: Request, { params }: Params) {
+async function handleRead(request: Request, { params }: Params, isHead: boolean) {
   const startTime = Date.now();
   const requestId = request.headers.get("x-request-id") || generateRequestId();
-  const ipAddress = request.headers.get("x-forwarded-for") || request.headers.get("x-real-ip");
+  const ipAddress = getClientIp(request);
   const userAgent = request.headers.get("user-agent");
   const { submissionId } = await params;
+  const method = isHead ? "HEAD" : "GET";
 
   try {
     // 1. Autentikasi API client
@@ -25,7 +27,7 @@ export async function GET(request: Request, { params }: Params) {
       const errorMessage = authRes.errorMessage || "Kredensial API client tidak valid.";
       await logApiRequest({
         requestId,
-        method: "GET",
+        method,
         endpoint: `/api/internal/v1/ai-submissions/${submissionId}`,
         statusCode: 401,
         durationMs,
@@ -35,15 +37,14 @@ export async function GET(request: Request, { params }: Params) {
         errorMessage,
       });
 
-      return NextResponse.json(
-        {
-          error: errorMessage,
-          code: errorCode,
-          requestId,
-        },
+      return new NextResponse(
+        isHead ? null : JSON.stringify({ error: errorMessage, code: errorCode, requestId }),
         {
           status: 401,
-          headers: { "x-request-id": requestId },
+          headers: {
+            "Content-Type": "application/json; charset=utf-8",
+            "x-request-id": requestId,
+          },
         },
       );
     }
@@ -70,15 +71,14 @@ export async function GET(request: Request, { params }: Params) {
     const isOwner =
       submission &&
       (submission.apiClientId === client.id ||
-        (!submission.apiClientId &&
-          (submission.agentId === client.name || submission.agentId === client.clientId)));
+        (!submission.apiClientId && submission.agentId === client.clientId));
 
     if (!submission || !isOwner) {
       const durationMs = Date.now() - startTime;
       await logApiRequest({
         requestId,
         apiClientId: client.id,
-        method: "GET",
+        method,
         endpoint: `/api/internal/v1/ai-submissions/${submissionId}`,
         statusCode: 404,
         durationMs,
@@ -88,15 +88,20 @@ export async function GET(request: Request, { params }: Params) {
         errorMessage: "Submission tidak ditemukan atau bukan milik klien ini.",
       });
 
-      return NextResponse.json(
-        {
-          error: "Naskah submission tidak ditemukan dalam lingkup akun integrasi Anda.",
-          code: "NOT_FOUND",
-          requestId,
-        },
+      return new NextResponse(
+        isHead
+          ? null
+          : JSON.stringify({
+              error: "Naskah submission tidak ditemukan dalam lingkup akun integrasi Anda.",
+              code: "NOT_FOUND",
+              requestId,
+            }),
         {
           status: 404,
-          headers: { "x-request-id": requestId },
+          headers: {
+            "Content-Type": "application/json; charset=utf-8",
+            "x-request-id": requestId,
+          },
         },
       );
     }
@@ -105,7 +110,7 @@ export async function GET(request: Request, { params }: Params) {
     await logApiRequest({
       requestId,
       apiClientId: client.id,
-      method: "GET",
+      method,
       endpoint: `/api/internal/v1/ai-submissions/${submissionId}`,
       statusCode: 200,
       durationMs,
@@ -114,34 +119,37 @@ export async function GET(request: Request, { params }: Params) {
       submissionId: submission.id,
     });
 
+    const body = {
+      submissionId: submission.id,
+      articleId: submission.articleId,
+      submissionStatus: submission.status,
+      articleStatus: submission.article.status,
+      editorialStatus: submission.article.status,
+      format: submission.article.format,
+      title: submission.article.title,
+      receivedAt: submission.submittedAt.toISOString(),
+      lastUpdatedAt: submission.article.updatedAt.toISOString(),
+      idempotencyKey: submission.idempotencyKey,
+      editorialDecision: {
+        status: submission.article.status,
+        isPublished: submission.article.status === "PUBLISHED",
+      },
+      requestId,
+    };
+
     // 4. Kembalikan data status yang aman tanpa membocorkan catatan telaah internal
-    return NextResponse.json(
-      {
-        submissionId: submission.id,
-        articleId: submission.articleId,
-        submissionStatus: submission.status,
-        editorialStatus: submission.article.status,
-        format: submission.article.format,
-        title: submission.article.title,
-        receivedAt: submission.submittedAt.toISOString(),
-        lastUpdatedAt: submission.article.updatedAt.toISOString(),
-        idempotencyKey: submission.idempotencyKey,
-        editorialDecision: {
-          status: submission.article.status,
-          isPublished: submission.article.status === "PUBLISHED",
-        },
-        requestId,
+    return new NextResponse(isHead ? null : JSON.stringify(body), {
+      status: 200,
+      headers: {
+        "Content-Type": "application/json; charset=utf-8",
+        "x-request-id": requestId,
       },
-      {
-        status: 200,
-        headers: { "x-request-id": requestId },
-      },
-    );
+    });
   } catch (error) {
     const durationMs = Date.now() - startTime;
     await logApiRequest({
       requestId,
-      method: "GET",
+      method,
       endpoint: `/api/internal/v1/ai-submissions/${submissionId}`,
       statusCode: 500,
       durationMs,
@@ -151,16 +159,74 @@ export async function GET(request: Request, { params }: Params) {
       errorMessage: error instanceof Error ? error.message : "Internal error",
     });
 
-    return NextResponse.json(
-      {
-        error: "Terjadi kesalahan internal saat memeriksa status submission.",
-        code: "INTERNAL_ERROR",
-        requestId,
-      },
+    return new NextResponse(
+      isHead
+        ? null
+        : JSON.stringify({
+            error: "Terjadi kesalahan internal saat memeriksa status submission.",
+            code: "INTERNAL_ERROR",
+            requestId,
+          }),
       {
         status: 500,
-        headers: { "x-request-id": requestId },
+        headers: {
+          "Content-Type": "application/json; charset=utf-8",
+          "x-request-id": requestId,
+        },
       },
     );
   }
 }
+
+async function methodNotAllowed(request: Request, { params }: Params, method: string) {
+  const startTime = Date.now();
+  const requestId = request.headers.get("x-request-id") || generateRequestId();
+  const ipAddress = getClientIp(request);
+  const userAgent = request.headers.get("user-agent");
+  const { submissionId } = await params;
+  const message = `Metode ${method} tidak diizinkan pada endpoint status submission. Gunakan GET atau HEAD.`;
+
+  try {
+    await logApiRequest({
+      requestId,
+      method,
+      endpoint: `/api/internal/v1/ai-submissions/${submissionId}`,
+      statusCode: 405,
+      durationMs: Date.now() - startTime,
+      ipAddress,
+      userAgent,
+      errorCode: "METHOD_NOT_ALLOWED",
+      errorMessage: message,
+    });
+  } catch {
+    // Abaikan kegagalan pencatatan log method 405
+  }
+
+  return NextResponse.json(
+    {
+      error: message,
+      code: "METHOD_NOT_ALLOWED",
+      requestId,
+    },
+    {
+      status: 405,
+      headers: {
+        "Allow": "GET, HEAD",
+        "x-request-id": requestId,
+      },
+    },
+  );
+}
+
+export async function GET(request: Request, ctx: Params) {
+  return handleRead(request, ctx, false);
+}
+
+export async function HEAD(request: Request, ctx: Params) {
+  return handleRead(request, ctx, true);
+}
+
+export async function POST(request: Request, ctx: Params) { return methodNotAllowed(request, ctx, "POST"); }
+export async function PUT(request: Request, ctx: Params) { return methodNotAllowed(request, ctx, "PUT"); }
+export async function PATCH(request: Request, ctx: Params) { return methodNotAllowed(request, ctx, "PATCH"); }
+export async function DELETE(request: Request, ctx: Params) { return methodNotAllowed(request, ctx, "DELETE"); }

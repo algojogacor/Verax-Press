@@ -346,4 +346,13 @@ export function syncStandaloneAssets(): void {
   if (fs.existsSync(staticSrc)) {
     fs.cpSync(staticSrc, staticDst, { recursive: true, force: true })
   }
+  const editorialPublicSrc = path.resolve('docs/editorial/public')
+  const editorialDstRoot = path.join(standaloneRoot, 'docs', 'editorial')
+  const editorialPublicDst = path.join(editorialDstRoot, 'public')
+  if (fs.existsSync(editorialDstRoot)) {
+    fs.rmSync(editorialDstRoot, { recursive: true, force: true })
+  }
+  if (fs.existsSync(editorialPublicSrc)) {
+    fs.cpSync(editorialPublicSrc, editorialPublicDst, { recursive: true, force: true })
+  }
 }

@@ -56,9 +56,9 @@ export async function GET(request: Request) {
 }
 
 const createSchema = z.object({
-  title: z.string().min(8).max(200),
+  title: z.string().trim().min(8).max(200),
   deck: z.string().max(400).optional(),
-  deskSlug: z.string().min(1),
+  deskSlug: z.string().trim().min(1),
   format: z.enum(ARTICLE_FORMATS as [string, ...string[]]),
   aiInvolvement: z.enum(AI_INVOLVEMENTS as [string, ...string[]]).default("none"),
   content: articleContentSchema.default([]),

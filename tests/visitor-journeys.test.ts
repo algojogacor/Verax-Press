@@ -115,7 +115,7 @@ describe("Public Visitor Journeys (End-to-End Simulation)", () => {
         expect(pub.status).toBe(200);
       }
     }
-  });
+  }, 30000);
 
   afterAll(async () => {
     if (createdFixtureIds.length > 0) {

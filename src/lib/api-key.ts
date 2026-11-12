@@ -49,7 +49,12 @@ export function safeEqualHex(a: string, b: string): boolean {
   }
 }
 
-export type ApiClientAuthError = "UNAUTHORIZED" | "CREDENTIAL_EXPIRED" | "CLIENT_INACTIVE" | "FORBIDDEN_SCOPE";
+export type ApiClientAuthError =
+  | "UNAUTHORIZED"
+  | "CREDENTIAL_REVOKED"
+  | "CREDENTIAL_EXPIRED"
+  | "CLIENT_INACTIVE"
+  | "FORBIDDEN_SCOPE";
 
 export interface ApiClientVerifyResult {
   client: ApiClientIdentity | null;
@@ -138,7 +143,7 @@ export async function verifyApiClientDetailed(
   for (const cred of client.credentials) {
     if (safeEqualHex(cred.secretHash, candidateHash)) {
       if (cred.status === "REVOKED") {
-        return { client: null, errorCode: "UNAUTHORIZED", errorMessage: "Kredensial API telah dicabut." };
+        return { client: null, errorCode: "CREDENTIAL_REVOKED", errorMessage: "Kredensial API telah dicabut." };
       }
       if (cred.expiresAt && cred.expiresAt < now) {
         return { client: null, errorCode: "CREDENTIAL_EXPIRED", errorMessage: "Kredensial API telah kedaluwarsa." };

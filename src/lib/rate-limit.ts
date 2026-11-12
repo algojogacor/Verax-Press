@@ -36,3 +36,22 @@ export function sweepRateLimits(): void {
     if (window.resetAt <= now) buckets.delete(key);
   }
 }
+
+/**
+ * Ekstrak IP klien dengan mengutamakan header yang ditetapkan platform deployment (Vercel).
+ * Di Vercel edge, `x-vercel-forwarded-for` dan `x-real-ip` diisi/ditimpa oleh proxy terpercaya.
+ * `x-forwarded-for` hanya dipakai sebagai fallback pada lingkungan dev/reverse-proxy lokal karena
+ * nilainya dapat dipalsukan oleh klien jika aplikasi diekspos langsung tanpa proxy pembersih header.
+ */
+export function getClientIp(request: Request): string {
+  const vercelIp = request.headers.get("x-vercel-forwarded-for")?.split(",")[0]?.trim();
+  if (vercelIp) return vercelIp;
+
+  const realIp = request.headers.get("x-real-ip")?.trim();
+  if (realIp) return realIp;
+
+  const forwardedIp = request.headers.get("x-forwarded-for")?.split(",")[0]?.trim();
+  if (forwardedIp) return forwardedIp;
+
+  return "unknown";
+}

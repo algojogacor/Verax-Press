@@ -14,6 +14,7 @@ import {
   BASE,
   DB_URL,
   assertApprovedTestDatabase,
+  syncStandaloneAssets,
 } from "./lib/test-db";
 import {
   loginAs,
@@ -23,6 +24,7 @@ import {
   type TestClient,
 } from "./lib/http";
 import { hashClientSecret } from "@/lib/api-key";
+import { AI_PLACEHOLDER_BYLINE } from "@/lib/domain/constants";
 
 let chief: TestClient;
 let writer: TestClient;
@@ -41,6 +43,7 @@ beforeAll(async () => {
     .catch(() => false);
 
   if (!isServerRunning) {
+    syncStandaloneAssets();
     const childEnv = { ...process.env };
     delete childEnv.TURSO_DATABASE_URL;
     delete childEnv.TURSO_AUTH_TOKEN;
@@ -330,6 +333,8 @@ describe("Phase 3: Developer Portal and AI Agent Integration Infrastructure", ()
       body: JSON.stringify({}),
     });
     expect(res.status).toBe(401);
+    const revokedBody = (await res.json()) as { code: string };
+    expect(revokedBody.code).toBe("CREDENTIAL_REVOKED");
 
     // Buat kredensial baru agar pengujian naskah berikutnya dapat berjalan
     const rotateAgain = await postJson(
@@ -345,8 +350,8 @@ describe("Phase 3: Developer Portal and AI Agent Integration Infrastructure", ()
   // 3. Dry-Run Validation (`POST /api/internal/v1/ai-submissions/validate`)
   // ---------------------------------------------------------------------------
 
-  test("10. Dry-Run Validation menerima format NEWS yang valid (200 OK)", async () => {
-    const res = await fetch(`${BASE}/api/internal/v1/ai-submissions/validate`, {
+  test("10. Dry-Run Validation menahan NEWS sementara (422), menguji prasyarat FEATURE/INTERVIEW, dan menerima EXPLAINER (200)", async () => {
+    const newsRes = await fetch(`${BASE}/api/internal/v1/ai-submissions/validate`, {
       method: "POST",
       headers: {
         Authorization: `Bearer ${clientIdentifier}.${rotatedSecret}`,
@@ -361,6 +366,100 @@ describe("Phase 3: Developer Portal and AI Agent Integration Infrastructure", ()
         aiInvolvement: "assistive",
         agentId: "agent-test",
         idempotencyKey: `dryrun-news-${Date.now()}`,
+      }),
+    });
+    expect(newsRes.status).toBe(422);
+    const newsBody = (await newsRes.json()) as { code: string; details?: Array<{ code?: string }> };
+    expect(newsBody.code).toBe("FORMAT_REJECTED");
+    expect(newsBody.details?.[0]?.code).toBe("FORMAT_PENDING_AUTHORIZATION");
+
+    const featureFailRes = await fetch(`${BASE}/api/internal/v1/ai-submissions/validate`, {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${clientIdentifier}.${rotatedSecret}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        title: "Potret Perubahan Iklim di Pesisir Utara Jawa",
+        desk: "nasional-publik",
+        format: "FEATURE",
+        content: [{ type: "paragraph", text: "Laporan panjang tanpa rujukan bukti primer." }],
+        sources: [{ title: "Rangkuman Media", url: "https://example.com/sec", sourceType: "SECONDARY" }],
+        aiInvolvement: "assistive",
+        agentId: "agent-test",
+        idempotencyKey: `dryrun-feature-fail-${Date.now()}`,
+      }),
+    });
+    expect(featureFailRes.status).toBe(422);
+    const featureFailBody = (await featureFailRes.json()) as { code: string; details?: Array<{ code?: string }> };
+    expect(featureFailBody.code).toBe("FORMAT_REJECTED");
+    expect(featureFailBody.details?.[0]?.code).toBe("FORMAT_PRECONDITION_FAILED");
+
+    const featurePassRes = await fetch(`${BASE}/api/internal/v1/ai-submissions/validate`, {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${clientIdentifier}.${rotatedSecret}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        title: "Potret Ketahanan Warga Pesisir Demak Menghadapi Rob",
+        desk: "nasional-publik",
+        format: "FEATURE",
+        content: [{ type: "paragraph", text: "Narasi terstruktur berdasarkan observasi lapangan dan wawancara warga." }],
+        sources: [
+          {
+            title: "Catatan Wawancara Perwakilan Warga Desa Bedono",
+            url: "https://example.com/feature-primary",
+            sourceType: "PRIMARY",
+            supports: "Kesaksian langsung perubahan ketinggian pasang sejak 2020 di lokasi.",
+            isKeySource: true,
+          },
+        ],
+        verificationNotes: "Verifikasi foto lokasi, tanggal wawancara, dan data ketinggian rob.",
+        aiInvolvement: "assistive",
+        agentId: "agent-test",
+        idempotencyKey: `dryrun-feature-pass-${Date.now()}`,
+      }),
+    });
+    expect(featurePassRes.status).toBe(200);
+
+    const interviewFailRes = await fetch(`${BASE}/api/internal/v1/ai-submissions/validate`, {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${clientIdentifier}.${rotatedSecret}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        title: "Wawancara Khusus Pengamat Kebijakan Digital",
+        desk: "teknologi-kebijakan",
+        format: "INTERVIEW",
+        content: [{ type: "qa", question: "Apa tantangan utama?", answer: "Transparansi data publik." }],
+        sources: [{ title: "Siaran Pers", url: "https://example.com/pr", sourceType: "OFFICIAL" }],
+        aiInvolvement: "assistive",
+        agentId: "agent-test",
+        idempotencyKey: `dryrun-interview-fail-${Date.now()}`,
+      }),
+    });
+    expect(interviewFailRes.status).toBe(422);
+    expect(((await interviewFailRes.json()) as { details?: Array<{ code?: string }> }).details?.[0]?.code).toBe(
+      "FORMAT_PRECONDITION_FAILED",
+    );
+
+    const res = await fetch(`${BASE}/api/internal/v1/ai-submissions/validate`, {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${clientIdentifier}.${rotatedSecret}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        title: "Penjelasan Mekanisme Pengawasan Anggaran Daerah",
+        desk: "nasional-publik",
+        format: "EXPLAINER",
+        content: [{ type: "paragraph", text: "Penjelasan ringkas mekanisme pemeriksaan anggaran publik." }],
+        sources: [{ title: "Laporan Resmi Lembaga", url: "https://kemenkeu.go.id", sourceType: "OFFICIAL" }],
+        aiInvolvement: "assistive",
+        agentId: "agent-test",
+        idempotencyKey: `dryrun-explainer-${Date.now()}`,
       }),
     });
 
@@ -497,6 +596,8 @@ describe("Phase 3: Developer Portal and AI Agent Integration Infrastructure", ()
     const body = (await res.json()) as {
       submissionId: string;
       articleId: string;
+      submissionStatus: string;
+      articleStatus: string;
       status: string;
       idempotentReplay: boolean;
       requestId: string;
@@ -504,7 +605,9 @@ describe("Phase 3: Developer Portal and AI Agent Integration Infrastructure", ()
 
     expect(body.submissionId).toBeDefined();
     expect(body.articleId).toBeDefined();
-    expect(body.status).toBe("DRAFT");
+    expect(body.submissionStatus).toBe("SUBMITTED");
+    expect(body.articleStatus).toBe("DRAFT");
+    expect(body.status).toBe("SUBMITTED");
     expect(body.idempotentReplay).toBe(false);
     expect(body.requestId.startsWith("req_")).toBe(true);
 
@@ -519,6 +622,7 @@ describe("Phase 3: Developer Portal and AI Agent Integration Infrastructure", ()
     expect(article).not.toBeNull();
     expect(article?.status).toBe("DRAFT");
     expect(article?.origin).toBe("INGESTION_API");
+    expect(article?.byline).toBe(AI_PLACEHOLDER_BYLINE);
     expect(article?.sources.length).toBe(1);
     expect(article?.sources[0].verificationStatus).toBe("UNVERIFIED"); // Selalu UNVERIFIED saat intake
     expect(article?.versions.length).toBe(1);
@@ -530,7 +634,7 @@ describe("Phase 3: Developer Portal and AI Agent Integration Infrastructure", ()
     expect(submission?.apiClientId).toBe(createdClientId);
   });
 
-  test("12b. Pengiriman naskah dengan format NEWS diterima sebagai DRAFT dan sumber UNVERIFIED (201)", async () => {
+  test("12b. Format NEWS ditolak fail-closed (422) sedangkan FEATURE memenuhi prasyarat diterima sebagai SUBMITTED/DRAFT (201)", async () => {
     const newsPayload = {
       title: "Laporan Pemantauan Pembangunan Jaringan Internet Terluar",
       desk: "nasional-publik",
@@ -550,7 +654,44 @@ describe("Phase 3: Developer Portal and AI Agent Integration Infrastructure", ()
       ],
       aiInvolvement: "assistive",
       agentId: "agent-news-gatherer",
-      idempotencyKey: `news-live-${Date.now()}`,
+      idempotencyKey: `news-rejected-${Date.now()}`,
+    };
+
+    const newsRes = await fetch(`${BASE}/api/internal/v1/ai-submissions`, {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${clientIdentifier}.${rotatedSecret}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify(newsPayload),
+    });
+    expect(newsRes.status).toBe(422);
+    const newsBody = (await newsRes.json()) as { code: string; details?: Array<{ code?: string }> };
+    expect(newsBody.code).toBe("FORMAT_REJECTED");
+    expect(newsBody.details?.[0]?.code).toBe("FORMAT_PENDING_AUTHORIZATION");
+
+    const featurePayload = {
+      title: "Profil Pengelolaan Air Bersih Warga Kampung Pesisir",
+      desk: "nasional-publik",
+      format: "FEATURE",
+      deck: "Catatan peliputan mendalam infrastruktur air bersih komunitas.",
+      content: [
+        { type: "paragraph", text: "Warga mengelola penampungan air hujan secara kolektif sejak lima tahun terakhir." },
+        { type: "quote", text: "Sistem ini bergantung pada disiplin pemeliharaan bersama.", attribution: "Ketua Kelompok Warga" },
+      ],
+      sources: [
+        {
+          title: "Transkrip Wawancara Pengurus Komunitas Air",
+          url: "https://example.com/wawancara-air",
+          sourceType: "INTERVIEW",
+          supports: "Pernyataan langsung mengenai kapasitas tampung dan jadwal rawat warga.",
+          isKeySource: true,
+        },
+      ],
+      verificationNotes: "Catatan wawancara asli, foto instalasi, dan data volume tampungan warga tersimpan.",
+      aiInvolvement: "assistive",
+      agentId: "agent-feature-reporter",
+      idempotencyKey: `feature-live-${Date.now()}`,
     };
 
     const res = await fetch(`${BASE}/api/internal/v1/ai-submissions`, {
@@ -559,20 +700,29 @@ describe("Phase 3: Developer Portal and AI Agent Integration Infrastructure", ()
         Authorization: `Bearer ${clientIdentifier}.${rotatedSecret}`,
         "Content-Type": "application/json",
       },
-      body: JSON.stringify(newsPayload),
+      body: JSON.stringify(featurePayload),
     });
 
     expect(res.status).toBe(201);
-    const body = (await res.json()) as { submissionId: string; articleId: string; status: string };
-    expect(body.status).toBe("DRAFT");
+    const body = (await res.json()) as {
+      submissionId: string;
+      articleId: string;
+      submissionStatus: string;
+      articleStatus: string;
+      status: string;
+    };
+    expect(body.submissionStatus).toBe("SUBMITTED");
+    expect(body.articleStatus).toBe("DRAFT");
+    expect(body.status).toBe("SUBMITTED");
 
-    const newsArticle = await db.article.findUnique({
+    const featureArticle = await db.article.findUnique({
       where: { id: body.articleId },
       include: { sources: true },
     });
-    expect(newsArticle?.format).toBe("NEWS");
-    expect(newsArticle?.status).toBe("DRAFT");
-    expect(newsArticle?.sources[0].verificationStatus).toBe("UNVERIFIED");
+    expect(featureArticle?.format).toBe("FEATURE");
+    expect(featureArticle?.status).toBe("DRAFT");
+    expect(featureArticle?.byline).toBe(AI_PLACEHOLDER_BYLINE);
+    expect(featureArticle?.sources[0].verificationStatus).toBe("UNVERIFIED");
   });
 
   test("13. Replay dengan idempotency key dan payload sama mengembalikan 200 idempotentReplay", async () => {
@@ -689,12 +839,22 @@ describe("Phase 3: Developer Portal and AI Agent Integration Infrastructure", ()
     expect(res.status).toBe(200);
     const meta = (await res.json()) as {
       platform: string;
-      constraints: { publicationRight: boolean; disallowedFormats: string[]; allowedFormats: string[] };
+      constraints: {
+        publicationRight: boolean;
+        disallowedFormats: string[];
+        pendingAuthorizationFormats: string[];
+        conditionalFormats: string[];
+        allowedFormats: string[];
+      };
     };
     expect(meta.platform).toBe("Verax Press");
     expect(meta.constraints.publicationRight).toBe(false);
-    expect(meta.constraints.allowedFormats).toContain("NEWS");
-    expect(meta.constraints.disallowedFormats).not.toContain("NEWS");
+    expect(meta.constraints.allowedFormats).not.toContain("NEWS");
+    expect(meta.constraints.allowedFormats).toContain("ANALYSIS");
+    expect(meta.constraints.pendingAuthorizationFormats).toContain("NEWS");
+    expect(meta.constraints.disallowedFormats).toContain("NEWS");
+    expect(meta.constraints.conditionalFormats).toContain("FEATURE");
+    expect(meta.constraints.conditionalFormats).toContain("INTERVIEW");
   });
 
   test("19. Endpoint /llms.txt dan /llms-full.txt bebas tanda pisah terlarang (200)", async () => {
@@ -719,10 +879,15 @@ describe("Phase 3: Developer Portal and AI Agent Integration Infrastructure", ()
     const body = (await res.json()) as {
       capabilities: { publication: boolean };
       allowedFormats: string[];
+      pendingAuthorizationFormats: string[];
+      conditionalFormats: string[];
       desks: Array<{ slug: string; name: string }>;
     };
     expect(body.capabilities.publication).toBe(false);
-    expect(body.allowedFormats).toContain("NEWS");
+    expect(body.allowedFormats).not.toContain("NEWS");
+    expect(body.pendingAuthorizationFormats).toContain("NEWS");
+    expect(body.conditionalFormats).toContain("FEATURE");
+    expect(body.conditionalFormats).toContain("INTERVIEW");
     expect(body.desks.length).toBeGreaterThanOrEqual(1);
   });
 

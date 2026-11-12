@@ -4,7 +4,7 @@ import { z } from "zod";
 import { db } from "@/lib/db";
 import { ApiError, jsonError, ok, parseJsonBody } from "@/lib/api";
 import { writeAudit } from "@/lib/domain/audit";
-import { rateLimit, sweepRateLimits } from "@/lib/rate-limit";
+import { getClientIp, rateLimit, sweepRateLimits } from "@/lib/rate-limit";
 import { httpUrlSchema } from "@/lib/url";
 
 const applySchema = z.object({
@@ -28,7 +28,7 @@ const applySchema = z.object({
 export async function POST(request: Request) {
   try {
     sweepRateLimits();
-    const ip = request.headers.get("x-real-ip") ?? request.headers.get("x-forwarded-for")?.split(",")[0]?.trim() ?? "unknown";
+    const ip = getClientIp(request);
     const limit = rateLimit(`public-contributor-apply:${ip}`, 20, 60 * 60 * 1000);
     if (!limit.allowed) {
       return NextResponse.json(
@@ -41,40 +41,27 @@ export async function POST(request: Request) {
     const cleanEmail = body.email.trim().toLowerCase();
     const cleanName = body.name.trim();
 
-    // 1. Periksa apakah alamat email sudah terdaftar sebagai staf atau kontributor aktif
-    const existingStaff = await db.staffUser.findFirst({
-      where: {
-        OR: [{ email: cleanEmail }, { email: cleanEmail.toLowerCase() }],
-      },
-      select: { id: true },
-    });
-    if (existingStaff) {
-      throw new ApiError(409, "EMAIL_IN_USE", "Alamat email ini sudah terdaftar sebagai akun staf redaksi.");
-    }
+    // 1. Periksa ketersediaan email tanpa membocorkan jenis akun (staf, kontributor, atau antrean)
+    const [existingStaff, existingContributor, pendingApplication] = await Promise.all([
+      db.staffUser.findFirst({
+        where: { email: cleanEmail },
+        select: { id: true },
+      }),
+      db.contributor.findFirst({
+        where: { email: cleanEmail },
+        select: { id: true },
+      }),
+      db.contributorApplication.findFirst({
+        where: { email: cleanEmail, status: "PENDING" },
+        select: { id: true },
+      }),
+    ]);
 
-    const existingContributor = await db.contributor.findFirst({
-      where: {
-        OR: [{ email: cleanEmail }, { email: cleanEmail.toLowerCase() }],
-      },
-      select: { id: true },
-    });
-    if (existingContributor) {
-      throw new ApiError(409, "EMAIL_IN_USE", "Alamat email ini sudah terdaftar sebagai kontributor aktif.");
-    }
-
-    // 2. Periksa apakah permohonan dengan email sama masih berstatus PENDING
-    const pendingApplication = await db.contributorApplication.findFirst({
-      where: {
-        email: cleanEmail,
-        status: "PENDING",
-      },
-      select: { id: true },
-    });
-    if (pendingApplication) {
+    if (existingStaff || existingContributor || pendingApplication) {
       throw new ApiError(
         409,
         "APPLICATION_PENDING",
-        "Permohonan untuk alamat email ini sudah diterima dan sedang dalam antrean peninjauan redaksi."
+        "Permohonan untuk alamat email ini tidak dapat diajukan saat ini karena sedang dalam peninjauan atau tidak memenuhi syarat pendaftaran baru.",
       );
     }
 

@@ -317,12 +317,13 @@ model Submission {
   aiInvolvementDeclared String
   aiUsageNote           String?
   verificationNotes     String?
-  idempotencyKey        String?  @unique
+  idempotencyKey        String?
   payloadHash           String? // deteksi bentrok idempotency key
   tagsJson              String? // tag dari agent (disimpan, tidak otomatis dipublikasikan)
   submittedAt           DateTime @default(now())
   createdAt             DateTime @default(now())
 
+  @@unique([apiClientId, idempotencyKey])
   @@index([origin, status])
   @@index([apiClientId])
 }

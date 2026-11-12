@@ -143,6 +143,7 @@ const NOINDEX_NOFOLLOW_PREFIXES = [
   "/kontributor/portal",
   "/kontributor/login",
   "/kontributor/aktivasi",
+  "/editorial",
   "/api",
   "/openapi.json",
   "/llms.txt",
