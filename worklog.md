@@ -1363,3 +1363,21 @@ Dijalankan 9 Nov 2026 (sesi build-2). Transkrip lengkap: `scripts/acceptance-tes
   2. Melakukan verifikasi HTTP langsung menggunakan `curl.exe` terhadap URL domain utama publik (`https://veraxpress.vercel.app/llms.txt` dan `https://veraxpress.vercel.app/llms-full.txt`), membuktikan bahwa seksi `Standar Penulisan Anti-AI & Kebijakan Anti-Slop` kini tampil penuh pada domain publik.
   3. Memperketat klausul Bagian 6 di `AGENTS.md`: Menegaskan secara eksplisit bahwa status `Ready` pada URL deployment unik Vercel tidak membuktikan keteralihan domain utama, dan melarang penggunaan URL deployment hash untuk klaim verifikasi produksi live.
 - **Kepatuhan Penulisan:** Bebas tanda pisah em dash, bebas frasa klise AI, dan konsisten dengan Verax Writing Standards.
+
+## 69. Implementasi Konstitusi Sistem Editorial Mandiri (VAES v2.0.2) & Rute Remote Constitution (14 Nov 2026)
+- **Konteks:** Menjadikan protokol VAES 2.0.2 (codename VAES_RESILIENT_TRUTH) sebagai spesifikasi operasional mandiri yang dapat diakses oleh agen AI eksternal melalui titik akhir HTTP publik terstandarisasi.
+- **Pembaruan Dokumen Konstitusi:**
+  - `docs/editorial/public/operations/VERAX_AUTONOMOUS_EDITORIAL_SYSTEM.json`: Menyediakan spesifikasi JSON definitif VAES 2.0.2 yang mencakup 9 mentor jurnalistik investigasi (Kashmir Hill, Julia Angwin, Adam Liptak, Brian Krebs, Sarah Kliff, Brian M. Rosenthal, Andreas Harsono, Standar Investigasi Majalah Tempo, Reuters Handbook of Journalism), 14 target larangan fabrikasi mutlak pada Bagian 2, protokol pemulihan kandidat dengan Kondisi A, B, C, D pada Bagian 5, matriks swatelaah independen pada Bagian 6, serta rubrik Information Gain pada Bagian 7.
+  - `docs/editorial/public/operations/VERAX_AUTONOMOUS_EDITORIAL_SYSTEM.md`: Menyediakan dokumen konstitusi operasional dengan frontmatter Verax (`documentId: VERAX-OPS-VAES-01`, `title: Verax Autonomous Editorial System Constitution v2.0.2`, `version: 2.0.2`, `status: PROPOSED`, `appliesTo: [ai-agents, newsroom-staff]`), ringkasan arsitektur, spesifikasi JSON tersemat, dan enam tanya-jawab arsitektural.
+- **Pembaruan Layanan Kode & Titik Akhir Remote:**
+  - `src/lib/editorial/standards.ts`: Mendaftarkan modul operasional `vaes` pada `OPERATION_MODULES` dan menambahkan fungsi `getVaesJsonDocument` untuk menyajikan payload JSON beserta checksum SHA-256 dan metadata manifest.
+  - `src/app/editorial/vaes.json/route.ts`: Menyajikan spesifikasi JSON definitif dengan `Content-Type: application/json; charset=utf-8`, ETag, dan penolakan metode non-GET/HEAD dengan HTTP 405 Method Not Allowed (`Allow: GET, HEAD`).
+  - `src/app/editorial/vaes/route.ts`: Menyajikan konstitusi dalam format Markdown secara default atau format JSON via `?output=json` atau `Accept: application/json`, serta menolak metode lain dengan HTTP 405.
+  - `src/lib/domain/api-docs.ts`: Mendaftarkan kedua titik akhir konstitusi pada `/.well-known/verax-agent.json`, `/llms.txt`, `/llms-full.txt`, serta `/openapi.json` (termasuk penambahan `vaes` pada enum slug modul operasional).
+- **Pengembangan Test Suite & Hasil Verifikasi Penuh:**
+  - Menambahkan kasus uji 8, 9, dan 10 pada `tests/editorial-discovery.test.ts` (10 pass, 0 fail, 315 assertions).
+  - Menguji kelengkapan 9 mentor, 14 target anti-fabrikasi, 4 kondisi pemulihan kandidat, respons HEAD dengan tubuh kosong, format Markdown dan JSON, modul dinamis `/editorial/operations/vaes`, serta penolakan 405 pada metode POST, PUT, PATCH, DELETE.
+  - `bun run typecheck`: 0 galat.
+  - `bun run lint`: 0 galat.
+  - `bun test`: **295 pass, 0 fail (3292 assertions) di 25 file**.
+  - Kepatuhan tipografi: 0 tanda pisah em dash dan 0 tanda hubung ganda pada teks baru.

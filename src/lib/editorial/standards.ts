@@ -31,7 +31,7 @@ export interface CoreModuleMeta {
 }
 
 export interface OperationModuleMeta {
-  slug: "ai-workflow" | "quality-assessment" | "review-checklist" | "api-integration";
+  slug: "ai-workflow" | "quality-assessment" | "review-checklist" | "api-integration" | "vaes";
   documentId: string;
   title: string;
   publicFile: string;
@@ -94,6 +94,12 @@ export const OPERATION_MODULES: OperationModuleMeta[] = [
     documentId: "VERAX-TECH-INTEGRATION-01",
     title: "Kontrak Integrasi Editorial Publik, Skema API, dan Tata Kelola Pengiriman",
     publicFile: "VERAX_PUBLIC_API_INTEGRATION.md",
+  },
+  {
+    slug: "vaes",
+    documentId: "VERAX-OPS-VAES-01",
+    title: "Verax Autonomous Editorial System Constitution v2.0.2",
+    publicFile: "operations/VERAX_AUTONOMOUS_EDITORIAL_SYSTEM.md",
   },
 ];
 
@@ -831,6 +837,25 @@ export function getOperationDocument(slugParam: string, baseUrl: string) {
     sha256: parsed.sha256,
     markdown,
     rawBody: parsed.body,
+  };
+}
+
+export function getVaesJsonDocument(baseUrl: string) {
+  const abs = resolvePublicEditorialFile("operations/VERAX_AUTONOMOUS_EDITORIAL_SYSTEM.json");
+  const rawText = normalizeCanonicalLf(fs.readFileSync(abs, "utf8"));
+  const data = JSON.parse(rawText) as Record<string, unknown>;
+  const sha256 = computeSha256(rawText);
+  const manifest = loadRawEditorialManifest();
+  const resourceUrl = `${baseUrl}/editorial/vaes.json`;
+
+  return {
+    ...data,
+    documentId: "VERAX-OPS-VAES-01",
+    resourceUrl,
+    sha256,
+    manifest,
+    rawJson: rawText,
+    data,
   };
 }
 

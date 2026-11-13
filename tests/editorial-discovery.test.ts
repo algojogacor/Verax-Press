@@ -13,6 +13,23 @@ import {
 } from "@/lib/domain/api-docs";
 import { GET as coreGet, HEAD as coreHead } from "@/app/editorial/core/route";
 import { GET as contextGet, HEAD as contextHead } from "@/app/editorial/context/route";
+import {
+  GET as vaesJsonGet,
+  HEAD as vaesJsonHead,
+  POST as vaesJsonPost,
+  PUT as vaesJsonPut,
+  PATCH as vaesJsonPatch,
+  DELETE as vaesJsonDelete,
+} from "@/app/editorial/vaes.json/route";
+import {
+  GET as vaesGet,
+  HEAD as vaesHead,
+  POST as vaesPost,
+  PUT as vaesPut,
+  PATCH as vaesPatch,
+  DELETE as vaesDelete,
+} from "@/app/editorial/vaes/route";
+import { GET as operationGet } from "@/app/editorial/operations/[slug]/route";
 
 describe("Verax Editorial Intelligence (VEI) Discovery Metadata & Documentation Suite", () => {
   const dummyBase = "https://veraxpress.vercel.app";
@@ -104,6 +121,19 @@ describe("Verax Editorial Intelligence (VEI) Discovery Metadata & Documentation 
     // F. Respon 201 ai-submissions menyebutkan perilaku imageQuery
     const submitPost = spec.paths["/api/internal/v1/ai-submissions"].post;
     expect(submitPost.responses["201"].description).toContain("imageQuery");
+
+    // G. Rute Konstitusi VAES v2.0.2 dan enum modul operasional
+    expect(spec.paths["/editorial/vaes"]).toBeDefined();
+    expect(spec.paths["/editorial/vaes"].get).toBeDefined();
+    expect(spec.paths["/editorial/vaes"].head).toBeDefined();
+    expect(spec.paths["/editorial/vaes.json"]).toBeDefined();
+    expect(spec.paths["/editorial/vaes.json"].get).toBeDefined();
+    expect(spec.paths["/editorial/vaes.json"].head).toBeDefined();
+
+    const opSlugParam = (
+      spec.paths["/editorial/operations/{slug}"].get.parameters as Array<{ name: string; schema: { enum?: string[] } }>
+    ).find((p) => p.name === "slug");
+    expect(opSlugParam?.schema.enum).toContain("vaes");
   });
 
   test("2. /.well-known/verax-agent.json mencantumkan kapabilitas coverage dan rincian autentikasi", () => {
@@ -138,7 +168,12 @@ describe("Verax Editorial Intelligence (VEI) Discovery Metadata & Documentation 
     expect(meta.capabilities.coverageCheck).toBe(true);
     expect(meta.capabilities.submission).toBe(true);
     expect(meta.capabilities.stockPhotoSearch).toBe(true);
+    expect(meta.capabilities.vaesConstitution).toBe(true);
     expect(meta.capabilities.publication).toBe(false);
+
+    // VAES Constitution Endpoints
+    expect(meta.endpoints.vaesConstitution).toBe(`${dummyBase}/editorial/vaes`);
+    expect(meta.endpoints.vaesConstitutionJson).toBe(`${dummyBase}/editorial/vaes.json`);
 
     // Authentication & scopes
     expect(meta.authentication.header).toBe("Authorization");
@@ -182,6 +217,11 @@ describe("Verax Editorial Intelligence (VEI) Discovery Metadata & Documentation 
     expect(text).toContain("Variasi Ritme Kalimat (Burstiness)");
     expect(text).toContain("Larangan Emoji Dekoratif");
     expect(text).toContain("Kejujuran Faktual Nol Fabrikasi");
+
+    // Konstitusi Sistem Editorial Mandiri (VAES v2.0.2)
+    expect(text).toContain("/editorial/vaes");
+    expect(text).toContain("/editorial/vaes.json");
+    expect(text).toContain("Konstitusi Sistem Editorial Mandiri (VAES v2.0.2)");
 
     // Penegakan aturan tipografi: mutlak bebas em-dash dan double-dash
     expect(text).not.toContain("—");
@@ -227,6 +267,11 @@ describe("Verax Editorial Intelligence (VEI) Discovery Metadata & Documentation 
     expect(text).toContain("Larangan Emoji Dekoratif");
     expect(text).toContain("Kejujuran Faktual Nol Fabrikasi");
     expect(text).toContain("Langkah 4: Terapkan Standar Penulisan Anti-AI & Kebijakan Anti-Slop");
+
+    // Konstitusi Sistem Editorial Mandiri (VAES v2.0.2)
+    expect(text).toContain("/editorial/vaes");
+    expect(text).toContain("/editorial/vaes.json");
+    expect(text).toContain("Langkah 3: Ambil Konteks Standar Editorial & Konstitusi VAES");
 
     // Penegakan aturan tipografi: mutlak bebas em-dash dan double-dash
     expect(text).not.toContain("—");
@@ -468,5 +513,148 @@ describe("Verax Editorial Intelligence (VEI) Discovery Metadata & Documentation 
     expect(headContextRes.status).toBe(200);
     expect(headContextRes.headers.get("x-verax-standard-status")).toBe("PROPOSED");
     expect(await headContextRes.text()).toBe("");
+  });
+
+  test("8. GET & HEAD /editorial/vaes.json menyajikan spesifikasi definitif protokol VAES v2.0.2 dan menolak metode non-GET/HEAD dengan 405", async () => {
+    // A. GET /editorial/vaes.json
+    const getRes = await vaesJsonGet(new Request(`${dummyBase}/editorial/vaes.json`));
+    expect(getRes.status).toBe(200);
+    expect(getRes.headers.get("content-type")).toContain("application/json");
+    expect(getRes.headers.get("x-verax-standard-status")).toBe("PROPOSED");
+
+    const json = (await getRes.json()) as {
+      protocol: string;
+      version: string;
+      codename: string;
+      section_2_absolute_anti_fabrication_protocol: {
+        prohibited_fabrication_targets: string[];
+      };
+      section_3_journalistic_craft_standards: {
+        foundational_methodologies: Array<{ mentor: string }>;
+      };
+      section_5_candidate_recovery_and_replacement_protocol: {
+        condition_a_source_missing: unknown;
+        condition_b_claim_unverified: unknown;
+        condition_c_hypothesis_refuted: unknown;
+        condition_d_candidate_unviable: unknown;
+      };
+    };
+
+    expect(json.protocol).toBe("VERAX_AUTONOMOUS_EDITORIAL_SYSTEM");
+    expect(json.version).toBe("2.0.2");
+    expect(json.codename).toBe("VAES_RESILIENT_TRUTH");
+
+    // 14 target anti-fabrikasi
+    expect(json.section_2_absolute_anti_fabrication_protocol.prohibited_fabrication_targets).toHaveLength(14);
+
+    // 9 mentor jurnalistik
+    const mentors = json.section_3_journalistic_craft_standards.foundational_methodologies.map((m) => m.mentor);
+    expect(mentors).toHaveLength(9);
+    expect(mentors.some((m) => m.includes("Kashmir Hill"))).toBe(true);
+    expect(mentors.some((m) => m.includes("Julia Angwin"))).toBe(true);
+    expect(mentors.some((m) => m.includes("Adam Liptak"))).toBe(true);
+    expect(mentors.some((m) => m.includes("Brian Krebs"))).toBe(true);
+    expect(mentors.some((m) => m.includes("Sarah Kliff"))).toBe(true);
+    expect(mentors.some((m) => m.includes("Brian M. Rosenthal"))).toBe(true);
+    expect(mentors.some((m) => m.includes("Andreas Harsono"))).toBe(true);
+    expect(mentors.some((m) => m.includes("Tempo"))).toBe(true);
+    expect(mentors.some((m) => m.includes("Reuters"))).toBe(true);
+
+    // Kondisi Pemulihan Kandidat A, B, C, D
+    const recovery = json.section_5_candidate_recovery_and_replacement_protocol;
+    expect(recovery.condition_a_source_missing).toBeDefined();
+    expect(recovery.condition_b_claim_unverified).toBeDefined();
+    expect(recovery.condition_c_hypothesis_refuted).toBeDefined();
+    expect(recovery.condition_d_candidate_unviable).toBeDefined();
+
+    // B. HEAD /editorial/vaes.json
+    const headRes = await vaesJsonHead(new Request(`${dummyBase}/editorial/vaes.json`));
+    expect(headRes.status).toBe(200);
+    expect(headRes.headers.get("x-verax-standard-status")).toBe("PROPOSED");
+    expect(await headRes.text()).toBe("");
+
+    // C. Non-GET/HEAD methods mengembalikan HTTP 405 Method Not Allowed
+    const postRes = await vaesJsonPost();
+    expect(postRes.status).toBe(405);
+    expect(postRes.headers.get("allow")).toBe("GET, HEAD");
+
+    const putRes = await vaesJsonPut();
+    expect(putRes.status).toBe(405);
+    expect(putRes.headers.get("allow")).toBe("GET, HEAD");
+
+    const patchRes = await vaesJsonPatch();
+    expect(patchRes.status).toBe(405);
+    expect(patchRes.headers.get("allow")).toBe("GET, HEAD");
+
+    const deleteRes = await vaesJsonDelete();
+    expect(deleteRes.status).toBe(405);
+    expect(deleteRes.headers.get("allow")).toBe("GET, HEAD");
+  });
+
+  test("9. GET & HEAD /editorial/vaes menyajikan konstitusi format Markdown dan JSON (?output=json) serta menolak metode lain dengan 405", async () => {
+    // A. GET /editorial/vaes (default Markdown)
+    const mdRes = await vaesGet(new Request(`${dummyBase}/editorial/vaes`));
+    expect(mdRes.status).toBe(200);
+    expect(mdRes.headers.get("content-type")).toContain("text/markdown");
+    expect(mdRes.headers.get("x-verax-standard-status")).toBe("PROPOSED");
+
+    const md = await mdRes.text();
+    expect(md).toContain("VERAX-OPS-VAES-01");
+    expect(md).toContain("Verax Autonomous Editorial System Constitution v2.0.2");
+    expect(md).toContain("VAES_RESILIENT_TRUTH");
+    expect(md).toContain("Kashmir Hill");
+    expect(md).toContain("Julia Angwin");
+    expect(md).toContain("Andreas Harsono");
+    expect(md).not.toContain("—");
+
+    // B. GET /editorial/vaes?output=json
+    const jsonRes = await vaesGet(new Request(`${dummyBase}/editorial/vaes?output=json`));
+    expect(jsonRes.status).toBe(200);
+    expect(jsonRes.headers.get("content-type")).toContain("application/json");
+
+    const jsonData = (await jsonRes.json()) as {
+      documentId: string;
+      title: string;
+      bodyMarkdown: string;
+    };
+    expect(jsonData.documentId).toBe("VERAX-OPS-VAES-01");
+    expect(jsonData.title).toContain("Verax Autonomous Editorial System Constitution v2.0.2");
+    expect(jsonData.bodyMarkdown).toContain("VAES_RESILIENT_TRUTH");
+
+    // C. HEAD /editorial/vaes
+    const headRes = await vaesHead(new Request(`${dummyBase}/editorial/vaes`));
+    expect(headRes.status).toBe(200);
+    expect(headRes.headers.get("x-verax-standard-status")).toBe("PROPOSED");
+    expect(await headRes.text()).toBe("");
+
+    // D. Non-GET/HEAD methods mengembalikan HTTP 405 Method Not Allowed
+    const postRes = await vaesPost();
+    expect(postRes.status).toBe(405);
+    expect(postRes.headers.get("allow")).toBe("GET, HEAD");
+
+    const putRes = await vaesPut();
+    expect(putRes.status).toBe(405);
+    expect(putRes.headers.get("allow")).toBe("GET, HEAD");
+
+    const patchRes = await vaesPatch();
+    expect(patchRes.status).toBe(405);
+    expect(patchRes.headers.get("allow")).toBe("GET, HEAD");
+
+    const deleteRes = await vaesDelete();
+    expect(deleteRes.status).toBe(405);
+    expect(deleteRes.headers.get("allow")).toBe("GET, HEAD");
+  });
+
+  test("10. GET /editorial/operations/vaes menyajikan modul operasional VAES melalui perutean dinamis", async () => {
+    const res = await operationGet(new Request(`${dummyBase}/editorial/operations/vaes`), {
+      params: Promise.resolve({ slug: "vaes" }),
+    });
+    expect(res.status).toBe(200);
+    expect(res.headers.get("content-type")).toContain("text/markdown");
+
+    const text = await res.text();
+    expect(text).toContain("VERAX-OPS-VAES-01");
+    expect(text).toContain("VAES_RESILIENT_TRUTH");
+    expect(text).not.toContain("—");
   });
 });

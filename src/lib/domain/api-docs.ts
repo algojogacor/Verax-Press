@@ -1218,7 +1218,7 @@ export function getOpenApiSpec(baseUrlOverride?: string) {
               name: "slug",
               in: "path",
               required: true,
-              schema: { type: "string", enum: ["ai-workflow", "quality-assessment", "review-checklist", "api-integration"] },
+              schema: { type: "string", enum: ["ai-workflow", "quality-assessment", "review-checklist", "api-integration", "vaes"] },
             },
             outputQueryParameter,
           ],
@@ -1226,6 +1226,50 @@ export function getOpenApiSpec(baseUrlOverride?: string) {
             "200": { description: "Dokumen operasional editorial." },
             "304": response304,
             "404": { description: "Dokumen tidak ditemukan." },
+            "405": error405Response,
+            "422": error422SchemaRef,
+          },
+        },
+      }),
+      "/editorial/vaes": withHeadFromGet({
+        get: {
+          summary: "Konstitusi Sistem Editorial Mandiri (VAES v2.0.2)",
+          description:
+            "Menyajikan konstitusi master protocol sistem editorial mandiri Verax Press (VAES 2.0.2, codename VAES_RESILIENT_TRUTH). Mendukung format Markdown secara default atau JSON melalui parameter ?output=json.",
+          parameters: [conditionalIfNoneMatchParam, outputQueryParameter],
+          responses: {
+            "200": { description: "Konstitusi sistem editorial mandiri VAES v2.0.2." },
+            "304": response304,
+            "405": error405Response,
+            "422": error422SchemaRef,
+          },
+        },
+      }),
+      "/editorial/vaes.json": withHeadFromGet({
+        get: {
+          summary: "Spesifikasi Konstitusi VAES v2.0.2 (JSON)",
+          description:
+            "Menyajikan spesifikasi definitif JSON protokol VAES v2.0.2 (VAES_RESILIENT_TRUTH) mencakup 9 mentor jurnalistik, 14 target anti-fabrikasi mutlak, matriks swatelaah, dan protokol pemulihan kandidat.",
+          parameters: [
+            conditionalIfNoneMatchParam,
+            {
+              name: "output",
+              in: "query",
+              required: false,
+              schema: { type: "string", enum: ["json"] },
+              description: "Hanya mendukung json pada endpoint berekstensi .json.",
+            },
+          ],
+          responses: {
+            "200": {
+              description: "Spesifikasi JSON definitif konstitusi VAES v2.0.2.",
+              content: {
+                "application/json": {
+                  schema: { type: "object" },
+                },
+              },
+            },
+            "304": response304,
             "405": error405Response,
             "422": error422SchemaRef,
           },
@@ -1285,6 +1329,8 @@ export function getWellKnownAgentMetadata(baseUrlOverride?: string) {
     llmsTxtUrl: `${baseUrl}/llms.txt`,
     llmsFullTxtUrl: `${baseUrl}/llms-full.txt`,
     capabilitiesUrl: `${baseUrl}/api/internal/v1/capabilities`,
+    vaesConstitutionUrl: `${baseUrl}/editorial/vaes`,
+    vaesConstitutionJsonUrl: `${baseUrl}/editorial/vaes.json`,
     editorialStandard: {
       standardId: "VERAX-EDITORIAL-AI",
       semanticVersion: "1.0.0",
@@ -1297,6 +1343,8 @@ export function getWellKnownAgentMetadata(baseUrlOverride?: string) {
       coreBundleUrl: `${baseUrl}/editorial/core`,
       contextResolverUrl: `${baseUrl}/editorial/context`,
       contextTemplate: `${baseUrl}/editorial/context?desk={deskSlug}&format={FORMAT}&channel=INGESTION_API&coreMode=compact`,
+      vaesConstitutionUrl: `${baseUrl}/editorial/vaes`,
+      vaesConstitutionJsonUrl: `${baseUrl}/editorial/vaes.json`,
     },
     authentication: {
       type: "bearer",
@@ -1325,6 +1373,8 @@ export function getWellKnownAgentMetadata(baseUrlOverride?: string) {
       editorialManifest: `${baseUrl}/editorial/manifest.json`,
       editorialCore: `${baseUrl}/editorial/core`,
       editorialContext: `${baseUrl}/editorial/context`,
+      vaesConstitution: `${baseUrl}/editorial/vaes`,
+      vaesConstitutionJson: `${baseUrl}/editorial/vaes.json`,
     },
     capabilities: {
       coverageSearch: true,
@@ -1334,6 +1384,7 @@ export function getWellKnownAgentMetadata(baseUrlOverride?: string) {
       submissionStatus: true,
       editorialContextResolution: true,
       stockPhotoSearch: true,
+      vaesConstitution: true,
       revisionSubmission: false,
       revisionFeedbackExposure: false,
       publication: false,
@@ -1388,6 +1439,14 @@ export function getLlmsTxt(baseUrlOverride?: string): string {
 - Manifest Standar Editorial (Status PROPOSED): ${baseUrl}/editorial/manifest.json
 - Bundel Prinsip Universal (Layer A): ${baseUrl}/editorial/core
 - Resolver Konteks Selektif (Layer A + B + C + D): ${baseUrl}/editorial/context?desk={deskSlug}&format={FORMAT}&channel=INGESTION_API
+- Konstitusi Sistem Editorial Mandiri (VAES v2.0.2 Markdown): ${baseUrl}/editorial/vaes
+- Spesifikasi Konstitusi VAES v2.0.2 (JSON): ${baseUrl}/editorial/vaes.json
+
+## Konstitusi Sistem Editorial Mandiri (VAES v2.0.2)
+Verax Press menyediakan protokol konstitusi definitif bagi agen penyelidik dan penulis AI mandiri:
+- Spesifikasi JSON: GET ${baseUrl}/editorial/vaes.json
+- Format Markdown: GET ${baseUrl}/editorial/vaes (mendukung ?output=json)
+Konstitusi ini mencakup 9 mentor jurnalistik kredibel, 14 target anti-fabrikasi mutlak, matriks swatelaah 4 kuadran, Information Gain rubric, serta protokol pemulihan kandidat (Candidate Recovery Protocol Conditions A, B, C, D) yang mencegah penghentian prematur misi peliputan.
 
 ## Status Persetujuan Standar Editorial
 - Standar VERAX-EDITORIAL-AI v1.0.0 berstatus PROPOSED (effectiveDate: null, isBindingEffectivePolicy: false).
@@ -1485,7 +1544,8 @@ Agen AI disarankan tidak mengunduh seluruh repositori. Gunakan endpoint terstruk
 - Modul Universal Tunggal: GET ${baseUrl}/editorial/core/{identity|principles|verification|ethics|language}
 - Profil Satu Desk Aktif (Layer B): GET ${baseUrl}/editorial/desks/{hukum-keadilan|teknologi-kebijakan|nasional-publik}
 - Profil Satu Format (Layer C): GET ${baseUrl}/editorial/formats/{news|analysis|opinion|explainer|feature|interview}
-- Dokumen Operasional & Kontrak Teknis: GET ${baseUrl}/editorial/operations/{ai-workflow|quality-assessment|review-checklist|api-integration}
+- Dokumen Operasional & Kontrak Teknis: GET ${baseUrl}/editorial/operations/{ai-workflow|quality-assessment|review-checklist|api-integration|vaes}
+- Konstitusi Sistem Editorial Mandiri (VAES v2.0.2): GET ${baseUrl}/editorial/vaes (mendukung ?output=json) atau GET ${baseUrl}/editorial/vaes.json
 - Resolver Konteks Selektif Empat Lapis (Layer A + B + C + D):
   GET ${baseUrl}/editorial/context?desk={deskSlug}&format={FORMAT}&channel=INGESTION_API&coreMode=compact
   Parameter penugasan Layer D opsional: topic, mainEditorialQuestion, intendedAudience, proposedAngle, availableSources, currentnessAndChronology, geographicInstitutionalContext, requestedDepth, knownInformationGaps, serta output=json|markdown|md.
@@ -1697,9 +1757,11 @@ Langkah 2: Evaluasi Tingkat Tumpang Tindih (Overlap)
 - Jika overlapLevel bernilai "none":
   Topik dan entitas belum pernah diliput. Lanjutkan ke tahap penulisan draf dengan tetap berpedoman pada standar editorial Verax Press.
 
-Langkah 3: Ambil Konteks Standar Editorial
+Langkah 3: Ambil Konteks Standar Editorial & Konstitusi VAES
 Sebelum menyusun draf, panggil:
 GET https://veraxpress.vercel.app/editorial/context?desk=<deskSlug>&format=<FORMAT>&channel=INGESTION_API&coreMode=compact
+Untuk panduan investigasi mendalam, pelajari spesifikasi konstitusi VAES 2.0.2:
+GET https://veraxpress.vercel.app/editorial/vaes.json
 Ikuti prinsip pembuktian sumber primer dan format 7 blok konten terstruktur.
 
 Langkah 4: Terapkan Standar Penulisan Anti-AI & Kebijakan Anti-Slop
