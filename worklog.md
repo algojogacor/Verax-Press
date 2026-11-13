@@ -1045,3 +1045,167 @@ Dijalankan 9 Nov 2026 (sesi build-2). Transkrip lengkap: `scripts/acceptance-tes
   - **Backend API (`POST /api/studio/articles/[id]/sources/verify-all`):** Endpoint khusus bagi Pemimpin Redaksi (`CHIEF_EDITOR`) untuk memverifikasi seluruh sumber referensi yang belum terverifikasi secara serentak dalam satu kueri batch `updateMany`, mencatat jejak audit `source.batch_verified`, dan mendukung opsi otomatisasi penetapan sumber kunci (`markAsKeySources: true`).
   - **Antarmuka Tab Sumber (`src/components/studio/article-sources-tab.tsx`):** Menambahkan tombol **Verifikasi Semua ({count})** di sebelah tombol Tambah Sumber ketika terdapat sumber yang belum terverifikasi. Membuka dialog konfirmasi ringkas dengan opsi catatan verifikasi kolektif serta sakelar *Tandai juga sebagai Sumber Kunci (isKeySource)* (otomatis aktif jika artikel belum memiliki sumber kunci, mencegah galat `GATE_NO_KEY_SOURCES` saat publikasi).
 - **Verifikasi Kualitas:** `bun run lint` (`0` galat/peringatan), `bun run typecheck` (`0` galat), `bunx next build` (`61` halaman), serta suite uji `tests/batch-verify-sources.test.ts` dan seluruh regresi `bun test` (**`202 pass, 0 fail`**, `2314 expect()` lintas 18 berkas).
+
+## 56. Fase 1: Skema Basis Data & Migrasi Editorial Intelligence (13 Nov 2026)
+- **Konteks:** Fondasi skema dan migrasi data untuk modul Verax Editorial Intelligence (VEI), memperluas model `Article` dengan atribut metadata editorial terstruktur.
+- **Perubahan Skema (`prisma/schema.prisma`):**
+  - Menambahkan lima kolom metadata editorial pada model `Article`:
+    - `topics String @default("[]")`
+    - `entities String @default("[]")`
+    - `centralQuestion String?`
+    - `editorialAngle String?`
+    - `metadataStatus String @default("unverified")`
+- **Migrasi Prisma & Runner (`prisma/migrations/20261113000000_add_editorial_metadata/`, `scripts/migrate.ts`):**
+  - Membuat berkas migrasi `20261113000000_add_editorial_metadata/migration.sql` dengan pola `RedefineTables` SQLite yang aman untuk preservasi relasi, foreign keys, indeks, dan default values.
+  - Menjalankan `bun x prisma generate` untuk memperbarui klien Prisma (`@prisma/client` v6.19.2).
+  - Menyediakan migration runner serbaguna di `scripts/migrate.ts` (`runMigrationRunner`) yang melacak `_prisma_migrations`, mendukung eksekusi bersih pada basis data baru, baseline otomatis pada basis data pra-isi, serta pencegahan eksekusi ulang (idempotensi 100%).
+  - Memigrasikan `db/custom.db` dan `db/isolated-test.db` dengan pencadangan pra-migrasi di `db/backups/`.
+- **Pengujian Otomatis (`tests/editorial-migration.test.ts`):**
+  - Menambahkan 7 uji komprehensif (`bun test tests/editorial-migration.test.ts`, 7 pass, 87 expect):
+    1. Migrasi diterapkan bersih pada fresh database tanpa galat.
+    2. Idempotensi migration runner (eksekusi kedua melewatkan migrasi yang sudah tercatat secara bersih).
+    3. Eksekusi migrasi pada basis data yang telah memiliki artikel pra-isi.
+    4. Preservasi data artikel pra-isi (judul, status, slug, contentJson, deck, format, byline) terbukti 100% utuh tanpa kehilangan atau korupsi data, dengan nilai default baru yang sesuai.
+    5. Idempotensi migration runner pada basis data yang telah berisi naskah.
+    6. Kompatibilitas penuh Prisma CLI (`prisma migrate deploy` & `prisma migrate status`) dengan status *schema up to date*.
+    7. Kemampuan Prisma Client membaca dan menulis field editorial intelligence melalui `getTestDb()`.
+- **Verifikasi Kualitas Kode:**
+  - `bun run typecheck` (`tsc --noEmit`): lulus bersih (exit `0`, `0` galat).
+  - `bun run lint` (`eslint .`): lulus bersih (exit `0`, `0` galat/peringatan).
+  - `bun test`: **`209 pass, 0 fail`** (`2401 expect()` lintas `19` berkas tes).
+
+
+## 57. Fase 2: Implementasi Endpoint API & Pustaka Verax Editorial Intelligence (13 Nov 2026)
+- **Konteks:** Implementasi endpoint API internal dan pustaka domain bersama untuk modul Verax Editorial Intelligence (VEI), mendukung evaluasi tumpang tindih liputan (*coverage check*) dan pencarian artikel terbit (*coverage search*).
+- **Modul Autentikasi Editorial (`src/lib/editorial-auth.ts`):**
+  - Autentikasi statis berbasis kunci API via variabel lingkungan `VERAX_COVERAGE_API_KEY` dengan cakupan hak akses `coverage:read`.
+  - Mendukung ekstraksi kredensial dari header `Authorization: Bearer <key>` dan header `X-API-Key: <key>`.
+  - Penolakan kredensial submission (`vrtc_...`) dengan status 403 Forbidden dan kode `FORBIDDEN_SCOPE` untuk menjaga batas hak akses antar modul.
+  - Penolakan konstan-waktu (*timing-safe comparison* via SHA-256) untuk mencegah serangan analisis waktu.
+  - Kebijakan *fail-closed*: jika variabel lingkungan belum disetel atau kosong, permintaan ditolak dengan 401 Unauthorized tanpa membocorkan nama variabel lingkungan atau konfigurasi server.
+  - Pembungkus penjaga rute `enforceEditorialCoverageAuth` yang menyematkan header korelasi `x-request-id`.
+- **Pustaka Domain Cakupan (`src/lib/domain/coverage.ts`):**
+  - Predikat artikel terbit strictly `status: { in: ["PUBLISHED", "CORRECTED"] }` dan `publishedAt: { not: null }`. Menolak mutlak status DRAFT, PENDING_REVIEW, FACT_CHECK, REVISION_NEEDED, PENDING_APPROVAL, REJECTED, WITHDRAWN, RETRACTED, dan ARCHIVED.
+  - Penyelesaian URL kanonik artikel melalui fungsi `canonicalUrl(/artikel/${slug})`.
+  - Parser aman `safeParseJsonArray` yang kebal terhadap string kosong, array langsung, format JSON tidak valid, maupun string terpisah koma.
+  - Normalisasi teks dan pembersihan kata henti (stopwords) bahasa Indonesia dan bahasa Inggris.
+  - Perhitungan deterministik tingkat overlap per artikel (`none`, `partial`, `high`).
+  - Aturan MAX overlap tingkat teratas: nilai tingkat tumpang tindih diambil dari nilai maksimum satu artikel yang paling cocok, bukan penjumlahan akumulatif dari beberapa kecocokan parsial.
+  - Format hasil `matches[]`: `{ articleId, title, desk, overlapLevel, matchedTopics, matchedEntities, metadataStatus, publishedAt, canonicalUrl }`.
+  - Menegakkan prinsip kontraktual: tidak menyertakan bidang `classification`, `recommendation`, atau `suggestedAction`.
+- **Endpoint HTTP Internal (`src/app/api/internal/v1/editorial/coverage/`):**
+  - `GET /api/internal/v1/editorial/coverage/search`:
+    - Memerlukan otentikasi `coverage:read`.
+    - Parameter query: `q` (kata kunci lintas judul, topik, entitas, pertanyaan inti, sudut pandang), `desk` (slug atau nama), `from` & `to` (rentang tanggal terbit), `limit` (default 20, maks 100), dan `cursor` (paginasi berbasis kursor ID).
+    - Validasi parameter kueri yang ketat: mengembalikan status 400 `INVALID_PARAMETER` jika `limit` bukan bilangan bulat positif (1-100) atau jika format tanggal `from`/`to` tidak valid.
+    - Kueri terparameterisasi aman melalui Prisma ORM dengan predikat artikel terbit.
+    - Format keluaran: `{ data: [...articles], pagination: { hasMore, nextCursor, total } }` dengan menyertakan `articleId: art.id` pada setiap elemen `data`.
+  - `POST /api/internal/v1/editorial/coverage/check`:
+    - Memerlukan otentikasi `coverage:read`.
+    - Validasi skema tubuh permintaan via Zod: `{ proposedTitle, topic, centralQuestion, proposedAngle, entities }`.
+    - Murni baca (read-only), tidak melakukan mutasi ataupun penulisan ke basis data.
+    - Format keluaran: `{ overlapLevel, matches }` di mana setiap elemen `matches[]` menyertakan `topics`, `entities`, `centralQuestion`, dan `editorialAngle`.
+    - Aturan evaluasi diperketat: usulan entitas tunggal (`totalProposed = 1`) yang cocok menghasilkan tingkat `partial` (bukan `high`).
+- **Pengujian Komprehensif (`tests/coverage-endpoints.test.ts`):**
+  - Menambahkan 37 uji otomatis (`bun test tests/coverage-endpoints.test.ts`, 37 pass, 174 expect calls):
+    1. Verifikasi header Authorization Bearer dan X-API-Key.
+    2. Penolakan token hilang, token salah, dan kunci submission (`vrtc_...`).
+    3. Penolakan aman saat env tidak disetel.
+    4. Validasi predikat artikel terbit pada 9 status non-terbit dan pengecualian status tanpa tanggal publikasi.
+    5. Pengujian parsing JSON aman, normalisasi teks, stopwords, dan perbandingan kecocokan istilah.
+    6. Verifikasi aturan MAX overlap (akumulasi partial match tidak menjadi high).
+    7. Uji pencarian kata kunci, penyaringan desk, penyaringan rentang tanggal, paginasi limit/cursor, dan penolakan kursor tidak valid.
+    8. Uji evaluasi overlap skenario high, partial, dan none pada endpoint POST /check.
+    9. Verifikasi pembuktian read-only bahwa penghitungan coverage tidak mengubah baris basis data.
+    10. Verifikasi ketiadaan bidang klasifikasi atau rekomendasi pada payload respons.
+- **Verifikasi Kualitas:**
+  - `bun run typecheck` (`tsc --noEmit`): lulus bersih (exit `0`, `0` galat).
+  - `bun run lint` (`eslint .`): lulus bersih (exit `0`, `0` galat/peringatan).
+  - `bun run build`: lulus bersih (63 rute statis/dinamis berhasil dioptimasi, termasuk 2 rute coverage baru).
+  - `bun test`: **`242 pass, 0 fail`** (`2536 expect()` lintas `20` berkas tes).
+
+
+## 58. Verifikasi Independen: Uji Adversarial Endpoint Coverage Verax Editorial Intelligence (13 Nov 2026)
+- **Konteks:** Verifikasi independen dan adversarial terhadap implementasi endpoint Verax Editorial Intelligence (VEI) API berdasarkan seluruh kriteria pengujian wajib otomatis.
+- **Berkas Pengujian (`tests/editorial-coverage.test.ts`):**
+  - Mengimplementasikan 13 pengujian adversarial mendalam menggunakan runner `bun test` dan basis data uji terisolasi (`tests/lib/test-db.ts`):
+    1. **Publication Isolation (Isolasi Publikasi Paling Kritis):**
+       - Membuat artikel uji untuk seluruh status di sistem: `PUBLISHED`, `CORRECTED`, `DRAFT`, `PENDING_REVIEW`, `FACT_CHECK`, `REVISION_NEEDED`, `PENDING_APPROVAL`, `REJECTED`, `WITHDRAWN`, `RETRACTED`, `ARCHIVED`, serta varian `PUBLISHED` dan `CORRECTED` dengan `publishedAt: null`.
+       - Membuktikan bahwa endpoint GET `/search` dan POST `/check` HANYA mengembalikan artikel dengan status `PUBLISHED` atau `CORRECTED` yang memiliki tanggal publikasi valid (`publishedAt != null`). Status non-terbit atau artikel dengan tanggal publikasi kosong terbukti 100% tidak pernah muncul.
+    2. **Auth Isolation (Isolasi Autentikasi):**
+       - Memvalidasi keberhasilan akses kunci `VERAX_COVERAGE_API_KEY` pada GET `/search` dan POST `/check` via header `Authorization: Bearer` dan `X-API-Key`.
+       - Memvalidasi bahwa kunci `VERAX_COVERAGE_API_KEY` ditolak (status 401/403) saat digunakan untuk mengakses endpoint Ingestion `/api/internal/v1/ai-submissions`.
+       - Memvalidasi bahwa kunci submission (`vrtc_...`) ditolak dengan status 403 `FORBIDDEN_SCOPE` pada GET `/search` dan POST `/check`.
+       - Memvalidasi bahwa permintaan tanpa kunci atau dengan kunci salah ditolak dengan status 401 `UNAUTHORIZED` tanpa membocorkan kunci yang diharapkan atau konfigurasi server pada tubuh respons.
+       - Memvalidasi perilaku fail-closed saat variabel lingkungan tidak dikonfigurasi di server.
+    3. **Read-Only Guarantee (Jaminan Murni Baca):**
+       - Mengeksekusi POST `/check` berulang kali dengan variasi payload (high, partial, none, empty, objek entitas).
+       - Membandingkan snapshot jumlah baris sebelum dan sesudah eksekusi di 14 tabel basis data (`article`, `articleVersion`, `auditEvent`, `desk`, `staffUser`, `submission`, `sourceReference`, `apiRequestLog`, `apiClient`, `apiClientCredential`, `reviewComment`, `editorialReview`, `articleContribution`, `complaint`).
+       - Terbukti nol mutasi: tidak ada penambahan, pengubahan, atau penghapusan baris data.
+    4. **API Contract & Overlap Precision (Kontrak API & Presisi Overlap):**
+       - Memverifikasi keberadaan seluruh bidang wajib pada respons GET `/search` (`articleId`, `title`, `desk`, `topics`, `entities`, `centralQuestion`, `editorialAngle`, `metadataStatus`, `publishedAt`, `canonicalUrl`) dan POST `/check` matches.
+       - Memverifikasi ketiadaan mutlak bidang terlarang `classification`, `recommendation`, dan `suggestedAction`.
+       - Uji multi-artikel: membuat 5 artikel terbit berbeda yang masing-masing hanya berbagi 1 entitas lemah dengan usulan artikel. Terbukti bahwa tingkat tumpang tindih tingkat teratas (`overlapLevel`) tetap `partial` dan TIDAK menjadi `high`. Perhitungan overlap terbukti dihitung per artikel (aturan MAX) dan tidak diakumulasi secara artifisial.
+       - Validasi parameter dan tubuh permintaan: kueri tidak valid (`limit` non-angka, `limit` negatif, tanggal `from` / `to` cacat, cursor palsu, JSON rusak, tipe data invalid) mengembalikan status 400 dengan pesan kesalahan yang jelas dan tidak menyebabkan crash 500.
+- **Hasil Verifikasi:**
+  - `bun test tests/editorial-coverage.test.ts`: **13 pass, 0 fail (129 expect calls)**.
+  - Keseluruhan test suite repositori `bun test`: **259 pass, 0 fail (2704 expect calls lintas 21 berkas tes)**.
+  - `bun run typecheck`: **0 galat**.
+  - `bun run lint`: **0 galat / peringatan**.
+
+## 59. Fase 3: Backfill Metadata Editorial untuk Artikel Terbit (13 Nov 2026)
+- **Konteks:** Mengimplementasikan layanan dan skrip CLI backfill metadata editorial (topics, entities, centralQuestion, editorialAngle) untuk artikel terbit yang sudah ada di basis data dengan menegakkan seluruh prinsip integritas data dan Standar Penulisan Sistem Verax Press.
+- **Layanan Backfill (`src/lib/editorial-backfill.ts`):**
+  - **Logika Ekstraksi Deterministik:**
+    - Mengekstrak `topics` (array string unik), `entities` (array string unik institusi/regulasi/entitas), `centralQuestion` (pertanyaan sentral jurnalistik yang berakhiran tanda tanya), dan `editorialAngle` (sudut pandang redaksional berbasis fakta).
+    - Mematuhi Standar Penulisan Verax Press: membersihkan tanda em dash (`—`) dan tanda minus ganda (`--`) menjadi tanda baca baku, serta menjamin ketiadaan kosakata terlarang.
+  - **Aturan Integritas Data:**
+    - Predikat Publikasi Sah: HANYA memproses artikel yang memenuhi predikat `isPublishedArticle` (`status in ['PUBLISHED', 'CORRECTED']` dan `publishedAt != null`). Naskah berstatus `DRAFT`, `PENDING_REVIEW`, `FACT_CHECK`, `REVISION_NEEDED`, `PENDING_APPROVAL`, `REJECTED`, `WITHDRAWN`, `RETRACTED`, `ARCHIVED`, maupun artikel dengan `publishedAt == null` dilewati sepenuhnya tanpa modifikasi.
+    - Perlindungan Status Terverifikasi: Bila artikel memiliki `metadataStatus === 'verified'`, lewati seluruh artikel tanpa modifikasi apa pun, meskipun terdapat kolom metadata yang kosong.
+    - Pengisian Kolom Parsial: Hanya mengisi kolom yang kosong (`topics === '[]'`, `entities === '[]'`, `centralQuestion == null`, `editorialAngle == null`). Kolom yang sudah terisi dipertahankan 100% dan tidak pernah ditimpa.
+    - Status Metadata Baru: Seluruh metadata yang baru diisi diberi tanda `metadataStatus: 'unverified'`.
+    - Isolasi Kolom Non-Metadata: Tidak pernah memodifikasi kolom naskah lainnya (`title`, `deck`, `contentJson`, `deskId`, `status`, `publishedAt`, `slug`, `format`, `byline`, `origin`, `aiInvolvement`, dll).
+    - Idempoten dan Aman Lanjut: Eksekusi berulang tidak memicu mutasi tambahan atau duplikasi data. Proses yang sempat terputus dapat dilanjutkan secara aman.
+- **Skrip CLI (`scripts/backfill-editorial-metadata.ts`):**
+  - Menyediakan antarmuka CLI dengan opsi `--db=<path>`, `--all` (menjalankan pada `db/custom.db` dan `db/isolated-test.db`), `--dry-run` (simulasi aman tanpa penulisan), dan `--article-id=<id>`.
+  - Dilengkapi mekanisme pencadangan otomatis (safety backup) berkas SQLite ke direktori `db/backups/` sebelum mutasi dilakukan.
+  - Validasi keamanan untuk menolak eksekusi pada basis data produksi remote Turso.
+- **Uji Otomatis Komprehensif (`tests/editorial-backfill.test.ts`):**
+  - Membangun 8 kasus uji otomatis mendalam:
+    1. Artikel terbit dengan metadata kosong berhasil diisi dan ditandai `metadataStatus: 'unverified'`.
+    2. Artikel dengan metadata parsial hanya mengisi kolom yang kosong; data lama tetap utuh.
+    3. Artikel berstatus `metadataStatus === 'verified'` dilewati dan sama sekali tidak dimodifikasi.
+    4. Artikel non-terbit pada seluruh variasi status non-publikasi (11 variasi) terbukti tidak tersentuh.
+    5. Uji idempotensi eksekusi beruntun: eksekusi kedua menghasilkan 0 mutasi dan snapshot data 100% identik.
+    6. Pemulihan proses terinterupsi: melanjutkan proses berjalan mulus tanpa merusak artikel sebelumnya.
+    7. Uji keutuhan data: seluruh kolom non-metadata terbukti 100% identik sebelum dan sesudah backfill.
+    8. Uji ketahanan (*robustness*): kebal terhadap `contentJson` yang korup/cacat, deteksi akurat string kosong, dan jaminan *read-only* pada mode `dryRun`.
+- **Hasil Eksekusi dan Verifikasi:**
+  - `bun test tests/editorial-backfill.test.ts`: **8 pass, 0 fail (194 expect calls)**.
+  - Seluruh rangkaian tes proyek `bun test`: **267 pass, 0 fail (2898 expect calls lintas 22 berkas tes)**.
+  - `bun run typecheck`: **0 galat**.
+  - `bun run lint`: **0 galat / peringatan**.
+  - Eksekusi backfill basis data nyata via `bun scripts/backfill-editorial-metadata.ts --all`:
+    - `db/custom.db`: 12 artikel terbit berhasil diperbarui, 4 naskah non-terbit dilewati.
+    - `db/isolated-test.db`: 246 naskah non-terbit dilewati dengan tertib.
+    - Eksekusi kedua membuktikan 0 pembaruan (12 dilewati karena sudah terisi lengkap).
+
+
+## 60. Migrasi Skema Turso Cloud, Konfigurasi Vercel, & Kesiapan Rilis Produksi (13 Nov 2026)
+- **Konteks:** Menyiapkan basis data Turso Cloud dan konfigurasi Vercel sebelum proses git push dan redeployment rilis modul Verax Editorial Intelligence (VEI) API.
+- **Migrasi Skema Turso Cloud (`scripts/migrate-turso-editorial-metadata.ts`):**
+  - Menerapkan penambahan 5 kolom metadata editorial pada tabel `Article` di basis data produksi Turso Cloud (`libsql://verax-aryarizkyap.aws-ap-southeast-1.turso.io`):
+    - `topics TEXT NOT NULL DEFAULT '[]'`
+    - `entities TEXT NOT NULL DEFAULT '[]'`
+    - `centralQuestion TEXT`
+    - `editorialAngle TEXT`
+    - `metadataStatus TEXT NOT NULL DEFAULT 'unverified'`
+  - Eksekusi non-destruktif dan idempoten menggunakan `@libsql/client`.
+  - Verifikasi integritas: 2 artikel yang ada di Turso Cloud (`ARCHIVED` dan `PENDING_APPROVAL`) tetap utuh 100% dan terbukti memiliki kolom baru dengan nilai default yang sesuai.
+- **Konfigurasi Kunci Lingkungan Vercel:**
+  - Menginjeksi kunci rahasia `VERAX_COVERAGE_API_KEY` pada lingkungan Vercel Production dan Preview via Vercel CLI (`vercel env add VERAX_COVERAGE_API_KEY`).
+  - Menambahkan kunci yang sama ke `.env.local` lokal untuk konsistensi lingkungan pengembangan.
+- **Verifikasi Kualitas Pra-Rilis:**
+  - `bun run typecheck` (`tsc --noEmit`): lulus bersih (exit `0`, `0` galat).
+  - `bun run lint` (`eslint .`): lulus bersih (exit `0`, `0` galat/peringatan).
+  - Mengabaikan direktori output lokal non-kode (`brag-output/`) di `.gitignore`.

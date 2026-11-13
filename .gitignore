@@ -61,6 +61,7 @@ server.log
 New folder/
 New folder
 upload/
+brag-output/
 
 # Database WAL, temporary, and backup files
 *.db
