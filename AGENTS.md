@@ -37,6 +37,6 @@ Whenever an API contract, payload schema, or system capability is modified or ad
 ## 6. Mandatory Live Verification Before Completion Claim
 Whenever work touches discovery channels, public contracts, or external agent integrations, a completion report must never be issued based solely on local tests. The following deployment sequence must be completed first:
 1. **Push to Remote**: Execute `git commit` and `git push` to `origin main`.
-2. **Verify Deployment State**: Check Vercel production deployment status until it reaches `Ready` (not Building, Queued, or Error).
-3. **Execute Live Production Fetch**: Perform a direct HTTP fetch against the live production URLs (not local builds or test environments) for every modified discovery channel.
-4. **Cite Live Output in Report**: Explicitly quote the live response snippet in the final completion report as tangible proof. Local green tests prove local logic; only live production fetches prove external availability.
+2. **Verify Deployment State and Alias**: Check Vercel production deployment status until it reaches `Ready` (not Building, Queued, or Error). Ensure the primary public alias domain (`veraxpress.vercel.app`) is explicitly assigned to the new deployment (`vercel alias set <deployment-url> veraxpress.vercel.app` if not automatically repointed). Status Ready on a deployment does not prove that the primary domain alias has been repointed.
+3. **Execute Live Production Fetch**: Perform a direct HTTP fetch against the primary public domain (`https://veraxpress.vercel.app`), never against commit-specific deployment preview URLs (`*-projects.vercel.app`), for every modified discovery channel.
+4. **Cite Live Output in Report**: Explicitly quote the live response snippet from the primary public domain in the final completion report as tangible proof. Local green tests prove local logic; only live public fetches prove external availability.

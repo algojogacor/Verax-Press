@@ -1355,3 +1355,11 @@ Dijalankan 9 Nov 2026 (sesi build-2). Transkrip lengkap: `scripts/acceptance-tes
   - `bun run typecheck`: 0 galat (bersih).
   - `bun run lint`: 0 galat (bersih).
   - Kebersihan tipografi: 0 tanda pisah em dash dalam teks editorial dan salinan sistem baru.
+
+## 68. Remediasi Alias Produksi Vercel dan Pengetatan Prosedur Verifikasi Domain Utama (13 Nov 2026)
+- **Temuan Masalah:** Ditemukan kondisi di mana deployment Vercel berstatus `Ready` namun alias domain publik utama (`https://veraxpress.vercel.app`) masih menyajikan konten lama karena propagasi alias atau cache edge belum terarahkan secara instan ke deployment terbaru (`veraxpress-9dqald3ej-arya-rizkys-projects.vercel.app`).
+- **Tindakan Perbaikan:**
+  1. Menjalankan penugasan eksplisit alias produksi via CLI: `vercel alias set https://veraxpress-9dqald3ej-arya-rizkys-projects.vercel.app veraxpress.vercel.app`. Alias berhasil terpasang dan cache rute tersegarkan.
+  2. Melakukan verifikasi HTTP langsung menggunakan `curl.exe` terhadap URL domain utama publik (`https://veraxpress.vercel.app/llms.txt` dan `https://veraxpress.vercel.app/llms-full.txt`), membuktikan bahwa seksi `Standar Penulisan Anti-AI & Kebijakan Anti-Slop` kini tampil penuh pada domain publik.
+  3. Memperketat klausul Bagian 6 di `AGENTS.md`: Menegaskan secara eksplisit bahwa status `Ready` pada URL deployment unik Vercel tidak membuktikan keteralihan domain utama, dan melarang penggunaan URL deployment hash untuk klaim verifikasi produksi live.
+- **Kepatuhan Penulisan:** Bebas tanda pisah em dash, bebas frasa klise AI, dan konsisten dengan Verax Writing Standards.
