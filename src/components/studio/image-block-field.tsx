@@ -49,6 +49,7 @@ interface MediaAssetItem {
   creator: string | null;
   license: string | null;
   isSynthetic: boolean;
+  isGeneric?: boolean;
   createdAt: string;
 }
 

@@ -62,6 +62,7 @@ async function handleRead(request: Request, isHead: boolean) {
         validation: true,
         submissionStatus: true,
         editorialContextResolution: true,
+        stockPhotoSearch: true,
         revisionSubmission: false,
         revisionFeedbackExposure: false,
         publication: false,

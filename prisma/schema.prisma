@@ -415,6 +415,7 @@ model MediaAsset {
   caption            String?
   sourceUrl          String?
   isSynthetic        Boolean   @default(false)
+  isGeneric          Boolean   @default(true)
   uploadedById       String?
   uploadedBy         StaffUser? @relation("MediaUploader", fields: [uploadedById], references: [id], onDelete: SetNull)
   uploadedByLabel    String?

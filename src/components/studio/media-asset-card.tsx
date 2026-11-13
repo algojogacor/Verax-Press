@@ -13,6 +13,7 @@ interface MediaAssetCardProps {
   creator: string | null;
   license: string | null;
   isSynthetic: boolean;
+  isGeneric?: boolean;
   createdAt: string;
 }
 
@@ -24,6 +25,7 @@ export function MediaAssetCard({
   creator,
   license,
   isSynthetic,
+  isGeneric,
   createdAt,
 }: MediaAssetCardProps) {
   const [hasError, setHasError] = useState(false);
@@ -58,14 +60,19 @@ export function MediaAssetCard({
             onError={() => setHasError(true)}
           />
         )}
-        {isSynthetic && (
-          <div className="absolute top-2 right-2">
+        <div className="absolute top-2 right-2 flex flex-col items-end gap-1">
+          {isSynthetic && (
             <Badge className="gap-1 text-[9px] uppercase tracking-wide bg-verity-paper/95 text-verity-accent border border-verity-rule backdrop-blur-xs">
               <Sparkles className="size-2.5" aria-hidden="true" />
               Sintetis (AI)
             </Badge>
-          </div>
-        )}
+          )}
+          {isGeneric && (
+            <Badge className="text-[9px] uppercase tracking-wide bg-verity-paper/95 text-verity-ink-soft border border-verity-rule backdrop-blur-xs">
+              Foto Suasana
+            </Badge>
+          )}
+        </div>
       </div>
 
       <div className="p-3.5 space-y-2">

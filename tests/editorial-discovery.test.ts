@@ -11,6 +11,8 @@ import {
   getLlmsTxt,
   getLlmsFullTxt,
 } from "@/lib/domain/api-docs";
+import { GET as coreGet, HEAD as coreHead } from "@/app/editorial/core/route";
+import { GET as contextGet, HEAD as contextHead } from "@/app/editorial/context/route";
 
 describe("Verax Editorial Intelligence (VEI) Discovery Metadata & Documentation Suite", () => {
   const dummyBase = "https://veraxpress.vercel.app";
@@ -72,7 +74,36 @@ describe("Verax Editorial Intelligence (VEI) Discovery Metadata & Documentation 
     expect(checkPath.post.responses["200"]).toBeDefined();
     expect(checkPath.post.responses["400"]).toBeDefined();
     expect(checkPath.post.responses["401"]).toBeDefined();
-    expect(checkPath.post.responses["403"]).toBeDefined();
+    // E. Schema IngestionPayload: Bidang Gambar Berlisensi & Foto Stok
+    const ingestionPayload = spec.components.schemas.IngestionPayload;
+    expect(ingestionPayload).toBeDefined();
+    expect(ingestionPayload.properties.imageQuery).toBeDefined();
+    expect(ingestionPayload.properties.imageQuery.type).toBe("string");
+    expect(ingestionPayload.properties.imageQuery.minLength).toBe(2);
+    expect(ingestionPayload.properties.imageQuery.maxLength).toBe(100);
+
+    expect(ingestionPayload.properties.imageUrl).toBeDefined();
+    expect(ingestionPayload.properties.imageUrl.type).toBe("string");
+
+    expect(ingestionPayload.properties.imageCredit).toBeDefined();
+    expect(ingestionPayload.properties.imageCredit.type).toBe("string");
+
+    expect(ingestionPayload.properties.imageLicense).toBeDefined();
+    expect(ingestionPayload.properties.imageLicense.type).toBe("string");
+
+    expect(ingestionPayload.properties.imageCaption).toBeDefined();
+    expect(ingestionPayload.properties.imageCaption.type).toBe("string");
+
+    expect(ingestionPayload.properties.imageIsGeneric).toBeDefined();
+    expect(ingestionPayload.properties.imageIsGeneric.type).toBe("boolean");
+    expect(ingestionPayload.properties.imageIsGeneric.default).toBe(true);
+
+    expect(ingestionPayload.properties.images).toBeDefined();
+    expect(ingestionPayload.properties.images.type).toBe("array");
+
+    // F. Respon 201 ai-submissions menyebutkan perilaku imageQuery
+    const submitPost = spec.paths["/api/internal/v1/ai-submissions"].post;
+    expect(submitPost.responses["201"].description).toContain("imageQuery");
   });
 
   test("2. /.well-known/verax-agent.json mencantumkan kapabilitas coverage dan rincian autentikasi", () => {
@@ -106,6 +137,7 @@ describe("Verax Editorial Intelligence (VEI) Discovery Metadata & Documentation 
     expect(meta.capabilities.coverageSearch).toBe(true);
     expect(meta.capabilities.coverageCheck).toBe(true);
     expect(meta.capabilities.submission).toBe(true);
+    expect(meta.capabilities.stockPhotoSearch).toBe(true);
     expect(meta.capabilities.publication).toBe(false);
 
     // Authentication & scopes
@@ -117,7 +149,7 @@ describe("Verax Editorial Intelligence (VEI) Discovery Metadata & Documentation 
     );
   });
 
-  test("3. /llms.txt menjelaskan alur coverage sebelum menulis dan bersih dari tanda pisah terlarang", () => {
+  test("3. /llms.txt menjelaskan alur coverage dan fitur foto stok serta bersih dari tanda pisah terlarang", () => {
     const text = getLlmsTxt(dummyBase);
 
     expect(text).toContain("Verax Press");
@@ -127,12 +159,36 @@ describe("Verax Editorial Intelligence (VEI) Discovery Metadata & Documentation 
     expect(text).toContain("coverage:read");
     expect(text).toContain("FORBIDDEN_SCOPE");
 
+    // Kemampuan Foto Stok & Gambar
+    expect(text).toContain("imageQuery");
+    expect(text).toContain("imageUrl");
+    expect(text).toContain("imageIsGeneric");
+    expect(text).toContain("Unsplash atau Pexels");
+    expect(text).toContain("Foto Suasana");
+
+    // Standar Penulisan Anti-AI & Kebijakan Anti-Slop
+    expect(text).toContain("Standar Penulisan Anti-AI & Kebijakan Anti-Slop");
+    expect(text).toContain("Larangan Em Dash dan Tanda Pisah Ganda");
+    expect(text).toContain("Kosakata Terlarang (Banned AI Vocabulary)");
+    expect(text).toContain("delve");
+    expect(text).toContain("unlock");
+    expect(text).toContain("elevate");
+    expect(text).toContain("leverage");
+    expect(text).toContain("hadir untuk");
+    expect(text).toContain("merevolusi");
+    expect(text).toContain("menjembatani");
+    expect(text).toContain("Larangan Paralelisme Negatif");
+    expect(text).toContain("Larangan Aturan Tiga yang Dipaksakan (Forced Rule of Three)");
+    expect(text).toContain("Variasi Ritme Kalimat (Burstiness)");
+    expect(text).toContain("Larangan Emoji Dekoratif");
+    expect(text).toContain("Kejujuran Faktual Nol Fabrikasi");
+
     // Penegakan aturan tipografi: mutlak bebas em-dash dan double-dash
     expect(text).not.toContain("—");
     expect(text).not.toContain("--");
   });
 
-  test("4. /llms-full.txt memuat spesifikasi VEI lengkap dan instruksi prompt agen Gemini yang siap pakai", () => {
+  test("4. /llms-full.txt memuat spesifikasi VEI dan panduan foto stok lengkap yang siap pakai", () => {
     const text = getLlmsFullTxt(dummyBase);
 
     expect(text).toContain("Dokumentasi Lengkap Integrasi Agen AI Verax Press");
@@ -143,11 +199,274 @@ describe("Verax Editorial Intelligence (VEI) Discovery Metadata & Documentation 
     expect(text).toContain("none");
     expect(text).toContain("partial");
     expect(text).toContain("high");
+
+    // Spesifikasi Foto Stok & Gambar
+    expect(text).toContain("imageQuery");
+    expect(text).toContain("imageUrl");
+    expect(text).toContain("imageCredit");
+    expect(text).toContain("imageLicense");
+    expect(text).toContain("imageIsGeneric");
+    expect(text).toContain("Panduan Penyertaan Gambar & Foto Stok Berlisensi");
+
     expect(text).toContain("Contoh Instruksi Sistem untuk Agen Penulis AI");
     expect(text).toContain("Peran: Agen Jurnalis AI Mandiri untuk Verax Press");
+
+    // Standar Penulisan Anti-AI & Kebijakan Anti-Slop Lengkap
+    expect(text).toContain("Standar Penulisan Anti-AI & Kebijakan Anti-Slop (Wajib Sebelum Pengiriman)");
+    expect(text).toContain("Larangan Tanda Pisah Em Dash dan Tanda Pisah Ganda");
+    expect(text).toContain("Kosakata Klise AI yang Dilarang (Banned AI Vocabulary)");
+    expect(text).toContain("delve");
+    expect(text).toContain("unlock");
+    expect(text).toContain("elevate");
+    expect(text).toContain("leverage");
+    expect(text).toContain("merevolusi");
+    expect(text).toContain("menjembatani");
+    expect(text).toContain("Larangan Paralelisme Negatif");
+    expect(text).toContain("Larangan Aturan Tiga yang Dipaksakan (Forced Rule of Three)");
+    expect(text).toContain("Variasi Ritme Kalimat (Burstiness)");
+    expect(text).toContain("Larangan Emoji Dekoratif");
+    expect(text).toContain("Kejujuran Faktual Nol Fabrikasi");
+    expect(text).toContain("Langkah 4: Terapkan Standar Penulisan Anti-AI & Kebijakan Anti-Slop");
 
     // Penegakan aturan tipografi: mutlak bebas em-dash dan double-dash
     expect(text).not.toContain("—");
     expect(text).not.toContain("--");
+  });
+
+  test("5. GET /editorial/core menyajikan prinsip anti-AI-writing dan daftar kosakata terlarang dalam mode compact maupun full", async () => {
+    // A. Mode Compact (Markdown)
+    const compactReq = new Request(`${dummyBase}/editorial/core?mode=compact`);
+    const compactRes = await coreGet(compactReq);
+    expect(compactRes.status).toBe(200);
+    expect(compactRes.headers.get("content-type")).toContain("text/markdown");
+    expect(compactRes.headers.get("x-verax-standard-status")).toBe("PROPOSED");
+    expect(compactRes.headers.get("x-verax-standard-effective")).toBe("false");
+
+    const compactMd = await compactRes.text();
+    expect(compactMd).toContain("VERAX-CORE-STYLE-05");
+    expect(compactMd).toContain("Standar Penulisan Anti-AI & Disiplin Bahasa");
+    expect(compactMd).toContain("Larangan Tanda Em Dash dan Tanda Pisah Ganda (DILARANG)");
+    expect(compactMd).toContain("Kosakata Terlarang (Banned AI Vocabulary)");
+    expect(compactMd).toContain("delve");
+    expect(compactMd).toContain("unlock");
+    expect(compactMd).toContain("elevate");
+    expect(compactMd).toContain("leverage");
+    expect(compactMd).toContain("hadir untuk");
+    expect(compactMd).toContain("merevolusi");
+    expect(compactMd).toContain("menjembatani");
+    expect(compactMd).toContain("Larangan Paralelisme Negatif (DILARANG)");
+    expect(compactMd).toContain("Bukan sekadar X, melainkan Y");
+    expect(compactMd).toContain("Larangan Pola Tiga Serangkai yang Dipaksakan (DILARANG)");
+    expect(compactMd).toContain("Variasi Ritme Kalimat (Burstiness)");
+    expect(compactMd).toContain("Larangan Emoji Dekoratif (DILARANG)");
+    expect(compactMd).toContain("Kejujuran Faktual Nol Fabrikasi (WAJIB)");
+    expect(compactMd).toContain("Batas Keras Non-Evasion");
+    expect(compactMd).not.toContain("—");
+
+    // B. Mode Compact (JSON)
+    const compactJsonReq = new Request(`${dummyBase}/editorial/core?mode=compact&output=json`);
+    const compactJsonRes = await coreGet(compactJsonReq);
+    expect(compactJsonRes.status).toBe(200);
+    expect(compactJsonRes.headers.get("content-type")).toContain("application/json");
+
+    const compactJsonData = (await compactJsonRes.json()) as {
+      mode: string;
+      documentId: string;
+      compactSummaryMarkdown: string;
+      modules: Array<{ slug: string; documentId: string }>;
+    };
+    expect(compactJsonData.mode).toBe("compact");
+    expect(compactJsonData.documentId).toBe("VERAX-CORE-BUNDLE-COMPACT");
+    expect(compactJsonData.compactSummaryMarkdown).toContain("VERAX-CORE-STYLE-05");
+    expect(compactJsonData.compactSummaryMarkdown).toContain("Kosakata Terlarang (Banned AI Vocabulary)");
+    expect(compactJsonData.compactSummaryMarkdown).toContain("delve");
+    expect(compactJsonData.compactSummaryMarkdown).toContain("leverage");
+    expect(compactJsonData.modules.some((m) => m.slug === "language")).toBe(true);
+
+    // C. Mode Full (Markdown)
+    const fullReq = new Request(`${dummyBase}/editorial/core?mode=full`);
+    const fullRes = await coreGet(fullReq);
+    expect(fullRes.status).toBe(200);
+
+    const fullMd = await fullRes.text();
+    expect(fullMd).toContain("VERAX-CORE-STYLE-05");
+    expect(fullMd).toContain("Bahasa Jurnalistik, Suara Naratif, dan Disiplin Anti-AI Verax Press");
+    expect(fullMd).toContain("Enam Prinsip Pedoman Editorial Anti-AI");
+    expect(fullMd).toContain("Larangan Tanda Pisah Em Dash dan Tanda Hubung Ganda");
+    expect(fullMd).toContain("Daftar Kosakata AI Terlarang");
+    expect(fullMd).toContain("delve");
+    expect(fullMd).toContain("leverage");
+    expect(fullMd).toContain("hadir untuk");
+    expect(fullMd).toContain("merevolusi");
+    expect(fullMd).toContain("Larangan Paralelisme Negatif");
+    expect(fullMd).toContain("Aturan Tiga Butir yang Dipaksakan");
+    expect(fullMd).toContain("Variasi Ritme Kalimat");
+    expect(fullMd).toContain("Burstiness");
+    expect(fullMd).toContain("Larangan Emoji Dekoratif");
+    expect(fullMd).toContain("Kejujuran Faktual dan Nol Toleransi Fabrikasi");
+    expect(fullMd).toContain("Tujuh Batas Keras Non-Evasion");
+    expect(fullMd).not.toContain("—");
+
+    // D. Mode Full (JSON)
+    const fullJsonReq = new Request(`${dummyBase}/editorial/core?mode=full&output=json`);
+    const fullJsonRes = await coreGet(fullJsonReq);
+    expect(fullJsonRes.status).toBe(200);
+    const fullJsonData = (await fullJsonRes.json()) as {
+      mode: string;
+      documentId: string;
+      modules: Array<{ slug: string; documentId: string; bodyMarkdown: string }>;
+    };
+    expect(fullJsonData.mode).toBe("full");
+    expect(fullJsonData.documentId).toBe("VERAX-CORE-BUNDLE-FULL");
+    const langModule = fullJsonData.modules.find((m) => m.slug === "language");
+    expect(langModule).toBeDefined();
+    expect(langModule?.bodyMarkdown).toContain("Enam Prinsip Pedoman Editorial Anti-AI");
+    expect(langModule?.bodyMarkdown).toContain("delve");
+    expect(langModule?.bodyMarkdown).toContain("leverage");
+    expect(langModule?.bodyMarkdown).not.toContain("—");
+  });
+
+  test("6. GET /editorial/context menyertakan Layer A yang memuat disiplin anti-AI-writing secara konsisten", async () => {
+    // A. Context Compact (Markdown)
+    const ctxCompactReq = new Request(
+      `${dummyBase}/editorial/context?desk=hukum-keadilan&format=ANALYSIS&coreMode=compact`,
+    );
+    const ctxCompactRes = await contextGet(ctxCompactReq);
+    expect(ctxCompactRes.status).toBe(200);
+    expect(ctxCompactRes.headers.get("content-type")).toContain("text/markdown");
+
+    const ctxCompactMd = await ctxCompactRes.text();
+    expect(ctxCompactMd).toContain("Lapisan A (Layer A): Identitas dan Prinsip Universal Verax Press");
+    expect(ctxCompactMd).toContain("Standar Penulisan Anti-AI & Disiplin Bahasa (`VERAX-CORE-STYLE-05`)");
+    expect(ctxCompactMd).toContain("Kosakata Terlarang (Banned AI Vocabulary)");
+    expect(ctxCompactMd).toContain("delve");
+    expect(ctxCompactMd).toContain("leverage");
+    expect(ctxCompactMd).toContain("hadir untuk");
+    expect(ctxCompactMd).toContain("Larangan Paralelisme Negatif (DILARANG)");
+    expect(ctxCompactMd).toContain("Variasi Ritme Kalimat (Burstiness)");
+    expect(ctxCompactMd).toContain("<!-- LAYER B SINGLE DESK: VERAX-DESK-HUKUM-01 -->");
+    expect(ctxCompactMd).toContain("<!-- LAYER C SINGLE FORMAT: VERAX-FORMAT-ANALYSIS-02 -->");
+    expect(ctxCompactMd).toContain("Lapisan D (Layer D): Konteks Penugasan Spesifik & Batas Jalur");
+    expect(ctxCompactMd).not.toContain("—");
+
+    // B. Context Compact (JSON)
+    const ctxJsonReq = new Request(
+      `${dummyBase}/editorial/context?desk=hukum-keadilan&format=ANALYSIS&coreMode=compact&output=json`,
+    );
+    const ctxJsonRes = await contextGet(ctxJsonReq);
+    expect(ctxJsonRes.status).toBe(200);
+
+    const ctxJsonData = (await ctxJsonRes.json()) as {
+      documentId: string;
+      selection: { desk: string; format: string; coreMode: string };
+      layers: {
+        universalCore: {
+          mode: string;
+          documentId: string;
+          markdown: string;
+        };
+        deskProfile: { slug: string };
+        formatProfile: { code: string };
+      };
+    };
+    expect(ctxJsonData.documentId).toContain("VERAX-CTX-HUKUM-KEADILAN-ANALYSIS");
+    expect(ctxJsonData.selection.desk).toBe("hukum-keadilan");
+    expect(ctxJsonData.selection.format).toBe("ANALYSIS");
+    expect(ctxJsonData.selection.coreMode).toBe("compact");
+    expect(ctxJsonData.layers.universalCore.mode).toBe("compact");
+    expect(ctxJsonData.layers.universalCore.markdown).toContain("Standar Penulisan Anti-AI & Disiplin Bahasa");
+    expect(ctxJsonData.layers.universalCore.markdown).toContain("delve");
+    expect(ctxJsonData.layers.universalCore.markdown).toContain("leverage");
+    expect(ctxJsonData.layers.universalCore.markdown).not.toContain("—");
+
+    // C. Context Full (Markdown & JSON)
+    const ctxFullReq = new Request(
+      `${dummyBase}/editorial/context?desk=teknologi-kebijakan&format=EXPLAINER&coreMode=full&output=json`,
+    );
+    const ctxFullRes = await contextGet(ctxFullReq);
+    expect(ctxFullRes.status).toBe(200);
+    const ctxFullJsonData = (await ctxFullRes.json()) as {
+      layers: {
+        universalCore: {
+          mode: string;
+          markdown: string;
+        };
+      };
+    };
+    expect(ctxFullJsonData.layers.universalCore.mode).toBe("full");
+    expect(ctxFullJsonData.layers.universalCore.markdown).toContain("Enam Prinsip Pedoman Editorial Anti-AI");
+    expect(ctxFullJsonData.layers.universalCore.markdown).toContain("delve");
+    expect(ctxFullJsonData.layers.universalCore.markdown).toContain("leverage");
+    expect(ctxFullJsonData.layers.universalCore.markdown).not.toContain("—");
+  });
+
+  test("7. Validasi kontrak dan penanganan kesalahan rute /editorial/core dan /editorial/context tetap terjaga tanpa regresi", async () => {
+    // A. Validasi mode tidak valid pada /editorial/core
+    const invalidModeRes = await coreGet(new Request(`${dummyBase}/editorial/core?mode=tidak-valid`));
+    expect(invalidModeRes.status).toBe(422);
+    const invalidModeJson = (await invalidModeRes.json()) as { code: string; error: string };
+    expect(invalidModeJson.code).toBe("VALIDATION_ERROR");
+
+    // B. Validasi format output tidak valid pada /editorial/core
+    const invalidOutputRes = await coreGet(new Request(`${dummyBase}/editorial/core?output=xml`));
+    expect(invalidOutputRes.status).toBe(422);
+    const invalidOutputJson = (await invalidOutputRes.json()) as {
+      code: string;
+      details: Array<{ code: string }>;
+    };
+    expect(invalidOutputJson.code).toBe("VALIDATION_ERROR");
+    expect(invalidOutputJson.details[0].code).toBe("INVALID_ENUM");
+
+    // C. Validasi parameter wajib pada /editorial/context
+    const missingDeskRes = await contextGet(new Request(`${dummyBase}/editorial/context?format=ANALYSIS`));
+    expect(missingDeskRes.status).toBe(422);
+    const missingDeskJson = (await missingDeskRes.json()) as { code: string };
+    expect(missingDeskJson.code).toBe("VALIDATION_ERROR");
+
+    const missingFormatRes = await contextGet(new Request(`${dummyBase}/editorial/context?desk=hukum-keadilan`));
+    expect(missingFormatRes.status).toBe(422);
+    const missingFormatJson = (await missingFormatRes.json()) as { code: string };
+    expect(missingFormatJson.code).toBe("VALIDATION_ERROR");
+
+    // D. Validasi desk tidak dikenali pada /editorial/context
+    const unknownDeskRes = await contextGet(
+      new Request(`${dummyBase}/editorial/context?desk=desk-fiktif&format=ANALYSIS`),
+    );
+    expect(unknownDeskRes.status).toBe(422);
+    const unknownDeskJson = (await unknownDeskRes.json()) as { code: string };
+    expect(unknownDeskJson.code).toBe("DESK_REJECTED");
+
+    // E. Validasi format tidak sah pada /editorial/context
+    const unknownFormatRes = await contextGet(
+      new Request(`${dummyBase}/editorial/context?desk=hukum-keadilan&format=FORMAT_TIDAK_SAH`),
+    );
+    expect(unknownFormatRes.status).toBe(422);
+    const unknownFormatJson = (await unknownFormatRes.json()) as { code: string };
+    expect(unknownFormatJson.code).toBe("FORMAT_REJECTED");
+
+    // F. Validasi penahanan NEWS pada jalur INGESTION_API (fail-closed)
+    const pendingNewsRes = await contextGet(
+      new Request(`${dummyBase}/editorial/context?desk=hukum-keadilan&format=NEWS&channel=INGESTION_API`),
+    );
+    expect(pendingNewsRes.status).toBe(422);
+    const pendingNewsJson = (await pendingNewsRes.json()) as {
+      code: string;
+      details: Array<{ code: string }>;
+    };
+    expect(pendingNewsJson.code).toBe("FORMAT_REJECTED");
+    expect(pendingNewsJson.details.some((d) => d.code === "FORMAT_PENDING_AUTHORIZATION")).toBe(true);
+
+    // G. Uji metode HEAD pada /editorial/core dan /editorial/context
+    const headCoreRes = await coreHead(new Request(`${dummyBase}/editorial/core?mode=compact`));
+    expect(headCoreRes.status).toBe(200);
+    expect(headCoreRes.headers.get("x-verax-standard-status")).toBe("PROPOSED");
+    expect(await headCoreRes.text()).toBe("");
+
+    const headContextRes = await contextHead(
+      new Request(`${dummyBase}/editorial/context?desk=hukum-keadilan&format=ANALYSIS&coreMode=compact`),
+    );
+    expect(headContextRes.status).toBe(200);
+    expect(headContextRes.headers.get("x-verax-standard-status")).toBe("PROPOSED");
+    expect(await headContextRes.text()).toBe("");
   });
 });

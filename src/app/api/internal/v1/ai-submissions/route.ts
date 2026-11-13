@@ -21,6 +21,7 @@ import {
   parseOptionalIsoDate,
   validateIngestionPayload,
 } from "@/lib/domain/ingestion";
+import { searchStockPhoto, type StockPhotoResult } from "@/lib/stock-photos";
 import { generateRequestId, logApiRequest } from "@/lib/request-logger";
 
 export async function POST(request: Request) {
@@ -280,6 +281,16 @@ export async function POST(request: Request) {
       }
     }
 
+    // 5c. Pengambilan foto stok berlisensi secara aman di sisi server (jika diminta)
+    let stockPhoto: StockPhotoResult | null = null;
+    if (payload.imageQuery) {
+      try {
+        stockPhoto = await searchStockPhoto(payload.imageQuery);
+      } catch (stockErr) {
+        console.warn("[Ingestion API] Galat pencarian foto stok:", stockErr);
+      }
+    }
+
     // 6. Persistensi Atomik: Article DRAFT + Version + Sources (UNVERIFIED) + Images + Submission
     const contentJson = serializeContent(payload.content);
     const slug = await uniqueArticleSlug(payload.title);
@@ -331,6 +342,46 @@ export async function POST(request: Request) {
         });
       }
 
+      // Penyimpanan aset gambar utama (hero image)
+      let heroMediaAssetId: string | null = null;
+      if (stockPhoto) {
+        const heroAsset = await tx.mediaAsset.create({
+          data: {
+            articleId: article.id,
+            url: stockPhoto.url,
+            creator: stockPhoto.creator,
+            license: stockPhoto.license,
+            caption: payload.imageCaption?.trim() || stockPhoto.caption,
+            sourceUrl: stockPhoto.sourceUrl,
+            mediaType: "PHOTO",
+            isGeneric: payload.imageIsGeneric ?? true,
+            uploadedByLabel: `api-client:${client.name}`,
+          },
+        });
+        heroMediaAssetId = heroAsset.id;
+      } else if (payload.imageUrl) {
+        const heroAsset = await tx.mediaAsset.create({
+          data: {
+            articleId: article.id,
+            url: payload.imageUrl,
+            creator: payload.imageCredit?.trim() || null,
+            license: payload.imageLicense?.trim() || null,
+            caption: payload.imageCaption?.trim() || null,
+            mediaType: "PHOTO",
+            isGeneric: payload.imageIsGeneric ?? true,
+            uploadedByLabel: `api-client:${client.name}`,
+          },
+        });
+        heroMediaAssetId = heroAsset.id;
+      }
+
+      if (heroMediaAssetId) {
+        await tx.article.update({
+          where: { id: article.id },
+          data: { heroMediaId: heroMediaAssetId },
+        });
+      }
+
       if (payload.images?.length) {
         for (const image of payload.images) {
           await tx.mediaAsset.create({
@@ -341,6 +392,7 @@ export async function POST(request: Request) {
               license: image.license ?? null,
               permissionEvidence: image.permissionEvidence ?? null,
               caption: image.caption ?? null,
+              isGeneric: true,
               uploadedByLabel: `api-client:${client.name}`,
             },
           });
@@ -376,6 +428,9 @@ export async function POST(request: Request) {
             articleId: article.id,
             agentId: payload.agentId,
             aiInvolvement: payload.aiInvolvement,
+            hasImage: Boolean(heroMediaAssetId || payload.images?.length),
+            heroMediaId: heroMediaAssetId,
+            stockProvider: stockPhoto?.provider ?? null,
             requestId,
           },
         },

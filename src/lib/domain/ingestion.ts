@@ -137,23 +137,53 @@ export const coverageCheckReferenceSchema = z.object({
   newAngleExplanation: z.string().max(1_000).optional(),
 });
 
-export const ingestionSchema = z.object({
-  title: z.string().trim().min(8, "Judul naskah minimal 8 karakter.").max(200, "Judul naskah maksimal 200 karakter."),
-  deck: z.string().max(400, "Ringkasan naskah maksimal 400 karakter.").optional(),
-  desk: z.string().trim().min(1, "Slug desk wajib disertakan.").max(60),
-  format: z.string().trim().min(1, "Format artikel wajib disertakan."),
-  content: ingestionContentSchema,
-  sources: z.array(sourceItemSchema).min(1, "Minimal sertakan 1 rujukan sumber.").max(40, "Maksimal 40 rujukan sumber."),
-  images: z.array(imageItemSchema).max(20, "Maksimal 20 aset gambar.").optional(),
-  tags: z.array(z.string().trim().min(2, "Tag minimal 2 karakter.").max(40, "Tag maksimal 40 karakter.")).max(10, "Maksimal 10 tag.").optional(),
-  verificationNotes: z.string().max(3_000).optional(),
-  coverageCheck: coverageCheckReferenceSchema.optional(),
-  coverageOverlapLevel: z.enum(["none", "partial", "high"]).optional(),
-  aiInvolvement: z.enum(AI_INVOLVEMENTS as [string, ...string[]]),
-  aiUsageNote: z.string().max(1_000).optional(),
-  agentId: z.string().trim().min(2, "ID agen minimal 2 karakter.").max(120),
-  idempotencyKey: z.string().trim().min(8, "Idempotency key minimal 8 karakter.").max(128),
-});
+export const ingestionSchema = z
+  .object({
+    title: z.string().trim().min(8, "Judul naskah minimal 8 karakter.").max(200, "Judul naskah maksimal 200 karakter."),
+    deck: z.string().max(400, "Ringkasan naskah maksimal 400 karakter.").optional(),
+    desk: z.string().trim().min(1, "Slug desk wajib disertakan.").max(60),
+    format: z.string().trim().min(1, "Format artikel wajib disertakan."),
+    content: ingestionContentSchema,
+    sources: z.array(sourceItemSchema).min(1, "Minimal sertakan 1 rujukan sumber.").max(40, "Maksimal 40 rujukan sumber."),
+    images: z.array(imageItemSchema).max(20, "Maksimal 20 aset gambar.").optional(),
+    imageQuery: z
+      .string()
+      .trim()
+      .min(2, "Kata kunci pencarian gambar minimal 2 karakter.")
+      .max(100, "Kata kunci pencarian gambar maksimal 100 karakter.")
+      .optional(),
+    imageUrl: mediaUrlSchema("URL gambar harus berupa tautan http(s) atau path lokal yang valid.", 2_000).optional(),
+    imageCredit: z.string().trim().max(200, "Kredit fotografer maksimal 200 karakter.").optional(),
+    imageLicense: z.string().trim().max(200, "Lisensi gambar maksimal 200 karakter.").optional(),
+    imageCaption: z.string().trim().max(500, "Keterangan gambar maksimal 500 karakter.").optional(),
+    imageIsGeneric: z.boolean().default(true),
+    tags: z.array(z.string().trim().min(2, "Tag minimal 2 karakter.").max(40, "Tag maksimal 40 karakter.")).max(10, "Maksimal 10 tag.").optional(),
+    verificationNotes: z.string().max(3_000).optional(),
+    coverageCheck: coverageCheckReferenceSchema.optional(),
+    coverageOverlapLevel: z.enum(["none", "partial", "high"]).optional(),
+    aiInvolvement: z.enum(AI_INVOLVEMENTS as [string, ...string[]]),
+    aiUsageNote: z.string().max(1_000).optional(),
+    agentId: z.string().trim().min(2, "ID agen minimal 2 karakter.").max(120),
+    idempotencyKey: z.string().trim().min(8, "Idempotency key minimal 8 karakter.").max(128),
+  })
+  .superRefine((data, ctx) => {
+    if (data.imageUrl) {
+      if (!data.imageCredit || data.imageCredit.trim().length < 2) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          path: ["imageCredit"],
+          message: "Bidang imageCredit wajib diisi minimal 2 karakter apabila menyertakan imageUrl langsung.",
+        });
+      }
+      if (!data.imageLicense || data.imageLicense.trim().length < 2) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          path: ["imageLicense"],
+          message: "Bidang imageLicense wajib diisi minimal 2 karakter apabila menyertakan imageUrl langsung.",
+        });
+      }
+    }
+  });
 
 export type IngestionPayload = z.infer<typeof ingestionSchema>;
 

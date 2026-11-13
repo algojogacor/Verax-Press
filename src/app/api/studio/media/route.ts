@@ -67,6 +67,8 @@ export async function POST(req: Request) {
     const sourceUrl = (formData.get("sourceUrl") as string)?.trim();
     const permissionEvidence = (formData.get("permissionEvidence") as string)?.trim();
     const isSynthetic = formData.get("isSynthetic") === "true";
+    const isGenericRaw = formData.get("isGeneric");
+    const isGeneric = isGenericRaw !== null ? isGenericRaw === "true" : false;
     const title = (formData.get("title") as string)?.trim();
 
     if (!file) throw new ApiError(400, "BAD_REQUEST", "Berkas gambar wajib disertakan.");
@@ -133,6 +135,7 @@ export async function POST(req: Request) {
             license: license || null,
             caption,
             isSynthetic,
+            isGeneric,
             uploadedById: user.id,
           },
         });
@@ -183,6 +186,7 @@ export async function POST(req: Request) {
           license: license || null,
           caption,
           isSynthetic,
+          isGeneric,
           uploadedById: user.id,
         },
       });

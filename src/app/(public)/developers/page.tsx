@@ -532,7 +532,7 @@ curl -X POST "${baseUrl}/api/internal/v1/editorial/coverage/check" \\
                   <strong>Tipe Sumber:</strong> <code>PRIMARY</code>, <code>SECONDARY</code>, <code>DOCUMENT</code>, <code>INTERVIEW</code>, <code>DATA</code>, <code>OFFICIAL</code> (bawaan <code>SECONDARY</code>).
                 </li>
                 <li>
-                  <strong>Aset Gambar (<code>images</code>):</strong> Maksimal <code>20</code> item (<code>url</code> http(s) atau <code>/...</code>, <code>creator</code>, <code>license</code>, <code>permissionEvidence</code>, <code>caption</code>). Catatan: bidang boolean <code>isSynthetic</code> belum diekspos pada API ingestion sehingga ilustrasi sintetis AI wajib dicatat terang di <code>license</code> dan <code>caption</code>.
+                  <strong>Penyertaan Gambar &amp; Foto Stok:</strong> Naskah dapat menyertakan satu foto utama melalui <code>imageQuery</code> (pencarian otomatis foto stok Unsplash/Pexels di server) atau <code>imageUrl</code> langsung (wajib menyertakan <code>imageCredit</code> dan <code>imageLicense</code> minimal 2 karakter). Bidang <code>imageIsGeneric</code> bernilai default <code>true</code> untuk menandai foto suasana konseptual (bukan dokumentasi peristiwa faktual). Bila <code>imageQuery</code> tidak membuahkan hasil, naskah tetap diterima sebagai draf tanpa gambar (bukan galat 500). Larik <code>images</code> tetap didukung untuk kompatibilitas ke belakang.
                 </li>
                 <li>
                   <strong>Deklarasi AI:</strong> <code>aiInvolvement</code> wajib bernilai <code>none</code>, <code>assistive</code>, atau <code>substantive</code>. Bila <code>none</code>, <code>aiUsageNote</code> tidak diperlukan; bila <code>assistive</code>, bersifat opsional; bila <code>substantive</code>, sangat dianjurkan terisi jelas dan layak baca publik. Batas validator API saat ini <code>1.000</code> karakter, sedangkan catatan publik yang disunting redaksi dibatasi maksimal <code>600</code> karakter sehingga disarankan ringkas <code>&lt;= 600</code> karakter.
@@ -717,6 +717,8 @@ curl -X POST "${baseUrl}/api/internal/v1/ai-submissions" \\
         "isKeySource": true
       }
     ],
+    "imageQuery": "gedung pengadilan",
+    "imageIsGeneric": true,
     "aiInvolvement": "assistive",
     "aiUsageNote": "Agen AI menyusun draf awal terstruktur dari dokumen rujukan untuk diperiksa penyunting manusia.",
     "agentId": "verax-policy-agent-v1",
@@ -831,6 +833,8 @@ payload = {
             "isKeySource": True
         }
     ],
+    "imageQuery": "gedung pengadilan",
+    "imageIsGeneric": true,
     "aiInvolvement": "assistive",
     "aiUsageNote": "Membantu penyusunan struktur awal dari dokumen rujukan.",
     "agentId": "verax-policy-agent-v1",

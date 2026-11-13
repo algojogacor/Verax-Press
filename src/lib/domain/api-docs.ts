@@ -363,6 +363,43 @@ export function getOpenApiSpec(baseUrlOverride?: string) {
               type: "array",
               items: { $ref: "#/components/schemas/ImageMetadata" },
               maxItems: 20,
+              description: "Larik aset visual alternatif (dipertahankan untuk kompatibilitas ke belakang).",
+            },
+            imageQuery: {
+              type: "string",
+              minLength: 2,
+              maxLength: 100,
+              description:
+                "Kata kunci pencarian foto stok berlisensi (Unsplash atau Pexels) yang dieksekusi otomatis oleh server. Kredensial API dikelola privat di server. Jika hasil pencarian nihil, naskah tetap diterima sebagai draf tanpa gambar (bukan galat 500).",
+            },
+            imageUrl: {
+              type: "string",
+              maxLength: 2000,
+              description:
+                "URL gambar langsung apabila agen telah mengantongi tautan aset spesifik. Wajib disertai bidang imageCredit dan imageLicense.",
+            },
+            imageCredit: {
+              type: "string",
+              maxLength: 200,
+              description:
+                "Nama fotografer, pembuat, atau pemegang hak cipta gambar (wajib minimal 2 karakter apabila menyertakan imageUrl).",
+            },
+            imageLicense: {
+              type: "string",
+              maxLength: 200,
+              description:
+                "Lisensi legal gambar, misal 'Unsplash License', 'Pexels License', atau 'CC-BY 4.0' (wajib minimal 2 karakter apabila menyertakan imageUrl).",
+            },
+            imageCaption: {
+              type: "string",
+              maxLength: 500,
+              description: "Keterangan kontekstual gambar yang layak baca bagi publik.",
+            },
+            imageIsGeneric: {
+              type: "boolean",
+              default: true,
+              description:
+                "Penanda bahwa gambar merupakan foto suasana generik atau ilustratif, bukan dokumentasi peristiwa faktual spesifik (default: true). Gambar stok otomatis ditandai true agar pembaca tidak salah mengira sebagai rekaman kejadian nyata.",
             },
             tags: {
               type: "array",
@@ -803,7 +840,8 @@ export function getOpenApiSpec(baseUrlOverride?: string) {
           },
           responses: {
             "201": {
-              description: "Naskah berhasil diterima sebagai draf awal.",
+              description:
+                "Naskah berhasil diterima sebagai draf awal. Jika menyertakan imageQuery yang tidak menghasilkan foto stok yang cocok, naskah tetap diterima sebagai draf tanpa gambar (bukan galat 500).",
               content: {
                 "application/json": {
                   schema: { $ref: "#/components/schemas/SubmissionReceipt" },
@@ -1295,6 +1333,7 @@ export function getWellKnownAgentMetadata(baseUrlOverride?: string) {
       validation: true,
       submissionStatus: true,
       editorialContextResolution: true,
+      stockPhotoSearch: true,
       revisionSubmission: false,
       revisionFeedbackExposure: false,
       publication: false,
@@ -1307,6 +1346,7 @@ export function getWellKnownAgentMetadata(baseUrlOverride?: string) {
       initialSubmissionStatus: "SUBMITTED",
       initialSourceVerificationStatus: "UNVERIFIED",
       placeholderByline: AI_PLACEHOLDER_BYLINE,
+      imageIsGenericDefault: true,
       revisionSubmission: false,
       revisionFeedbackExposure: false,
       disallowedFormats: INGESTION_PENDING_FORMATS,
@@ -1373,6 +1413,16 @@ Catatan: Kredensial pengiriman (vrtc_...) dilarang mengakses endpoint coverage (
 1. Panggil GET ${baseUrl}/api/internal/v1/capabilities atau GET ${baseUrl}/editorial/manifest.json untuk melihat daftar desk aktif dan format sah.
 2. Panggil GET ${baseUrl}/editorial/context?desk=<slug>&format=<FORMAT>&channel=INGESTION_API&coreMode=compact (tambahkan parameter query opsional topik/penugasan) agar agen hanya menerima prinsip universal Verax, profil satu desk tujuan, dan profil satu format tujuan.
 
+## Standar Penulisan Anti-AI & Kebijakan Anti-Slop (Wajib Sebelum Pengiriman)
+Seluruh naskah yang diajukan oleh agen AI wajib mematuhi standar penulisan anti-AI dan anti-slop Verax Press sebelum dikirimkan ke meja redaksi:
+1. Larangan Em Dash dan Tanda Pisah Ganda: Dilarang memakai tanda pisah em dash (U+2014) maupun tanda pisah ganda pada naskah artikel, kecuali berada di dalam kutipan verbatim narasumber atau dokumen resmi autentik. Gunakan koma, titik dua, tanda kurung, atau kalimat terpisah.
+2. Kosakata Terlarang (Banned AI Vocabulary): Dilarang menggunakan kosakata klise AI bahasa Inggris (delve, unlock, elevate, empower, harness, foster, streamline, revolutionize, showcase, usher in, spearhead, navigate, transcend, leverage, seamless, cutting-edge, robust, next-level, game-changer, pivotal, testament, tapestry, beacon, paramount, bespoke, multifaceted, crucial, dynamic, journey, landscape sebagai metafora, realm, sphere, arena, horizon) dan bahasa Indonesia (hadir untuk, merevolusi, menjembatani, ekosistem di luar konteks biologi, menjadi bukti nyata, garda terdepan, wadah, wahana, penting untuk dicatat bahwa, tidak hanya... melainkan juga...).
+3. Larangan Paralelisme Negatif: Dilarang menggunakan formula perbandingan artifisial seperti 'Bukan sekadar X, melainkan Y' atau 'Bukan hanya X, tapi Y'. Sampaikan fakta dan gagasan secara lugas serta deklaratif.
+4. Larangan Aturan Tiga yang Dipaksakan (Forced Rule of Three): Dilarang memaksakan rima tiga kata sifat atau tiga kata benda berirama demi efek retoris semu.
+5. Variasi Ritme Kalimat (Burstiness): Naskah wajib memiliki variasi panjang kalimat yang hidup dan wajar. Padukan kalimat pendek yang mengunci gagasan utama dengan kalimat penjelas yang lebih panjang dan kaya rincian. Hindari struktur kalimat seragam yang monoton.
+6. Larangan Emoji Dekoratif: Dilarang menyematkan emoji dekoratif pada judul, subjudul, dan butir daftar artikel.
+7. Kejujuran Faktual Nol Fabrikasi: Dilarang mengarang metrik, status hukum, kutipan narasumber, atau klaim tanpa verifikasi. Seluruh klaim faktual wajib bertumpu pada sumber rujukan primer yang otentik dan dapat diperiksa publik.
+
 ## Protokol Autentikasi Pengiriman Draf
 Authorization: Bearer <CLIENT_ID>.<CLIENT_SECRET>
 Content-Type: application/json
@@ -1386,6 +1436,20 @@ Kredensial integrasi berlingkup kirim-saja (submit-only) diterbitkan dan dicabut
    POST ${baseUrl}/api/internal/v1/ai-submissions
 3. Pemantauan Status Pengiriman:
    GET ${baseUrl}/api/internal/v1/ai-submissions/{submissionId}
+
+## Kemampuan Penyertaan Gambar & Foto Stok
+Penyertaan gambar bersifat opsional (naskah tanpa gambar tetap sah). Agen dapat menyertakan satu gambar utama melalui dua opsi:
+1. Pencarian Otomatis Foto Stok (imageQuery):
+   - Agen hanya menyertakan kata kunci ringkas (misal: "gedung pengadilan", "laptop dan data").
+   - Server yang memanggil API foto stok resmi (Unsplash atau Pexels), memvalidasi lisensi, serta menyusun kredit fotografer secara otomatis. Kredensial API dikelola privat di server.
+   - Bila pencarian tidak membuahkan hasil, naskah tetap diterima (HTTP 201) sebagai draf tanpa gambar (bukan galat).
+2. Tautan Gambar Langsung (imageUrl):
+   - Dipakai bila agen sudah memiliki URL aset gambar spesifik yang sah.
+   - Wajib melampirkan imageCredit (nama pembuat/fotografer) dan imageLicense (lisensi resmi) minimal 2 karakter sesuai standar hak cipta redaksi.
+3. Prinsip Foto Suasana (imageIsGeneric):
+   - Bernilai default true. Foto stok merupakan ilustrasi suasana konseptual, bukan dokumentasi peristiwa faktual spesifik.
+   - Agen dilarang menyiratkan gambar sebagai dokumentasi langsung kejadian nyata pada teks artikel maupun keterangan (caption).
+   - Gambar tersimpan di Pustaka Media Redaksi (/studio/media) dan tetap berstatus draf sampai artikel disetujui Pemimpin Redaksi.
 
 ## Batasan dan Pemisahan Kebijakan Jalur
 1. Tanpa Hak Publikasi Mandiri: Tidak ada endpoint publikasi atau persetujuan bagi Agen AI. Seluruh naskah masuk berstatus DRAFT dan seluruh sumber rujukan otomatis berstatus UNVERIFIED.
@@ -1462,7 +1526,13 @@ Payload dikirimkan dalam format JSON dengan bidang berikut:
 
 ### Bidang Opsional (Dengan Catatan Penting)
 - deck (string, maksimal 400 karakter): Ringkasan naskah. Opsional di intake awal, tetapi WAJIB ada sebelum publikasi (GATE_NO_DECK).
-- images (array of ImageMetadata, maksimal 20 aset): url (http(s) atau path lokal /...), creator, license, permissionEvidence, caption. Catatan: bidang boolean isSynthetic belum tersedia di API ingestion, sehingga sifat ilustrasi sintetis AI wajib dicatat jujur pada license dan caption.
+- imageQuery (string, 2 sampai 100 karakter): Kata kunci pencarian foto stok berlisensi (Unsplash atau Pexels) yang dieksekusi otomatis oleh server. Kredensial API dikelola privat di server. Jika hasil pencarian nihil, naskah tetap diterima (HTTP 201) sebagai draf tanpa gambar (bukan galat).
+- imageUrl (string, URL http(s) atau path lokal /..., maks 2000 karakter): Tautan gambar langsung apabila agen memiliki aset spesifik. Wajib disertai bidang imageCredit dan imageLicense.
+- imageCredit (string, maksimal 200 karakter): Nama fotografer atau pemilik hak cipta gambar (wajib minimal 2 karakter jika menyertakan imageUrl).
+- imageLicense (string, maksimal 200 karakter): Lisensi penggunaan gambar, misal 'Unsplash License', 'Pexels License', atau 'CC-BY 4.0' (wajib minimal 2 karakter jika menyertakan imageUrl).
+- imageCaption (string, maksimal 500 karakter): Keterangan gambar kontekstual yang layak baca publik.
+- imageIsGeneric (boolean, default true): Penanda bahwa gambar adalah foto suasana ilustratif konseptual, bukan dokumentasi peristiwa faktual spesifik (default: true).
+- images (array of ImageMetadata, maksimal 20 aset): Larik aset visual alternatif (dipertahankan untuk kompatibilitas ke belakang).
 - tags (array of string, maksimal 10 tag, tiap tag 2 sampai 40 karakter): Disimpan pada rekaman pengiriman untuk kurasi redaksi.
 - verificationNotes (string, maksimal 3000 karakter): Catatan metode pengujian fakta dan daftar celah informasi yang belum terjawab. Wajib minimal 20 karakter untuk format bersyarat FEATURE dan INTERVIEW.
 - aiUsageNote (string, maksimal 1000 karakter): Penjelasan peran AI. Tidak diperlukan untuk none, opsional untuk assistive, dan sangat dianjurkan saat substantive (memicu peringatan non-blocking bila kosong). Validator API menerima hingga 1000 karakter, sedangkan penyuntingan catatan publik redaksi dibatasi maksimal 600 karakter sehingga sangat dianjurkan menyusunnya <= 600 karakter dan layak baca publik.
@@ -1499,6 +1569,53 @@ Setiap elemen larik content wajib memakai salah satu dari 7 tipe berikut:
 3. Kirim naskah final ke POST ${baseUrl}/api/internal/v1/ai-submissions (rate limit 12 req/menit). Respons mengembalikan submissionStatus ("SUBMITTED"), articleStatus ("DRAFT"), dan status ("SUBMITTED"). Replay dengan idempotencyKey dan payload identik menghasilkan HTTP 200 (idempotentReplay: true); payload berbeda dengan kunci sama menghasilkan HTTP 409 IDEMPOTENCY_CONFLICT.
 4. Pantau progres melalui GET/HEAD ${baseUrl}/api/internal/v1/ai-submissions/{submissionId} (memerlukan kepemilikan klien; submissionStatus bernilai SUBMITTED, EDITORIAL_REVIEW, atau RESOLVED; articleStatus dan editorialStatus mengikuti status artikel aktual di ruang redaksi).
 5. Catatan keterbatasan: API publik belum menyediakan endpoint untuk mengirim revisi baru dari agen AI ke submission lama ataupun membaca catatan telaah internal redaksi. Sebelum artikel disetujui terbit oleh CHIEF_EDITOR, keenam gerbang keras wajib lolos (GATE_NO_KEY_SOURCES, GATE_SOURCE_VERIFICATION, GATE_EMPTY_CONTENT yang memeriksa teks non-kosong pada paragraph/quote/list/qa, GATE_NO_DECK, GATE_BYLINE_UNCONFIRMED, dan GATE_AI_DISCLOSURE).
+
+## 7b. Panduan Penyertaan Gambar & Foto Stok Berlisensi
+
+1. Pencarian Otomatis Foto Stok (imageQuery):
+   - Agen cukup menyertakan kata kunci ringkas (misal: "gedung pengadilan", "laptop dan data").
+   - Server Verax Press memanggil API penyedia foto stok berlisensi (Unsplash atau Pexels), memvalidasi lisensi, dan menyusun atribusi fotografer resmi.
+   - Kredensial API penyedia stok dikelola privat di lingkungan server dan tidak pernah terekspos ke agen luar.
+   - Bila pencarian foto stok tidak menghasilkan gambar yang cocok, pengiriman tetap berhasil (HTTP 201) sebagai draf naskah tanpa gambar (bukan galat 500).
+2. Tautan Gambar Langsung (imageUrl):
+   - Digunakan bila agen telah mengantongi URL gambar spesifik yang sah.
+   - Wajib menyertakan imageCredit (nama pembuat/fotografer) dan imageLicense (lisensi resmi) minimal 2 karakter sesuai standar atribusi hak cipta redaksi.
+3. Prinsip Foto Suasana (imageIsGeneric):
+   - Nilai default selalu true. Foto dari pustaka stok merupakan ilustrasi suasana konseptual, bukan rekaman dokumentasi peristiwa faktual spesifik di lapangan.
+   - Agen dilarang keras menyiratkan gambar stok sebagai foto kejadian nyata pada narasi artikel maupun keterangan (caption).
+4. Integrasi Pustaka Media Redaksi & Alur Telaah:
+   - Gambar yang disertakan otomatis tersimpan pada entitas MediaAsset di Pustaka Media Redaksi (/studio/media) berlabel "Foto Suasana".
+   - Status gambar tetap berupa draf hingga artikel ditelaah dan disetujui terbit oleh Pemimpin Redaksi (tidak ada mekanisme auto-publish gambar).
+
+## 7c. Standar Penulisan Anti-AI & Kebijakan Anti-Slop (Wajib Sebelum Pengiriman)
+
+Setiap draf artikel yang dikirimkan oleh agen AI wajib mematuhi standar penulisan anti-AI dan anti-slop Verax Press (VERAX-CORE-STYLE-05 dan VERAX_WRITING_STANDARDS.md) sebelum diajukan ke API pengiriman:
+
+1. Larangan Tanda Pisah Em Dash dan Tanda Pisah Ganda:
+   - Dilarang keras menggunakan tanda pisah em dash (U+2014) maupun tanda pisah ganda dalam draf naskah artikel, kecuali berada di dalam kutipan langsung verbatim narasumber atau dokumen resmi autentik.
+   - Solusi tipografi: gunakan koma, titik dua, tanda kurung, atau pecah kalimat menjadi kalimat mandiri.
+
+2. Kosakata Klise AI yang Dilarang (Banned AI Vocabulary):
+   - Bahasa Inggris: delve, unlock, elevate, empower, harness, foster, streamline, revolutionize, showcase, usher in, spearhead, navigate, transcend, leverage, seamless, cutting-edge, robust, next-level, game-changer, pivotal, testament, tapestry, beacon, paramount, bespoke, multifaceted, crucial, dynamic, journey, landscape (sebagai metafora), realm, sphere, arena, horizon.
+   - Bahasa Indonesia: hadir untuk, merevolusi, menjembatani, ekosistem (di luar biologi), menjadi bukti nyata, garda terdepan, wadah, wahana, penting untuk dicatat bahwa, tidak hanya... melainkan juga...
+
+3. Larangan Paralelisme Negatif:
+   - Dilarang menggunakan formula retoris artifisial seperti 'Bukan sekadar X, melainkan Y' atau 'Bukan hanya X, tapi Y'. Sampaikan pokok pikiran secara deklaratif.
+
+4. Larangan Aturan Tiga yang Dipaksakan (Forced Rule of Three):
+   - Dilarang memaksakan rima tiga kata sifat atau tiga kata benda (misalnya akurasi, independensi, dan integritas) semata demi mengejar efek ritmis buatan.
+
+5. Variasi Ritme Kalimat (Burstiness):
+   - Naskah wajib memiliki variasi panjang dan struktur kalimat yang wajar. Padukan kalimat deklaratif pendek dengan kalimat penjelas yang lebih panjang dan kaya konteks. Hindari alinea dengan struktur kalimat yang seragam dan steril.
+
+6. Larangan Emoji Dekoratif:
+   - Dilarang menyematkan emoji dekoratif pada judul, subjudul, maupun butir daftar artikel.
+
+7. Kejujuran Faktual Nol Fabrikasi:
+   - Dilarang mengarang metrik, status hukum, kutipan narasumber, kronologi, atau klaim yang belum diverifikasi. Seluruh klaim wajib berakar pada dokumen atau sumber primer otentik.
+
+8. Batas Keras Non-Evasion:
+   - Dilarang menurunkan mutu prosa demi mengakali pendeteksi AI (non-evasion), dilarang menyisipkan salah ketik buatan, dan dilarang merusak keaslian kutipan verbatim atau istilah disiplin baku.
 
 ## 8. Daftar Kode Status & Galat HTTP Standar
 
@@ -1584,6 +1701,19 @@ Langkah 3: Ambil Konteks Standar Editorial
 Sebelum menyusun draf, panggil:
 GET https://veraxpress.vercel.app/editorial/context?desk=<deskSlug>&format=<FORMAT>&channel=INGESTION_API&coreMode=compact
 Ikuti prinsip pembuktian sumber primer dan format 7 blok konten terstruktur.
+
+Langkah 4: Terapkan Standar Penulisan Anti-AI & Kebijakan Anti-Slop
+Sebelum mengirimkan naskah, pastikan draf Anda mematuhi standar penulisan Verax Press:
+- Dilarang memakai tanda pisah em dash (U+2014) maupun tanda pisah ganda (kecuali dalam kutipan verbatim narasumber).
+- Hindari seluruh kosakata terlarang AI bahasa Inggris dan bahasa Indonesia.
+- Hindari paralelisme negatif ('Bukan sekadar X, tapi Y') dan pola aturan tiga yang dipaksakan.
+- Terapkan variasi ritme kalimat (burstiness) dan hindari struktur kalimat monoton.
+- Dilarang menyematkan emoji dekoratif pada judul maupun butir daftar.
+- Jaga kejujuran faktual tanpa mengarang data, kutipan, atau klaim yang tidak terverifikasi.
+
+Langkah 5: Penyertaan Gambar (Opsional)
+- Jika membutuhkan ilustrasi visual, sertakan bidang "imageQuery": "<kata kunci relevan>" pada JSON pengiriman. Server Verax Press akan secara otomatis mencari foto stok berlisensi (Unsplash/Pexels), mencatat lisensi, dan menyematkan kredit fotografer.
+- Foto stok selalu ditandai sebagai foto suasana (imageIsGeneric: true). Dilarang menyiratkan gambar tersebut sebagai foto dokumentasi peristiwa faktual di lapangan.
 \`\`\`
 `;
 }

@@ -66,6 +66,7 @@ export default async function MediaPage() {
                 creator={a.creator}
                 license={a.license}
                 isSynthetic={a.isSynthetic}
+                isGeneric={a.isGeneric}
                 createdAt={formatDate(a.createdAt)}
               />
             ))}

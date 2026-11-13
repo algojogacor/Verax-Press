@@ -1284,3 +1284,74 @@ Dijalankan 9 Nov 2026 (sesi build-2). Transkrip lengkap: `scripts/acceptance-tes
   - `bun run typecheck`: 0 galat.
   - Kepatuhan tipografi: Bebas em dash, bebas garis ganda, dan bebas kosakata terlarang sesuai Verax Writing Standards.
 
+
+## 64. Integrasi Gambar Berlisensi & Foto Stok pada Ingestion API (13 Nov 2026)
+- **Konteks:** Menyediakan jalur penyertaan foto artikel berlisensi bagi agen AI penulis pada Internal Content Ingestion API, memanfaatkan API foto stok (Unsplash & Pexels) di sisi server untuk menghindari risiko hak cipta dan pengeluaran biaya generasi gambar AI.
+- **Prinsip Editorial & Hukum:**
+  - Gambar dari penyedia stok dikategorikan sebagai gambar suasana generik (ilustratif), bukan dokumentasi peristiwa faktual nyata.
+  - Nilai default aman kolom basis data `MediaAsset.isGeneric` ditetapkan `true` untuk mencegah salah tafsir aset tidak dikenal sebagai foto faktual.
+  - Jalur unggah manual meja redaksi (`/api/studio/media`) secara eksplisit menetapkan `isGeneric: false` untuk mempertahankan integritas foto liputan jurnalis manusia.
+  - Tetap melalui alur persetujuan manusia: status artikel diawali dari DRAFT hingga ditelaah dan diterbitkan oleh Pemimpin Redaksi.
+- **Implementasi:**
+  - **Prisma Schema (`prisma/schema.prisma`):** Menambahkan `isGeneric Boolean @default(true)` pada model `MediaAsset`. Diterapkan ke basis data via `db:push` dan `db:generate`.
+  - **Penyedia Foto Stok (`src/lib/stock-photos.ts`):** Layanan modular server-side untuk mencari foto dari Unsplash API (`UNSPLASH_ACCESS_KEY`) dan Pexels API (`PEXELS_API_KEY`) dengan batas waktu 4 detik (`AbortSignal.timeout(4000)`), normalisasi atribusi fotografer, lisensi, dan mode mock pengujian.
+  - **Skema Ingestion (`src/lib/domain/ingestion.ts`):** Menambahkan bidang `imageQuery`, `imageUrl`, `imageCredit`, `imageLicense`, `imageCaption`, dan `imageIsGeneric` (default true) pada `ingestionSchema`. Menegakkan validasi ketat: jika agen mengirimkan `imageUrl` langsung, bidang `imageCredit` dan `imageLicense` wajib diisi minimal 2 karakter (setara standar atribusi GUI redaksi).
+  - **Rute Penyerapan Konten (`src/app/api/internal/v1/ai-submissions/route.ts`):** Mengambil foto stok secara aman di server sebelum transaksi basis data jika `imageQuery` disertakan, menyimpan aset ke tabel `MediaAsset` dengan penanda `isGeneric: true`, mengaitkannya ke `heroMediaId`, serta menangani hasil pencarian kosong tanpa kegagalan HTTP 500.
+  - **Pustaka Media Redaksi (`src/app/api/studio/media/route.ts`, `media-asset-card.tsx`, `media/page.tsx`):** Menetapkan `isGeneric: false` pada unggahan manual manusia, dan menampilkan lencana "Foto Suasana" pada kartu aset media di studio redaksi.
+- **Uji Otomatis & Verifikasi:**
+  - Membuat test suite `tests/ingestion-images.test.ts` (7 kasus uji komprehensif, 37 assertions, 100% pass):
+    1. Backward compatibility: pengiriman naskah tanpa gambar tetap valid (201).
+    2. imageQuery valid: server mencari foto stok dan menyimpan dengan atribusi lengkap.
+    3. imageQuery kosong: tetap diterima sebagai artikel tanpa gambar (bukan 500).
+    4. Validasi ketat: imageUrl tanpa kredit atau lisensi ditolak (422).
+    5. imageUrl lengkap: diterima dan tersimpan dengan atribusi dan isGeneric true.
+    6. Default isGeneric konsisten: fallback basis data true dan unggahan manual false.
+    7. Isolasi kredensial: response API tidak membocorkan kunci rahasia server.
+  - Seluruh rangkaian test suite proyek: **289 pass, 0 fail (3043 assertions) di 25 file**.
+  - `bun run typecheck`: 0 galat.
+  - `bun run lint`: 0 galat.
+
+## 65. Sinkronisasi Dokumentasi Mesin & Penemuan Agen untuk Fitur Foto Stok (13 Nov 2026)
+- **Konteks:** Menyelaraskan seluruh kanal penemuan mesin (/openapi.json, /llms.txt, /llms-full.txt, /.well-known/verax-agent.json, /api/internal/v1/capabilities, dan /developers) agar kemampuan pencarian foto stok berlisensi (imageQuery) dan penyertaan gambar (imageUrl) dapat ditemukan serta dimanfaatkan secara mandiri oleh agen penulis AI eksternal (Gemini).
+- **Pembaruan Kanal Penemuan Mesin & Dokumentasi:**
+  - **Spesifikasi OpenAPI 3.1.0 (`src/lib/domain/api-docs.ts`):** Memperluas skema IngestionPayload dengan properti imageQuery (2..100 karakter), imageUrl (maks 2000 karakter), imageCredit (maks 200 karakter), imageLicense (maks 200 karakter), imageCaption (maks 500 karakter), imageIsGeneric (boolean, default true), serta mempertahankan larik images untuk kompatibilitas ke belakang. Menambahkan keterangan pada respons 201 ai-submissions bahwa pencarian foto stok nihil tetap menghasilkan draf naskah tanpa gambar (bukan galat 500).
+  - **Ringkasan Panduan Agen (`/llms.txt`):** Menambahkan seksi khusus "Kemampuan Penyertaan Gambar & Foto Stok" yang membedakan alur otomatis imageQuery (server yang mencari dan menyematkan lisensi) vs imageUrl langsung (wajib disertai imageCredit dan imageLicense minimal 2 karakter), menegaskan prinsip foto suasana (imageIsGeneric: true), serta menegaskan sifat opsional gambar pada naskah.
+  - **Dokumentasi Teknis Lengkap (`/llms-full.txt`):** Mendokumentasikan spesifikasi bidang pada Bagian 4, menambahkan Bagian 7b mengenai panduan foto stok berlisensi dan integrasi Pustaka Media Redaksi, serta menambahkan Langkah 4 (Penyertaan Gambar Opsional) pada contoh instruksi sistem agen Gemini.
+  - **Metadata Penemuan & Titik Akhir Kapabilitas:** Menambahkan kapabilitas stockPhotoSearch: true pada /.well-known/verax-agent.json dan /api/internal/v1/capabilities.
+  - **Portal Pengembang Web (`/developers`):** Memperbarui penjelasan aset gambar pada seksi 8 dan menambahkan contoh imageQuery serta imageIsGeneric pada cuplikan cURL dan JavaScript.
+- **Uji Otomatis & Verifikasi:**
+  - Memperluas `tests/editorial-discovery.test.ts` untuk menguji keberadaan seluruh properti gambar baru di openapi.json, kapabilitas stockPhotoSearch di metadata agen, keberadaan kata kunci di llms.txt dan llms-full.txt, serta integritas tipografi bebas tanda pisah terlarang (4 pass, 96 expect calls).
+  - Seluruh rangkaian test suite proyek: **289 pass, 0 fail (3073 assertions) di 25 file**.
+  - `bun run typecheck`: 0 galat.
+  - `bun run lint`: 0 galat.
+
+## 66. Kodifikasi Standar Rekayasa dan Verifikasi Live pada Dokumen Instruksi Agen (13 Nov 2026)
+- **Konteks:** Menindaklanjuti perintah `/learn` setelah implementasi fitur foto stok dan sinkronisasi penemuan mesin. Memformalkan empat pembelajaran kunci ke dalam aturan kerja permanen di `AGENTS.md`.
+- **Standar yang Ditambahkan ke `AGENTS.md`:**
+  1. **Bagian 3: Safe-by-Default Data and Schema Modeling:** Memastikan bahwa untuk bidang dengan risiko editorial atau hukum tinggi (seperti `MediaAsset.isGeneric`), nilai default pada skema basis data Prisma dan validasi Zod selalu mengambil asumsi konservatif dan berisiko rendah (`isGeneric: true`). Jalur unggah manusia yang terverifikasi (GUI studio) secara eksplisit menetapkan status `isGeneric: false`.
+  2. **Bagian 4: Deliberate Discovery Surface Evaluation:** Mewajibkan evaluasi terarah terhadap enam kanal penemuan (`/openapi.json`, `/llms.txt`, `/llms-full.txt`, `/.well-known/verax-agent.json`, `/api/internal/v1/capabilities`, `/developers`) pada setiap perubahan kontrak atau kapabilitas API. Keputusan pembaruan maupun keputusan melewati kanal yang tidak relevan harus dicatat secara sadar di laporan kerja dan diiringi uji regresi di `tests/editorial-discovery.test.ts`.
+  3. **Bagian 5: Database Migration and Test Environment Parity:** Mengharuskan penerapan perubahan skema (`prisma db push`) ke basis data pengembangan (`db/custom.db`) dan basis data pengujian terisolasi (`db/isolated-test.db`) secara bersamaan untuk mencegah kegagalan runtime `P2022`.
+  4. **Bagian 6: Mandatory Live Verification Before Completion Claim:** Menetapkan aturan ketat bahwa uji lokal yang hijau hanya syarat perlu, bukan syarat cukup untuk menyatakan pekerjaan selesai. Laporan penyelesaian pada kanal penemuan dan integrasi agen wajib melewati empat tahap: `git commit` dan `git push` ke `origin main`, verifikasi status deployment Vercel berstatus `Ready`, eksekusi `fetch` langsung ke URL produksi, serta penyertaan kutipan bukti hasil respons live dalam laporan.
+- **Verifikasi Kepatuhan:**
+  - `AGENTS.md` diperbarui dengan penomoran seksi 1 sampai 6 yang rapi dan konsisten.
+  - Bebas tanda pisah em dash, bebas kata klise AI, dan patuh pada pedoman Verax Writing Standards.
+
+## 67. Integrasi Prinsip Anti-AI Writing & Verifikasi Suite Penemuan Mesin (13 Nov 2026)
+- **Konteks:** Menyelaraskan seluruh kerangka standar penulisan redaksi, modul basis pengetahuan Layer A, dan kanal penemuan mesin (`/editorial/core`, `/editorial/context`, `/llms.txt`, `/llms-full.txt`) dengan enam prinsip disiplin anti-AI writing dan pencegahan slop.
+- **Pembaruan Dokumen & Standar Editorial:**
+  - `docs/editorial/VERAX_WRITING_STANDARDS.md`: Memperluas cakupan standar agar mengikat teks milik sistem dan seluruh draf naskah artikel yang diajukan agen AI eksternal melalui Ingestion API. Menegaskan larangan tanda pisah em dash dan tanda hubung ganda pada teks artikel (kecuali di dalam kutipan verbatim narasumber autentik), larangan kata klise AI bahasa Inggris dan bahasa Indonesia, larangan paralelisme negatif, larangan aturan tiga butir yang dipaksakan, variasi ritme kalimat (burstiness), larangan emoji dekoratif, dan kejujuran faktual nol fabrikasi.
+  - `docs/editorial/core/VERAX_LANGUAGE_AND_STYLE.md` dan salinan publik `docs/editorial/public/core/VERAX_LANGUAGE_AND_STYLE.md`: Mengintegrasikan enam prinsip pedoman editorial anti-AI pada Bagian 2.1 dan mempertahankan tujuh batas keras non-evasion pada Bagian 2.2.
+- **Pembaruan Layanan Kode & Kanal Penemuan:**
+  - `src/lib/editorial/standards.ts`: Memperbarui `buildCompactUniversalCoreMarkdown` sehingga bundel Layer A mode compact menyertakan standar penulisan anti-AI dan daftar kosakata terlarang secara eksplisit. Pembaruan ini otomatis tersalurkan ke `GET /editorial/core?mode=compact` dan `GET /editorial/context?coreMode=compact`.
+  - `src/lib/domain/api-docs.ts`: Menambahkan seksi Standar Penulisan Anti-AI pada `getLlmsTxt` dan seksi 7c serta Langkah 4 pada `getLlmsFullTxt`.
+- **Pengembangan Test Suite Otomatis (`tests/editorial-discovery.test.ts`):**
+  - Kasus uji 3 & 4 diperluas untuk menguji keberadaan standar anti-AI writing dan kosakata terlarang pada `/llms.txt` dan `/llms-full.txt`.
+  - Menambahkan kasus uji 5 untuk memverifikasi `GET /editorial/core` (mode compact dan full, format markdown dan JSON) memuat prinsip anti-AI dan daftar kosakata terlarang.
+  - Menambahkan kasus uji 6 untuk memverifikasi `GET /editorial/context` menyertakan Layer A yang memuat disiplin anti-AI writing secara konsisten tanpa kebocoran konteks.
+  - Menambahkan kasus uji 7 untuk memastikan seluruh validasi kontrak dan penanganan kesalahan rute `/editorial/core` dan `/editorial/context` tetap kokoh tanpa regresi (422 pada mode/output/desk/format tidak valid dan penahanan NEWS pada INGESTION_API).
+- **Hasil Verifikasi Penuh:**
+  - `bun test tests/editorial-discovery.test.ts`: 7 pass, 0 fail (236 assertions).
+  - `bun test` seluruh repositori: **292 pass, 0 fail (3213 assertions) di 25 file**.
+  - `bun run typecheck`: 0 galat (bersih).
+  - `bun run lint`: 0 galat (bersih).
+  - Kebersihan tipografi: 0 tanda pisah em dash dalam teks editorial dan salinan sistem baru.
