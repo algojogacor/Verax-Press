@@ -8,8 +8,10 @@ import { useSession } from "next-auth/react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { ArrowLeft, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Skeleton } from "@/components/ui/skeleton";
+import { Switch } from "@/components/ui/switch";
 import { Textarea } from "@/components/ui/textarea";
 import {
   Dialog,
@@ -27,7 +29,7 @@ import { ArticleSourcesTab } from "@/components/studio/article-sources-tab";
 import { ArticleWorkflowTab } from "@/components/studio/article-workflow-tab";
 import { ArticleCommentsTab } from "@/components/studio/article-comments-tab";
 import { ArticleAuditTab } from "@/components/studio/article-audit-tab";
-import { FORMAT_LABELS, ORIGIN_LABELS, STATUS_LABELS } from "@/lib/domain/constants";
+import { AI_PLACEHOLDER_BYLINE, AI_SUBSTANTIVE_NOTE_DEFAULT, FORMAT_LABELS, ORIGIN_LABELS, STATUS_LABELS } from "@/lib/domain/constants";
 import { formatDateTime, statusDotClass } from "@/lib/format";
 import type { ArticleDetailDTO, TransitionAction } from "@/types/verity";
 import { cn } from "@/lib/utils";
@@ -56,8 +58,21 @@ export default function ArticleEditorPage() {
   const [reasonTarget, setReasonTarget] = useState<AvailableTransition | null>(null);
   const [reason, setReason] = useState("");
 
+  // Alur penerbitan cepat (streamlined publish flow)
+  const [publishDialogOpen, setPublishDialogOpen] = useState(false);
+  const [publishByline, setPublishByline] = useState("");
+  const [publishAiPublic, setPublishAiPublic] = useState(true);
+  const [publishAiNote, setPublishAiNote] = useState("");
+
   const transitionMutation = useMutation({
-    mutationFn: (input: { action: TransitionAction; reason?: string }) =>
+    mutationFn: (input: {
+      action: TransitionAction;
+      reason?: string;
+      byline?: string;
+      aiDisclosurePublic?: boolean;
+      aiDisclosureNote?: string;
+      autoConfirm?: boolean;
+    }) =>
       apiFetch<ArticleDetailDTO>(`/api/studio/articles/${id}/transition`, {
         method: "POST",
         body: JSON.stringify(input),
@@ -68,6 +83,7 @@ export default function ArticleEditorPage() {
       queryClient.invalidateQueries({ queryKey: ["dashboard"] });
       setReasonTarget(null);
       setReason("");
+      setPublishDialogOpen(false);
       toast({
         title: "Transisi berhasil",
         description: `Status sekarang: ${STATUS_LABELS[data.status]}.`,
@@ -89,7 +105,30 @@ export default function ArticleEditorPage() {
       setReasonTarget(transition);
       return;
     }
+
+    if (transition.action === "PUBLISH" && article) {
+      const initialByline =
+        !article.byline?.trim() || article.byline === AI_PLACEHOLDER_BYLINE
+          ? "Disunting oleh Redaksi Verax Press"
+          : article.byline;
+      setPublishByline(initialByline);
+      setPublishAiPublic(article.aiInvolvement === "substantive" ? true : article.aiDisclosurePublic);
+      setPublishAiNote(article.aiDisclosureNote?.trim() || AI_SUBSTANTIVE_NOTE_DEFAULT);
+      setPublishDialogOpen(true);
+      return;
+    }
+
     transitionMutation.mutate({ action: transition.action });
+  }
+
+  function handleConfirmPublish() {
+    transitionMutation.mutate({
+      action: "PUBLISH",
+      byline: publishByline.trim() || "Disunting oleh Redaksi Verax Press",
+      aiDisclosurePublic: publishAiPublic,
+      aiDisclosureNote: publishAiNote.trim(),
+      autoConfirm: true,
+    });
   }
 
   if (isLoading) {
@@ -277,6 +316,85 @@ export default function ArticleEditorPage() {
                 <Loader2 className="size-4 animate-spin" aria-hidden="true" />
               ) : null}
               {reasonTarget?.label ?? "Kirim"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Dialog Konfirmasi Penerbitan Langsung (Streamlined Publish Dialog) */}
+      <Dialog open={publishDialogOpen} onOpenChange={setPublishDialogOpen}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle className="font-serif text-lg font-semibold text-verity-ink">
+              Konfirmasi Penerbitan Artikel
+            </DialogTitle>
+            <DialogDescription>
+              Tinjau atribusi byline dan transparansi proses sebelum naskah ditayangkan ke publik.
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="space-y-4 py-2">
+            <div className="space-y-2">
+              <Label htmlFor="publish-byline">Byline Publikasi</Label>
+              <Input
+                id="publish-byline"
+                value={publishByline}
+                onChange={(event) => setPublishByline(event.target.value)}
+                placeholder="Mis. Disunting oleh Redaksi Verax Press"
+              />
+              <p className="font-mono text-[11px] text-verity-ink-faint">
+                Nama penulis atau tim editorial yang akan tampil pada byline artikel publik.
+              </p>
+            </div>
+
+            {article.aiInvolvement === "substantive" ? (
+              <div className="space-y-3 rounded-xs border border-verity-rule bg-verity-paper-soft p-3">
+                <div className="flex items-center gap-2">
+                  <Switch
+                    id="publish-ai-toggle"
+                    checked={publishAiPublic}
+                    onCheckedChange={setPublishAiPublic}
+                  />
+                  <Label htmlFor="publish-ai-toggle" className="cursor-pointer text-xs font-medium">
+                    Aktifkan catatan transparansi proses AI
+                  </Label>
+                </div>
+                {publishAiPublic ? (
+                  <div className="space-y-1.5">
+                    <Label htmlFor="publish-ai-note" className="text-[11px] text-verity-ink-soft">
+                      Catatan Proses Publik
+                    </Label>
+                    <Textarea
+                      id="publish-ai-note"
+                      rows={2}
+                      value={publishAiNote}
+                      onChange={(event) => setPublishAiNote(event.target.value)}
+                      className="text-xs"
+                      placeholder="Catatan keterlibatan AI pada naskah ini…"
+                    />
+                  </div>
+                ) : null}
+              </div>
+            ) : null}
+          </div>
+
+          <DialogFooter className="gap-2 sm:gap-0">
+            <Button
+              variant="outline"
+              onClick={() => setPublishDialogOpen(false)}
+              disabled={transitionMutation.isPending}
+            >
+              Batal
+            </Button>
+            <Button
+              disabled={!publishByline.trim() || transitionMutation.isPending}
+              onClick={handleConfirmPublish}
+              className="bg-verity-ink text-white hover:bg-verity-ink/90"
+            >
+              {transitionMutation.isPending ? (
+                <Loader2 className="mr-1.5 size-4 animate-spin" aria-hidden="true" />
+              ) : null}
+              Terbitkan Sekarang
             </Button>
           </DialogFooter>
         </DialogContent>

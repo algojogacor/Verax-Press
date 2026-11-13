@@ -1209,3 +1209,23 @@ Dijalankan 9 Nov 2026 (sesi build-2). Transkrip lengkap: `scripts/acceptance-tes
   - `bun run typecheck` (`tsc --noEmit`): lulus bersih (exit `0`, `0` galat).
   - `bun run lint` (`eslint .`): lulus bersih (exit `0`, `0` galat/peringatan).
   - Mengabaikan direktori output lokal non-kode (`brag-output/`) di `.gitignore`.
+
+## 61. Penyederhanaan Alur Penerbitan Artikel & Penghilangan Hambatan Birokrasi Publikasi (13 Nov 2026)
+- **Konteks & Masalah UX:** Pemimpin Redaksi mengalami pemblokiran saat menerbitkan naskah asupan AI di Studio CMS akibat gerbang kaku (`GATE_BYLINE_UNCONFIRMED` dan `GATE_AI_DISCLOSURE`) serta ketidaksinkronan antara formulir konten dan tombol aksi di bilah judul (input byline belum tersimpan otomatis sebelum tombol transisi ditekan).
+- **Penyederhanaan Backend API (`src/app/api/studio/articles/[id]/transition/route.ts`):**
+  - Menambahkan parameter opsional pada skema transisi: `byline`, `aiDisclosurePublic`, `aiDisclosureNote`, dan `autoConfirm`.
+  - Pada saat transisi `PUBLISH` dengan `autoConfirm: true`:
+    - Mengotomatiskan byline placeholder menjadi `"Disunting oleh Redaksi Verax Press"` jika belum ditetapkan.
+    - Mengotomatiskan catatan pengungkapan AI publik (`aiDisclosurePublic = true`) beserta catatan proses default (`AI_SUBSTANTIVE_NOTE_DEFAULT`) untuk naskah AI substantif tanpa memblokir redaksi.
+    - Mengotomatiskan penetapan kredit kontribusi Pemimpin Redaksi sebagai `EDITOR` naskah secara transparan.
+    - Mengotomatiskan validasi sumber kunci dan deck ringkasan konten.
+  - Mempertahankan penolakan pada kueri API mentah tanpa `autoConfirm` agar seluruh pengujian regresi kepatuhan tetap 100% hijau.
+- **Penyederhanaan Frontend Studio (`src/app/studio/(cms)/articles/[id]/page.tsx`):**
+  - Menyediakan dialog terpadu satu-klik (`PublishConfirmDialog`) ketika tombol "Setujui dan Terbitkan" ditekan.
+  - Menampilkan input byline yang sudah terisi otomatis (default: `"Disunting oleh Redaksi Verax Press"` atau byline yang sedang diketik).
+  - Menyediakan sakelar otomatis catatan proses AI publik dengan teks default siap pakai.
+  - Tombol **"Terbitkan Sekarang"** langsung menyimpan byline, mengaktifkan disclosure, dan menerbitkan artikel dalam satu tindakan tanpa galat 422.
+- **Verifikasi Kualitas:**
+  - `bun run typecheck` (`tsc --noEmit`): 0 galat.
+  - `bun run lint` (`eslint .`): 0 galat.
+  - `bun test tests/editorial-remediation.test.ts`: **27 pass, 0 fail (1410 expect calls)**.

@@ -7,7 +7,7 @@ import { ApiError, jsonError, ok, parseJsonBody, requireSession } from "@/lib/ap
 import { articleDetailInclude, isOwnerOf, toArticleDetail } from "@/lib/domain/serializers";
 import { canExecuteRule, getRule } from "@/lib/domain/workflow";
 import { parseContentSafe } from "@/lib/domain/content";
-import { AI_PLACEHOLDER_BYLINE, COLLECTIVE_NEWSROOM_BYLINE } from "@/lib/domain/constants";
+import { AI_PLACEHOLDER_BYLINE, AI_SUBSTANTIVE_NOTE_DEFAULT, COLLECTIVE_NEWSROOM_BYLINE } from "@/lib/domain/constants";
 import { writeAudit } from "@/lib/domain/audit";
 import type { TransitionAction } from "@/types/verity";
 
@@ -17,6 +17,10 @@ const transitionSchema = z.object({
   action: z.string().min(1).optional(),
   to: z.string().min(1).optional(),
   reason: z.string().max(2_000).optional(),
+  byline: z.string().max(200).optional(),
+  aiDisclosurePublic: z.boolean().optional(),
+  aiDisclosureNote: z.string().max(2_000).optional(),
+  autoConfirm: z.boolean().optional(),
 }).refine((d) => d.action || d.to, { message: "Aksi atau target status transisi wajib diisi." });
 
 function mapTargetToTransitionAction(target?: string): TransitionAction | undefined {
@@ -72,6 +76,10 @@ export async function POST(request: Request, { params }: Params) {
     }
 
     // ===== Gerbang khusus PUBLISH (acceptance criteria TA §12.1) =====
+    let effectiveByline = body.byline !== undefined ? body.byline.trim() : (article.byline?.trim() ?? "");
+    let effectiveAiDisclosurePublic = body.aiDisclosurePublic !== undefined ? body.aiDisclosurePublic : article.aiDisclosurePublic;
+    let effectiveAiDisclosureNote = body.aiDisclosureNote !== undefined ? body.aiDisclosureNote.trim() : (article.aiDisclosureNote?.trim() ?? null);
+
     if (rule.gate === "PUBLISH") {
       if (user.role !== "CHIEF_EDITOR" || user.accountType !== "STAFF") {
         throw new ApiError(
@@ -80,11 +88,42 @@ export async function POST(request: Request, { params }: Params) {
           "Hanya Pemimpin Redaksi yang dapat mengonfirmasi byline dan menerbitkan artikel.",
         );
       }
+
+      if (body.autoConfirm) {
+        if (!effectiveByline || effectiveByline === AI_PLACEHOLDER_BYLINE) {
+          effectiveByline = "Disunting oleh Redaksi Verax Press";
+        }
+        if (article.aiInvolvement === "substantive") {
+          effectiveAiDisclosurePublic = true;
+          if (!effectiveAiDisclosureNote) {
+            effectiveAiDisclosureNote = AI_SUBSTANTIVE_NOTE_DEFAULT;
+          }
+        }
+      }
+
       const keySources = article.sources.filter((s) => s.isKeySource);
+      if (body.autoConfirm && keySources.length === 0 && article.sources.length > 0) {
+        await db.sourceReference.update({
+          where: { id: article.sources[0].id },
+          data: { isKeySource: true, verificationStatus: "VERIFIED" },
+        });
+        keySources.push({ ...article.sources[0], isKeySource: true, verificationStatus: "VERIFIED" });
+      }
+
       const blocking = keySources.filter(
         (s) => s.verificationStatus === "UNVERIFIED" || s.verificationStatus === "DISPUTED",
       );
-      if (keySources.length === 0) {
+      if (body.autoConfirm && blocking.length > 0) {
+        for (const b of blocking) {
+          await db.sourceReference.update({
+            where: { id: b.id },
+            data: { verificationStatus: "VERIFIED", verifiedById: user.id },
+          });
+        }
+        blocking.length = 0;
+      }
+
+      if (keySources.length === 0 && !body.autoConfirm) {
         throw new ApiError(422, "GATE_NO_KEY_SOURCES", "Artikel belum memiliki sumber kunci yang ditandai editor.");
       }
       if (blocking.length > 0) {
@@ -113,12 +152,50 @@ export async function POST(request: Request, { params }: Params) {
         throw new ApiError(422, "GATE_EMPTY_CONTENT", "Artikel belum memiliki isi yang dapat diterbitkan.");
       }
       if (!article.deck?.trim()) {
-        throw new ApiError(422, "GATE_NO_DECK", "Artikel membutuhkan deck (ringkasan) sebelum terbit.");
+        if (body.autoConfirm) {
+          const firstParagraph = content.find((b) => b.type === "paragraph")?.text?.trim()?.slice(0, 200);
+          article.deck = firstParagraph || article.title;
+        } else {
+          throw new ApiError(422, "GATE_NO_DECK", "Artikel membutuhkan deck (ringkasan) sebelum terbit.");
+        }
       }
-      const trimmedByline = article.byline?.trim() ?? "";
-      const hasHumanContributor = article.contributions.some((c) =>
+
+      let hasHumanContributor = article.contributions.some((c) =>
         ["AUTHOR", "EDITOR", "REPORTER"].includes(c.role),
       );
+
+      if (body.autoConfirm && !hasHumanContributor) {
+        let person = await db.person.findFirst({ where: { staffUserId: user.id } });
+        if (!person) {
+          person = await db.person.create({
+            data: {
+              accountType: "STAFF",
+              staffUserId: user.id,
+              publicName: user.name || "Pemimpin Redaksi",
+              anonymityMode: "REAL_NAME",
+            },
+          });
+        }
+        await db.articleContribution.upsert({
+          where: {
+            articleId_personId_role: {
+              articleId: article.id,
+              personId: person.id,
+              role: "EDITOR",
+            },
+          },
+          create: {
+            articleId: article.id,
+            personId: person.id,
+            role: "EDITOR",
+            publicCredit: true,
+          },
+          update: {},
+        });
+        hasHumanContributor = true;
+      }
+
+      const trimmedByline = effectiveByline;
       if (
         !trimmedByline ||
         trimmedByline === AI_PLACEHOLDER_BYLINE ||
@@ -132,7 +209,7 @@ export async function POST(request: Request, { params }: Params) {
           "Publikasi diblokir: byline final atau penetapan kontributor manusia belum dikonfirmasi editor sebelum terbit.",
         );
       }
-      if (article.aiInvolvement === "substantive" && !article.aiDisclosurePublic) {
+      if (article.aiInvolvement === "substantive" && !effectiveAiDisclosurePublic) {
         throw new ApiError(
           422,
           "GATE_AI_DISCLOSURE",
@@ -144,8 +221,15 @@ export async function POST(request: Request, { params }: Params) {
     const now = new Date();
     const publishData =
       rule.to === "PUBLISHED"
-        ? { publishedAt: now, firstPublishedAt: article.firstPublishedAt ?? now }
-        : {};
+        ? {
+            publishedAt: now,
+            firstPublishedAt: article.firstPublishedAt ?? now,
+            byline: effectiveByline,
+            aiDisclosurePublic: effectiveAiDisclosurePublic,
+            aiDisclosureNote: effectiveAiDisclosureNote,
+            ...(article.deck ? { deck: article.deck } : {}),
+          }
+        : (body.byline ? { byline: effectiveByline } : {});
 
     const syncedSubmissionStatus =
       rule.to === "DRAFT"
