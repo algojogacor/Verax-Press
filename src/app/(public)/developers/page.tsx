@@ -21,11 +21,12 @@ const SECTIONS = [
   { id: "standar-editorial", label: "Standar Editorial Modular" },
   { id: "autentikasi", label: "Autentikasi & Kredensial" },
   { id: "lingkungan", label: "Lingkungan & Base URL" },
-  { id: "titik-akhir", label: "Titik Akhir API" },
+  { id: "vei-coverage", label: "Verax Editorial Intelligence (VEI)" },
+  { id: "titik-akhir", label: "Titik Akhir API Ingestion" },
   { id: "skema-konten", label: "Skema 7 Blok Konten" },
   { id: "sumber-rujukan", label: "Sumber, Gambar & AI Disclosure" },
   { id: "penanganan-galat", label: "Penanganan Galat & Gerbang" },
-  { id: "contoh-kode", label: "Contoh Integrasi" },
+  { id: "contoh-kode", label: "Contoh Integrasi & Prompt Agen" },
 ];
 
 export default async function DevelopersPage() {
@@ -68,6 +69,14 @@ export default async function DevelopersPage() {
             className="border border-verity-rule bg-verity-paper-soft px-3 py-1.5 text-verity-ink hover:border-verity-ink transition-colors"
           >
             Capabilities JSON
+          </Link>
+          <Link
+            href="/api/internal/v1/editorial/coverage/search"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="border border-verity-rule bg-verity-paper-soft px-3 py-1.5 text-verity-ink hover:border-verity-ink transition-colors"
+          >
+            Coverage Search (VEI)
           </Link>
           <Link
             href="/editorial/manifest.json"
@@ -225,23 +234,47 @@ export default async function DevelopersPage() {
             </h2>
             <div className="mt-4 space-y-4 text-[0.98rem] leading-[1.7] text-verity-ink">
               <p>
-                Setiap permintaan ke endpoint ingestion (<code>/api/internal/v1/ai-submissions*</code>) wajib menyertakan header otorisasi Bearer gabungan:
+                Verax Press menerapkan pemisahan kredensial yang tegas antara jalur pembacaan riwayat liputan (VEI) dan jalur pengiriman naskah (Ingestion API):
               </p>
-              <pre className="overflow-x-auto border border-verity-rule bg-card p-4 font-mono text-xs text-verity-ink">
-                <code>
+
+              <div className="space-y-4">
+                <div className="border border-verity-rule bg-card p-4">
+                  <h3 className="font-mono text-xs font-semibold uppercase tracking-wider text-verity-accent">
+                    A. Kunci API Verax Editorial Intelligence (VEI): Cakupan coverage:read
+                  </h3>
+                  <p className="mt-1 text-sm text-verity-ink">
+                    Digunakan untuk membaca riwayat artikel terbit dan menguji kebaruan usulan liputan sebelum agen mulai menulis. Mendukung format header Bearer maupun header kustom:
+                  </p>
+                  <pre className="mt-2 overflow-x-auto border border-verity-rule bg-verity-paper-soft p-3 font-mono text-xs text-verity-ink">
+                    <code>
+{`Authorization: Bearer <VERAX_COVERAGE_API_KEY>
+# atau
+X-API-Key: <VERAX_COVERAGE_API_KEY>`}
+                    </code>
+                  </pre>
+                  <p className="mt-2 text-xs text-verity-ink-soft">
+                    Kunci ini dikonfigurasi melalui variabel lingkungan <code>VERAX_COVERAGE_API_KEY</code>. Kredensial pengiriman (<code>vrtc_...</code>) dilarang mengakses endpoint coverage dan ditolak dengan status HTTP 403 <code>FORBIDDEN_SCOPE</code>.
+                  </p>
+                </div>
+
+                <div className="border border-verity-rule bg-card p-4">
+                  <h3 className="font-mono text-xs font-semibold uppercase tracking-wider text-verity-accent">
+                    B. Kredensial Pengiriman Naskah (Ingestion API): Cakupan submit
+                  </h3>
+                  <p className="mt-1 text-sm text-verity-ink">
+                    Digunakan untuk validasi pra-kirim dan pengiriman draf artikel ke meja redaksi. Memerlukan header otorisasi Bearer gabungan:
+                  </p>
+                  <pre className="mt-2 overflow-x-auto border border-verity-rule bg-verity-paper-soft p-3 font-mono text-xs text-verity-ink">
+                    <code>
 {`Authorization: Bearer <CLIENT_ID>.<CLIENT_SECRET>
 Content-Type: application/json`}
-                </code>
-              </pre>
-              <p className="text-sm text-verity-ink-soft">
-                Contoh format (bukan kredensial nyata): <code>Bearer vrtc_8a7b6c5d4e3f2100.vrtk_f0e1d2c3b4a596877869504132231405</code>.
-              </p>
-              <p>
-                Kredensial berlingkup <code>submit</code> dibuat dan dicabut oleh Pemimpin Redaksi di Meja Redaksi Studio. Kunci rahasia hanya ditampilkan sekali saat penerbitan dan disimpan dalam bentuk hash satu arah yang aman.
-              </p>
-              <p>
-                Platform mendukung rotasi kredensial dengan masa tenggang saat pembaruan kunci klien.
-              </p>
+                    </code>
+                  </pre>
+                  <p className="mt-2 text-xs text-verity-ink-soft">
+                    Contoh format: <code>Bearer vrtc_8a7b6c5d4e3f2100.vrtk_f0e1d2c3b4a596877869504132231405</code>. Diterbitkan dan dicabut oleh Pemimpin Redaksi di Meja Redaksi Studio (<code>/studio/api-clients</code>).
+                  </p>
+                </div>
+              </div>
             </div>
           </section>
 
@@ -285,10 +318,87 @@ Content-Type: application/json`}
             </div>
           </section>
 
-          {/* 5. Titik Akhir API */}
+          {/* 5. Verax Editorial Intelligence */}
+          <section id="vei-coverage" className="scroll-mt-10 border-b border-verity-rule pb-10">
+            <h2 className="font-serif text-2xl font-semibold text-verity-ink">
+              5. Verax Editorial Intelligence (VEI)
+            </h2>
+            <div className="mt-4 space-y-4 text-[0.98rem] leading-[1.7] text-verity-ink">
+              <p>
+                Verax Editorial Intelligence (VEI) adalah lapisan baca-saja (<em>read-only</em>) yang dirancang agar agen kecerdasan buatan eksternal dapat memeriksa riwayat liputan terpublikasi sebelum merumuskan naskah baru. Hal ini mencegah pengulangan topik yang sama dan memastikan setiap naskah membawa sudut pandang baru.
+              </p>
+              <div className="border border-verity-ink bg-verity-paper-soft p-4 text-sm">
+                <p className="font-mono text-[11px] font-semibold uppercase tracking-[0.14em] text-verity-accent">
+                  Prinsip Isolasi Publikasi &amp; Tanpa Opini Rekomendasi
+                </p>
+                <p className="mt-1.5 text-verity-ink-soft leading-relaxed">
+                  VEI hanya mengembalikan artikel yang telah berstatus terpublikasi resmi (<code>PUBLISHED</code> atau <code>CORRECTED</code>). Draf penulis lain, pengajuan yang masih dalam proses penelaahan, serta catatan internal editor tidak dapat diakses sama sekali. API ini juga tidak memberikan putusan lolos atau tolak, evaluasi kelayakan topik diserahkan sepenuhnya kepada nalar agen penulis itu sendiri.
+                </p>
+              </div>
+
+              <div className="space-y-4 text-xs font-mono">
+                <div className="border border-verity-rule bg-card p-4">
+                  <div className="flex items-center gap-2 font-semibold">
+                    <span className="rounded-xs bg-verity-paper-soft px-2 py-0.5 text-verity-ink border border-verity-rule">GET | HEAD</span>
+                    <span className="text-verity-ink">/api/internal/v1/editorial/coverage/search</span>
+                  </div>
+                  <p className="font-sans text-sm text-verity-ink-soft mt-2">
+                    Mencari artikel terpublikasi berdasarkan kata kunci teks, desk editorial, dan rentang tanggal publikasi. Kueri mencari pada lima bidang: judul, topik, entitas, pertanyaan inti, dan sudut pandang editorial.
+                  </p>
+                  <div className="mt-3 font-sans text-xs text-verity-ink">
+                    <p className="font-semibold">Parameter Kueri:</p>
+                    <ul className="mt-1 list-disc list-inside space-y-1 text-verity-ink-soft">
+                      <li><code>q</code>: Kata kunci pencarian teks (opsional).</li>
+                      <li><code>desk</code>: Slug atau nama desk (misal: <code>hukum-keadilan</code>, opsional).</li>
+                      <li><code>from</code> / <code>to</code>: Filter rentang tanggal publikasi ISO 8601 (opsional).</li>
+                      <li><code>limit</code>: Jumlah rekaman per halaman (1 sampai 100, bawaan: 20).</li>
+                      <li><code>cursor</code>: ID artikel untuk paginasi halaman berikutnya.</li>
+                    </ul>
+                  </div>
+                  <pre className="mt-3 overflow-x-auto border border-verity-rule bg-verity-paper-soft p-3 font-mono text-[11px] text-verity-ink">
+                    <code>
+{`# Contoh cURL Pencarian Liputan
+curl -X GET "${baseUrl}/api/internal/v1/editorial/coverage/search?q=kecerdasan%20buatan&desk=teknologi-kebijakan&limit=10" \\
+  -H "Authorization: Bearer <VERAX_COVERAGE_API_KEY>"`}
+                    </code>
+                  </pre>
+                </div>
+
+                <div className="border border-verity-rule bg-card p-4">
+                  <div className="flex items-center gap-2 font-semibold">
+                    <span className="rounded-xs bg-verity-accent px-2 py-0.5 text-verity-paper">POST</span>
+                    <span className="text-verity-ink">/api/internal/v1/editorial/coverage/check</span>
+                  </div>
+                  <p className="font-sans text-sm text-verity-ink-soft mt-2">
+                    Mengevaluasi tingkat tumpang tindih usulan naskah terhadap seluruh korpus artikel terpublikasi secara deterministik. Mengembalikan tingkat tumpang tindih (<code>overlapLevel</code>: <code>none</code>, <code>partial</code>, atau <code>high</code>) serta daftar artikel yang memiliki irisan topik atau entitas.
+                  </p>
+                  <pre className="mt-3 overflow-x-auto border border-verity-rule bg-verity-paper-soft p-3 font-mono text-[11px] text-verity-ink">
+                    <code>
+{`# Contoh cURL Uji Kebaruan Usulan (Novelty Check)
+curl -X POST "${baseUrl}/api/internal/v1/editorial/coverage/check" \\
+  -H "Authorization: Bearer <VERAX_COVERAGE_API_KEY>" \\
+  -H "Content-Type: application/json" \\
+  -d '{
+    "proposedTitle": "Tanggung Jawab Hukum Penggunaan Kecerdasan Buatan Generatif",
+    "topic": "Regulasi AI dan Perlindungan Data",
+    "centralQuestion": "Siapa yang bertanggung jawab ketika sistem AI membocorkan data pribadi?",
+    "proposedAngle": "Analisis pembagian beban tanggung jawab penyedia model versus pemakai korporat.",
+    "entities": ["UU PDP", "Kementerian Komdigi", "Penyedia LLM"]
+  }'`}
+                    </code>
+                  </pre>
+                  <p className="mt-2 font-sans text-xs text-verity-ink-soft">
+                    Format keluaran mencantumkan <code>overlapLevel</code> dan larik <code>matches</code> berisi judul, topik, entitas, pertanyaan inti, serta sudut pandang artikel terbit terdahulu untuk bahan perbandingan agen.
+                  </p>
+                </div>
+              </div>
+            </div>
+          </section>
+
+          {/* 6. Titik Akhir API Ingestion */}
           <section id="titik-akhir" className="scroll-mt-10 border-b border-verity-rule pb-10">
             <h2 className="font-serif text-2xl font-semibold text-verity-ink">
-              5. Titik Akhir API Ingestion
+              6. Titik Akhir API Ingestion
             </h2>
             <div className="mt-4 space-y-6 text-[0.98rem] leading-[1.7] text-verity-ink">
               <div className="border border-verity-rule bg-card p-4">
@@ -333,10 +443,10 @@ Content-Type: application/json`}
             </div>
           </section>
 
-          {/* 6. Skema 7 Blok Konten */}
+          {/* 7. Skema 7 Blok Konten */}
           <section id="skema-konten" className="scroll-mt-10 border-b border-verity-rule pb-10">
             <h2 className="font-serif text-2xl font-semibold text-verity-ink">
-              6. Skema 7 Blok Konten Terstruktur
+              7. Skema 7 Blok Konten Terstruktur
             </h2>
             <div className="mt-4 space-y-4 text-[0.98rem] leading-[1.7] text-verity-ink">
               <p>
@@ -391,10 +501,10 @@ Content-Type: application/json`}
             </div>
           </section>
 
-          {/* 7. Sumber Rujukan, Gambar, & AI Disclosure */}
+          {/* 8. Sumber Rujukan, Gambar, & AI Disclosure */}
           <section id="sumber-rujukan" className="scroll-mt-10 border-b border-verity-rule pb-10">
             <h2 className="font-serif text-2xl font-semibold text-verity-ink">
-              7. Sumber Rujukan, Gambar, &amp; Transparansi AI
+              8. Sumber Rujukan, Gambar, &amp; Transparansi AI
             </h2>
             <div className="mt-4 space-y-4 text-[0.98rem] leading-[1.7] text-verity-ink">
               <p>
@@ -431,10 +541,10 @@ Content-Type: application/json`}
             </div>
           </section>
 
-          {/* 8. Penanganan Galat & Gerbang Publikasi */}
+          {/* 9. Penanganan Galat & Gerbang Publikasi */}
           <section id="penanganan-galat" className="scroll-mt-10 border-b border-verity-rule pb-10">
             <h2 className="font-serif text-2xl font-semibold text-verity-ink">
-              8. Penanganan Galat &amp; Enam Gerbang Publikasi
+              9. Penanganan Galat &amp; Enam Gerbang Publikasi
             </h2>
             <div className="mt-4 space-y-4 text-[0.98rem] leading-[1.7] text-verity-ink">
               <p>
@@ -458,12 +568,16 @@ Content-Type: application/json`}
               </pre>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-xs font-mono">
                 <div className="border border-verity-rule bg-card p-2.5">
-                  <span className="font-semibold text-verity-ink">400 MALFORMED_JSON</span>
-                  <p className="font-sans text-verity-ink-soft mt-0.5">Body bukan JSON yang valid.</p>
+                  <span className="font-semibold text-verity-ink">400 MALFORMED_JSON / INVALID_PARAMETER / INVALID_CURSOR</span>
+                  <p className="font-sans text-verity-ink-soft mt-0.5">Tubuh bukan JSON valid atau parameter kueri salah.</p>
                 </div>
                 <div className="border border-verity-rule bg-card p-2.5">
-                  <span className="font-semibold text-verity-ink">401 UNAUTHORIZED / CREDENTIAL_REVOKED / CREDENTIAL_EXPIRED / CLIENT_INACTIVE / FORBIDDEN_SCOPE</span>
-                  <p className="font-sans text-verity-ink-soft mt-0.5">Token Bearer tidak valid, dicabut, kedaluwarsa, nonaktif, atau tanpa izin submit.</p>
+                  <span className="font-semibold text-verity-ink">401 UNAUTHORIZED / CREDENTIAL_REVOKED / CREDENTIAL_EXPIRED / CLIENT_INACTIVE</span>
+                  <p className="font-sans text-verity-ink-soft mt-0.5">Kredensial tidak valid, dicabut, kedaluwarsa, atau nonaktif.</p>
+                </div>
+                <div className="border border-verity-rule bg-card p-2.5">
+                  <span className="font-semibold text-verity-ink">403 FORBIDDEN_SCOPE</span>
+                  <p className="font-sans text-verity-ink-soft mt-0.5">Kredensial di luar cakupan (misal kunci submit dipakai membaca coverage).</p>
                 </div>
                 <div className="border border-verity-rule bg-card p-2.5">
                   <span className="font-semibold text-verity-ink">404 NOT_FOUND</span>
@@ -504,27 +618,87 @@ Content-Type: application/json`}
             </div>
           </section>
 
-          {/* 9. Contoh Kode */}
+          {/* 10. Contoh Kode & Prompt Agen */}
           <section id="contoh-kode" className="scroll-mt-10 pb-10">
             <h2 className="font-serif text-2xl font-semibold text-verity-ink">
-              9. Contoh Integrasi Siap Pakai
+              10. Contoh Integrasi Siap Pakai &amp; Prompt Agen
             </h2>
             <div className="mt-4 space-y-6 text-[0.98rem] leading-[1.7] text-verity-ink">
+              <div className="border border-verity-ink bg-verity-paper-soft p-4">
+                <h3 className="font-mono text-xs font-semibold uppercase tracking-wider text-verity-accent">
+                  Instruksi Sistem Siap Tempel untuk Agen Penulis AI (Gemini Agent Instruction)
+                </h3>
+                <p className="mt-1 text-sm text-verity-ink">
+                  Salin blok instruksi di bawah ini langsung ke system instruction agen AI eksternal agar agen otomatis memeriksa riwayat liputan sebelum mulai menyusun naskah:
+                </p>
+                <pre className="mt-3 overflow-x-auto border border-verity-rule bg-card p-4 font-mono text-xs text-verity-ink">
+                  <code>
+{`Peran: Agen Jurnalis AI Mandiri untuk Verax Press
+Sebelum mulai menulis naskah artikel baru, Anda WAJIB menjalankan protokol pra-penulisan Verax Editorial Intelligence:
+
+Langkah 1: Periksa Riwayat Liputan
+Kirim permintaan POST ke ${baseUrl}/api/internal/v1/editorial/coverage/check
+Headers:
+  Authorization: Bearer <VERAX_COVERAGE_API_KEY>
+  Content-Type: application/json
+Body:
+  {
+    "proposedTitle": "<Usulan Judul Naskah Anda>",
+    "topic": "<Topik Liputan>",
+    "centralQuestion": "<Pertanyaan Utama yang Ingin Dijawab>",
+    "proposedAngle": "<Sudut Pandang Pembeda Anda>",
+    "entities": ["<Entitas 1>", "<Entitas 2>"]
+  }
+
+Langkah 2: Evaluasi Tingkat Tumpang Tindih (Overlap)
+- Jika overlapLevel bernilai "high":
+  Artikel serupa telah terbit di Verax Press. JANGAN menulis naskah yang mengulang fakta yang sama. Cari sudut pandang baru yang belum dibahas, atau pilih topik peliputan lain.
+- Jika overlapLevel bernilai "partial":
+  Pelajari daftar artikel di bidang "matches". Identifikasi sudut pandang dan pertanyaan inti artikel terdahulu, lalu pastikan naskah Anda menawarkan perkembangan terbaru, analisis berbeda, atau temuan fakta yang melengkapi liputan sebelumnya.
+- Jika overlapLevel bernilai "none":
+  Topik dan entitas belum pernah diliput. Lanjutkan ke tahap penulisan draf dengan tetap berpedoman pada standar editorial Verax Press.
+
+Langkah 3: Ambil Konteks Standar Editorial
+Sebelum menyusun draf, panggil:
+GET ${baseUrl}/editorial/context?desk=<deskSlug>&format=<FORMAT>&channel=INGESTION_API&coreMode=compact
+Ikuti prinsip pembuktian sumber primer dan format 7 blok konten terstruktur.`}
+                  </code>
+                </pre>
+              </div>
+
               <div>
                 <h3 className="font-mono text-xs font-semibold uppercase tracking-wider text-verity-accent">
-                  Langkah 0 &amp; cURL (Muat Konteks Selektif lalu Kirim Draf)
+                  Alur Lengkap cURL (Pra-Penulisan, Konteks, dan Pengiriman)
                 </h3>
                 <pre className="mt-2 overflow-x-auto border border-verity-rule bg-card p-4 font-mono text-xs text-verity-ink">
                   <code>
-{`# 1. Muat konteks editorial selektif (status PROPOSED, bukan kebijakan final)
+{`# 1. Cek riwayat liputan dan kebaruan usulan (Cakupan coverage:read)
+curl -X POST "${baseUrl}/api/internal/v1/editorial/coverage/check" \\
+  -H "Authorization: Bearer $VERAX_COVERAGE_API_KEY" \\
+  -H "Content-Type: application/json" \\
+  -d '{
+    "proposedTitle": "Analisis: Menakar Akuntabilitas Hukum Sistem AI Sektor Publik",
+    "topic": "Akuntabilitas Keputusan Algoritmik",
+    "centralQuestion": "Bagaimana warga negara menguji keputusan administratif otomatis?",
+    "proposedAngle": "Perlindungan hak prosedural warga dalam pelayanan publik digital.",
+    "entities": ["PP No. 28 Tahun 2025", "Kemenkumham", "PTUN"]
+  }'
+
+# 2. Muat konteks editorial selektif (status PROPOSED, bukan kebijakan final)
 curl -s "${baseUrl}/editorial/context?desk=teknologi-kebijakan&format=ANALYSIS&channel=INGESTION_API&coreMode=compact"
 
-# 2. Validasi dan kirim naskah
+# 3. Uji coba skema (Dry Run) sebelum kirim nyata
+curl -X POST "${baseUrl}/api/internal/v1/ai-submissions/validate" \\
+  -H "Authorization: Bearer $VERAX_API_CLIENT_ID.$VERAX_API_CLIENT_SECRET" \\
+  -H "Content-Type: application/json" \\
+  -d '{ ...payload draf naskah... }'
+
+# 4. Kirim naskah resmi ke meja redaksi
 curl -X POST "${baseUrl}/api/internal/v1/ai-submissions" \\
   -H "Authorization: Bearer $VERAX_API_CLIENT_ID.$VERAX_API_CLIENT_SECRET" \\
   -H "Content-Type: application/json" \\
   -d '{
-    "title": "Contoh Pengujian: Tata Kelola Audit Sistem Otomatis",
+    "title": "Analisis: Menakar Akuntabilitas Hukum Sistem AI Sektor Publik",
     "deck": "Ringkasan uji alur kerja ingestion draf berbasis sumber primer.",
     "desk": "teknologi-kebijakan",
     "format": "ANALYSIS",
@@ -534,8 +708,8 @@ curl -X POST "${baseUrl}/api/internal/v1/ai-submissions" \\
     ],
     "sources": [
       {
-        "title": "Contoh Dokumen Rujukan Resmi",
-        "url": "https://example.org/contoh-dokumen.pdf",
+        "title": "Peraturan Pemerintah No. 28 Tahun 2025",
+        "url": "https://peraturan.go.id/dokumen/pp-28-2025.pdf",
         "sourceType": "OFFICIAL",
         "publishedAt": "2026-11-10",
         "accessedAt": "2026-11-12T08:00:00Z",

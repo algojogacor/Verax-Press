@@ -99,6 +99,19 @@ export function getOpenApiSpec(baseUrlOverride?: string) {
           description:
             "Kredensial integrasi dengan format: Bearer <CLIENT_ID>.<CLIENT_SECRET>. Contoh: Bearer vrtc_1234567890abcdef.vrtk_fedcba0987654321fedcba0987654321",
         },
+        coverageApiKeyBearer: {
+          type: "http",
+          scheme: "bearer",
+          description:
+            "Kunci API Verax Editorial Intelligence (VEI) cakupan coverage:read via header: Authorization: Bearer <VERAX_COVERAGE_API_KEY>.",
+        },
+        coverageApiKeyHeader: {
+          type: "apiKey",
+          in: "header",
+          name: "X-API-Key",
+          description:
+            "Kunci API Verax Editorial Intelligence (VEI) cakupan coverage:read via header kustom: X-API-Key: <VERAX_COVERAGE_API_KEY>.",
+        },
       },
       schemas: {
         ParagraphBlock: {
@@ -540,6 +553,210 @@ export function getOpenApiSpec(baseUrlOverride?: string) {
             },
           },
         },
+        CoverageArticleItem: {
+          type: "object",
+          required: [
+            "id",
+            "articleId",
+            "slug",
+            "title",
+            "desk",
+            "format",
+            "status",
+            "topics",
+            "entities",
+            "centralQuestion",
+            "editorialAngle",
+            "metadataStatus",
+            "publishedAt",
+            "canonicalUrl",
+          ],
+          properties: {
+            id: { type: "string", description: "ID internal artikel." },
+            articleId: { type: "string", description: "Alias ID artikel." },
+            slug: { type: "string", description: "Slug artikel untuk URL kanonik publik." },
+            title: { type: "string", description: "Judul artikel terpublikasi." },
+            desk: { type: "string", description: "Nama desk editorial." },
+            format: { type: "string", description: "Format editorial artikel (misal: ANALYSIS, EXPLAINER)." },
+            status: {
+              type: "string",
+              enum: ["PUBLISHED", "CORRECTED"],
+              description: "Status publikasi artikel terbit.",
+            },
+            topics: {
+              type: "array",
+              items: { type: "string" },
+              description: "Daftar topik editorial artikel.",
+            },
+            entities: {
+              type: "array",
+              items: { type: "string" },
+              description: "Daftar entitas kunci dalam artikel.",
+            },
+            centralQuestion: {
+              type: ["string", "null"],
+              description: "Pertanyaan inti jurnalistik yang dijawab artikel.",
+            },
+            editorialAngle: {
+              type: ["string", "null"],
+              description: "Sudut pandang editorial atau fokus peliputan.",
+            },
+            metadataStatus: {
+              type: "string",
+              enum: ["unverified", "verified"],
+              description: "Status verifikasi metadata editorial.",
+            },
+            publishedAt: {
+              type: ["string", "null"],
+              format: "date-time",
+              description: "Waktu publikasi resmi dalam format ISO 8601.",
+            },
+            canonicalUrl: {
+              type: "string",
+              format: "uri",
+              description: "URL kanonik publik artikel di portal Verax Press.",
+            },
+          },
+        },
+        CoverageSearchPagination: {
+          type: "object",
+          required: ["total", "limit", "cursor", "nextCursor", "hasMore"],
+          properties: {
+            total: { type: "integer", description: "Jumlah total artikel yang cocok." },
+            limit: { type: "integer", description: "Batas rekaman per halaman." },
+            cursor: { type: ["string", "null"], description: "Cursor halaman saat ini." },
+            nextCursor: { type: ["string", "null"], description: "Cursor untuk halaman berikutnya jika ada." },
+            hasMore: { type: "boolean", description: "Apakah masih ada halaman berikutnya." },
+          },
+        },
+        CoverageSearchResponse: {
+          type: "object",
+          required: ["data", "pagination"],
+          properties: {
+            data: {
+              type: "array",
+              items: { $ref: "#/components/schemas/CoverageArticleItem" },
+              description: "Daftar artikel terpublikasi yang cocok.",
+            },
+            pagination: { $ref: "#/components/schemas/CoverageSearchPagination" },
+          },
+        },
+        CoverageCheckRequest: {
+          type: "object",
+          properties: {
+            proposedTitle: {
+              type: "string",
+              description: "Usulan judul naskah yang akan ditulis.",
+            },
+            topic: {
+              oneOf: [{ type: "string" }, { type: "array", items: { type: "string" } }],
+              description: "Usulan topik utama.",
+            },
+            topics: {
+              oneOf: [{ type: "string" }, { type: "array", items: { type: "string" } }],
+              description: "Daftar usulan topik.",
+            },
+            centralQuestion: {
+              type: "string",
+              description: "Pertanyaan inti jurnalistik yang ingin dijawab naskah.",
+            },
+            proposedAngle: {
+              type: "string",
+              description: "Sudut pandang pembeda atau hipotesis liputan.",
+            },
+            entities: {
+              oneOf: [{ type: "string" }, { type: "array", items: { type: "string" } }],
+              description: "Daftar entitas kunci yang akan dibahas.",
+            },
+          },
+        },
+        CoverageMatchItem: {
+          type: "object",
+          required: [
+            "articleId",
+            "title",
+            "desk",
+            "overlapLevel",
+            "matchedTopics",
+            "matchedEntities",
+            "topics",
+            "entities",
+            "centralQuestion",
+            "editorialAngle",
+            "metadataStatus",
+            "publishedAt",
+            "canonicalUrl",
+          ],
+          properties: {
+            articleId: { type: "string", description: "ID artikel yang cocok." },
+            title: { type: "string", description: "Judul artikel terpublikasi." },
+            desk: { type: "string", description: "Desk editorial artikel." },
+            overlapLevel: {
+              type: "string",
+              enum: ["partial", "high"],
+              description: "Tingkat tumpang tindih untuk artikel ini.",
+            },
+            matchedTopics: {
+              type: "array",
+              items: { type: "string" },
+              description: "Daftar topik yang bertumpang tindih.",
+            },
+            matchedEntities: {
+              type: "array",
+              items: { type: "string" },
+              description: "Daftar entitas yang bertumpang tindih.",
+            },
+            topics: {
+              type: "array",
+              items: { type: "string" },
+              description: "Daftar topik lengkap artikel yang cocok.",
+            },
+            entities: {
+              type: "array",
+              items: { type: "string" },
+              description: "Daftar entitas lengkap artikel yang cocok.",
+            },
+            centralQuestion: {
+              type: ["string", "null"],
+              description: "Pertanyaan inti artikel terbit.",
+            },
+            editorialAngle: {
+              type: ["string", "null"],
+              description: "Sudut pandang artikel terbit.",
+            },
+            metadataStatus: {
+              type: "string",
+              description: "Status metadata artikel terbit.",
+            },
+            publishedAt: {
+              type: ["string", "null"],
+              format: "date-time",
+              description: "Waktu publikasi resmi.",
+            },
+            canonicalUrl: {
+              type: "string",
+              format: "uri",
+              description: "URL kanonik artikel terbit.",
+            },
+          },
+        },
+        CoverageCheckResponse: {
+          type: "object",
+          required: ["overlapLevel", "matches"],
+          properties: {
+            overlapLevel: {
+              type: "string",
+              enum: ["none", "partial", "high"],
+              description:
+                "Tingkat tumpang tindih agregat terhadap korpus artikel terbit (none, partial, high).",
+            },
+            matches: {
+              type: "array",
+              items: { $ref: "#/components/schemas/CoverageMatchItem" },
+              description: "Daftar rincian artikel terbit yang memiliki kecocokan.",
+            },
+          },
+        },
       },
     },
     paths: {
@@ -699,6 +916,128 @@ export function getOpenApiSpec(baseUrlOverride?: string) {
           },
         },
       }),
+      "/api/internal/v1/editorial/coverage/search": withHeadFromGet({
+        get: {
+          summary: "Pencarian riwayat liputan terbit (Verax Editorial Intelligence)",
+          description:
+            "Mencari artikel terpublikasi berdasarkan kata kunci (judul, topik, entitas, pertanyaan inti, sudut pandang), filter desk, dan rentang tanggal untuk mengecek riwayat liputan sebelum menulis draf baru. Hanya mengembalikan artikel terbit (PUBLISHED/CORRECTED).",
+          security: [{ coverageApiKeyBearer: [] }, { coverageApiKeyHeader: [] }],
+          parameters: [
+            {
+              name: "q",
+              in: "query",
+              required: false,
+              schema: { type: "string" },
+              description: "Kata kunci pencarian teks pada judul, topik, entitas, pertanyaan inti, atau sudut pandang editorial.",
+            },
+            {
+              name: "desk",
+              in: "query",
+              required: false,
+              schema: { type: "string" },
+              description: "Slug atau nama desk editorial aktif (misal: hukum-keadilan, teknologi-kebijakan, nasional-publik).",
+            },
+            {
+              name: "from",
+              in: "query",
+              required: false,
+              schema: { type: "string", format: "date" },
+              description: "Batas awal tanggal publikasi ISO 8601 (misal: 2026-01-01).",
+            },
+            {
+              name: "to",
+              in: "query",
+              required: false,
+              schema: { type: "string", format: "date" },
+              description: "Batas akhir tanggal publikasi ISO 8601 (misal: 2026-12-31).",
+            },
+            {
+              name: "limit",
+              in: "query",
+              required: false,
+              schema: { type: "integer", minimum: 1, maximum: 100, default: 20 },
+              description: "Batas jumlah rekaman per halaman (1 sampai 100). Default: 20.",
+            },
+            {
+              name: "cursor",
+              in: "query",
+              required: false,
+              schema: { type: "string" },
+              description: "Cursor ID artikel untuk paginasi halaman berikutnya.",
+            },
+          ],
+          responses: {
+            "200": {
+              description: "Daftar artikel terpublikasi yang cocok dengan kueri pencarian.",
+              content: {
+                "application/json": {
+                  schema: { $ref: "#/components/schemas/CoverageSearchResponse" },
+                },
+              },
+            },
+            "400": {
+              description: "Parameter kueri atau cursor tidak valid (INVALID_PARAMETER, INVALID_CURSOR).",
+              content: { "application/json": { schema: { $ref: "#/components/schemas/ErrorResponse" } } },
+            },
+            "401": {
+              description: "Kredensial API coverage diperlukan atau tidak valid (UNAUTHORIZED).",
+              content: { "application/json": { schema: { $ref: "#/components/schemas/ErrorResponse" } } },
+            },
+            "403": {
+              description: "Kredensial submission dilarang untuk cakupan coverage:read (FORBIDDEN_SCOPE).",
+              content: { "application/json": { schema: { $ref: "#/components/schemas/ErrorResponse" } } },
+            },
+            "405": error405Response,
+            "500": {
+              description: "Gangguan internal server.",
+              content: { "application/json": { schema: { $ref: "#/components/schemas/ErrorResponse" } } },
+            },
+          },
+        },
+      }),
+      "/api/internal/v1/editorial/coverage/check": {
+        post: {
+          summary: "Evaluasi tumpang tindih usulan liputan (Novelty Check)",
+          description:
+            "Mengevaluasi tingkat tumpang tindih usulan topik, entitas, judul, pertanyaan inti, dan sudut pandang editorial terhadap artikel terbit secara deterministik. Mengembalikan overlapLevel (none, partial, high) dan rincian artikel yang relevan tanpa opini rekomendasi tindakan.",
+          security: [{ coverageApiKeyBearer: [] }, { coverageApiKeyHeader: [] }],
+          requestBody: {
+            required: true,
+            content: {
+              "application/json": {
+                schema: { $ref: "#/components/schemas/CoverageCheckRequest" },
+              },
+            },
+          },
+          responses: {
+            "200": {
+              description: "Hasil evaluasi tumpang tindih usulan liputan.",
+              content: {
+                "application/json": {
+                  schema: { $ref: "#/components/schemas/CoverageCheckResponse" },
+                },
+              },
+            },
+            "400": {
+              description: "Format JSON atau usulan liputan tidak valid (INVALID_JSON, VALIDATION_ERROR).",
+              content: { "application/json": { schema: { $ref: "#/components/schemas/ErrorResponse" } } },
+            },
+            "401": {
+              description: "Kredensial API coverage diperlukan atau tidak valid (UNAUTHORIZED).",
+              content: { "application/json": { schema: { $ref: "#/components/schemas/ErrorResponse" } } },
+            },
+            "403": {
+              description: "Kredensial submission dilarang untuk cakupan coverage:read (FORBIDDEN_SCOPE).",
+              content: { "application/json": { schema: { $ref: "#/components/schemas/ErrorResponse" } } },
+            },
+            "405": error405Response,
+            "500": {
+              description: "Gangguan internal server saat mengevaluasi tumpang tindih liputan.",
+              content: { "application/json": { schema: { $ref: "#/components/schemas/ErrorResponse" } } },
+            },
+          },
+        },
+      },
       "/editorial/manifest.json": withHeadFromGet({
         get: {
           summary: "Manifest basis pengetahuan editorial modular (Status: PROPOSED)",
@@ -898,8 +1237,22 @@ export function getWellKnownAgentMetadata(baseUrlOverride?: string) {
       type: "bearer",
       format: "<CLIENT_ID>.<CLIENT_SECRET>",
       header: "Authorization",
+      scopes: {
+        submit: {
+          description: "Kredensial integrasi pengiriman draf naskah (submit-only). Diterbitkan oleh Pemimpin Redaksi via Studio.",
+          format: "Bearer <CLIENT_ID>.<CLIENT_SECRET>",
+          header: "Authorization",
+        },
+        coverageRead: {
+          description: "Kunci API Verax Editorial Intelligence untuk pengecekan riwayat liputan dan kebaruan usulan naskah.",
+          envVariable: "VERAX_COVERAGE_API_KEY",
+          headers: ["Authorization: Bearer <VERAX_COVERAGE_API_KEY>", "X-API-Key: <VERAX_COVERAGE_API_KEY>"],
+        },
+      },
     },
     endpoints: {
+      coverageSearch: `${baseUrl}/api/internal/v1/editorial/coverage/search`,
+      coverageCheck: `${baseUrl}/api/internal/v1/editorial/coverage/check`,
       submission: `${baseUrl}/api/internal/v1/ai-submissions`,
       validation: `${baseUrl}/api/internal/v1/ai-submissions/validate`,
       submissionStatus: `${baseUrl}/api/internal/v1/ai-submissions/{submissionId}`,
@@ -907,6 +1260,18 @@ export function getWellKnownAgentMetadata(baseUrlOverride?: string) {
       editorialManifest: `${baseUrl}/editorial/manifest.json`,
       editorialCore: `${baseUrl}/editorial/core`,
       editorialContext: `${baseUrl}/editorial/context`,
+    },
+    capabilities: {
+      coverageSearch: true,
+      coverageCheck: true,
+      submission: true,
+      validation: true,
+      submissionStatus: true,
+      editorialContextResolution: true,
+      revisionSubmission: false,
+      revisionFeedbackExposure: false,
+      publication: false,
+      editorialApproval: false,
     },
     constraints: {
       publicationRight: false,
@@ -951,6 +1316,8 @@ export function getLlmsTxt(baseUrlOverride?: string): string {
 - Spesifikasi OpenAPI 3.1.0: ${baseUrl}/openapi.json
 - Metadata Penemuan Agen: ${baseUrl}/.well-known/verax-agent.json
 - Kapabilitas Sistem Live: ${baseUrl}/api/internal/v1/capabilities
+- Pencarian Riwayat Liputan: ${baseUrl}/api/internal/v1/editorial/coverage/search
+- Evaluasi Tumpang Tindih Usulan: ${baseUrl}/api/internal/v1/editorial/coverage/check
 - Manifest Standar Editorial (Status PROPOSED): ${baseUrl}/editorial/manifest.json
 - Bundel Prinsip Universal (Layer A): ${baseUrl}/editorial/core
 - Resolver Konteks Selektif (Layer A + B + C + D): ${baseUrl}/editorial/context?desk={deskSlug}&format={FORMAT}&channel=INGESTION_API
@@ -959,17 +1326,33 @@ export function getLlmsTxt(baseUrlOverride?: string): string {
 - Standar VERAX-EDITORIAL-AI v1.0.0 berstatus PROPOSED (effectiveDate: null, isBindingEffectivePolicy: false).
 - Standar ini tersedia untuk pratinjau terstruktur dan uji coba integrasi, bukan kebijakan editorial yang telah disahkan sebagai aturan final mengikat sampai mendapat persetujuan CHIEF_EDITOR.
 
+## Verax Editorial Intelligence (VEI): Wajib Cek Liputan Sebelum Menulis
+Sebelum menulis naskah baru, agen wajib memeriksa riwayat liputan terbit agar tidak menghasilkan liputan duplikatif:
+1. Pencarian Riwayat Liputan Terbit:
+   GET ${baseUrl}/api/internal/v1/editorial/coverage/search?q={keyword}&desk={deskSlug}&limit=20
+   Hanya mengembalikan artikel dengan status publikasi sah (PUBLISHED atau CORRECTED).
+2. Evaluasi Kebaruan Usulan Liputan (Novelty Check):
+   POST ${baseUrl}/api/internal/v1/editorial/coverage/check
+   Body: {"proposedTitle": "...", "topic": "...", "centralQuestion": "...", "proposedAngle": "...", "entities": ["..."]}
+   Mengembalikan overlapLevel (none, partial, high) dan rincian artikel yang cocok.
+
+Header Autentikasi Coverage (Cakupan coverage:read):
+Authorization: Bearer <VERAX_COVERAGE_API_KEY>
+atau
+X-API-Key: <VERAX_COVERAGE_API_KEY>
+Catatan: Kredensial pengiriman (vrtc_...) dilarang mengakses endpoint coverage (HTTP 403 FORBIDDEN_SCOPE).
+
 ## Pemilihan Konteks Selektif (Hindari Memuat Seluruh Korpus)
 1. Panggil GET ${baseUrl}/api/internal/v1/capabilities atau GET ${baseUrl}/editorial/manifest.json untuk melihat daftar desk aktif dan format sah.
 2. Panggil GET ${baseUrl}/editorial/context?desk=<slug>&format=<FORMAT>&channel=INGESTION_API&coreMode=compact (tambahkan parameter query opsional topik/penugasan) agar agen hanya menerima prinsip universal Verax, profil satu desk tujuan, dan profil satu format tujuan.
 
-## Protokol Autentikasi
+## Protokol Autentikasi Pengiriman Draf
 Authorization: Bearer <CLIENT_ID>.<CLIENT_SECRET>
 Content-Type: application/json
 
 Kredensial integrasi berlingkup kirim-saja (submit-only) diterbitkan dan dicabut oleh Pemimpin Redaksi melalui Studio Verax Press.
 
-## Titik Akhir Utama API
+## Titik Akhir Utama API Pengiriman
 1. Validasi Draf (Dry Run, 30/menit):
    POST ${baseUrl}/api/internal/v1/ai-submissions/validate
 2. Pengiriman Draf Naskah (12/menit):
@@ -1019,9 +1402,12 @@ Agen AI disarankan tidak mengunduh seluruh repositori. Gunakan endpoint terstruk
 
 ## 3. Autentikasi, Lingkungan, dan Pemisahan Jalur
 
-Format header HTTP wajib:
+Format header HTTP pengiriman draf (submit-only):
 Authorization: Bearer <CLIENT_ID>.<CLIENT_SECRET>
 Content-Type: application/json
+
+Format header HTTP pembacaan riwayat liputan VEI (coverage:read):
+Authorization: Bearer <VERAX_COVERAGE_API_KEY> atau X-API-Key: <VERAX_COVERAGE_API_KEY>
 
 Lingkungan:
 - Base URL Aktif Saat Ini: ${baseUrl}
@@ -1079,6 +1465,8 @@ Setiap elemen larik content wajib memakai salah satu dari 7 tipe berikut:
 
 ## 7. Alur Kerja API & Batasan Saat Ini
 
+0. Pra-Penulisan: Pengecekan Riwayat Liputan (Verax Editorial Intelligence):
+   Sebelum menulis naskah, agen memanggil GET ${baseUrl}/api/internal/v1/editorial/coverage/search untuk menelusuri artikel terbit dan POST ${baseUrl}/api/internal/v1/editorial/coverage/check untuk menguji apakah usulan topik/entitas bertumpang tindih tinggi dengan liputan yang ada. Jika overlapLevel bernilai high, agen wajib menajamkan sudut pandang pembeda atau beralih ke fokus lain.
 1. Panggil GET ${baseUrl}/api/internal/v1/capabilities dan GET ${baseUrl}/editorial/context?desk=<slug>&format=<FORMAT>&channel=INGESTION_API.
 2. Uji validitas payload melalui POST ${baseUrl}/api/internal/v1/ai-submissions/validate (rate limit 30 req/menit).
 3. Kirim naskah final ke POST ${baseUrl}/api/internal/v1/ai-submissions (rate limit 12 req/menit). Respons mengembalikan submissionStatus ("SUBMITTED"), articleStatus ("DRAFT"), dan status ("SUBMITTED"). Replay dengan idempotencyKey dan payload identik menghasilkan HTTP 200 (idempotentReplay: true); payload berbeda dengan kunci sama menghasilkan HTTP 409 IDEMPOTENCY_CONFLICT.
@@ -1088,8 +1476,9 @@ Setiap elemen larik content wajib memakai salah satu dari 7 tipe berikut:
 ## 8. Daftar Kode Status & Galat HTTP Standar
 
 Setiap respons galat mengembalikan JSON berisi error, code, dan requestId (beserta header x-request-id):
-- 400 MALFORMED_JSON: Payload bukan JSON yang valid.
-- 401 UNAUTHORIZED / CREDENTIAL_REVOKED / CREDENTIAL_EXPIRED / CLIENT_INACTIVE / FORBIDDEN_SCOPE: Autentikasi Bearer gagal, dicabut, kedaluwarsa, atau tanpa lingkup izin.
+- 400 MALFORMED_JSON / INVALID_PARAMETER / INVALID_CURSOR / INVALID_JSON: Format atau parameter kueri tidak valid.
+- 401 UNAUTHORIZED / CREDENTIAL_REVOKED / CREDENTIAL_EXPIRED / CLIENT_INACTIVE: Autentikasi gagal, dicabut, kedaluwarsa, atau kunci salah.
+- 403 FORBIDDEN_SCOPE: Kredensial tidak berwenang untuk endpoint yang diakses (misal menggunakan kredensial submission untuk membaca coverage).
 - 404 NOT_FOUND / EDITORIAL_DOCUMENT_NOT_FOUND / DESK_NOT_FOUND / FORMAT_NOT_FOUND: Sumber daya tidak ada dalam indeks atau bukan milik klien Anda.
 - 405 METHOD_NOT_ALLOWED: Metode HTTP tidak didukung pada endpoint ini (sertakan header Allow dan requestId).
 - 409 IDEMPOTENCY_CONFLICT: Idempotency key sudah digunakan sebelumnya untuk payload berbeda.
@@ -1098,5 +1487,76 @@ Setiap respons galat mengembalikan JSON berisi error, code, dan requestId (beser
 - 422 DESK_REJECTED: Desk tidak aktif di basis data sistem.
 - 429 RATE_LIMITED: Batas laju terlampaui (sertakan header Retry-After).
 - 500 INTERNAL_ERROR: Gangguan internal server.
+
+## 9. Spesifikasi Teknis Verax Editorial Intelligence (VEI)
+
+VEI adalah lapisan baca-saja (read-only) untuk menelusuri artikel terpublikasi dan mengevaluasi kebaruan liputan sebelum agen AI menulis artikel baru.
+
+### Karakteristik Utama
+- Murni Baca: Tidak pernah menulis, memodifikasi, atau menghapus data editorial apapun.
+- Isolasi Publikasi Penuh: Draf penulis lain, submission pending, rejected, withdrawn, dan catatan internal editor TIDAK PERNAH dapat diakses. Hanya artikel berstatus PUBLISHED atau CORRECTED dengan publishedAt valid yang dikembalikan.
+- Evaluasi Deterministik: Nilai overlapLevel (none, partial, high) dihitung langsung dari irisan topik dan entitas terhadap artikel terbit. API tidak memberikan rekomendasi atau klasifikasi tindakan, keputusan editorial sepenuhnya berada pada agen penulis.
+- Autentikasi: Memerlukan kunci API terpisah dengan cakupan coverage:read via header Authorization: Bearer <VERAX_COVERAGE_API_KEY> atau X-API-Key: <VERAX_COVERAGE_API_KEY>. Kredensial pengiriman (vrtc_...) ditolak dengan HTTP 403 FORBIDDEN_SCOPE.
+
+### Titik Akhir 1: Pencarian Riwayat Liputan
+- Rute: GET ${baseUrl}/api/internal/v1/editorial/coverage/search
+- Parameter Kueri:
+  - q (opsional): Kata kunci teks pada judul, topik, entitas, pertanyaan inti, atau sudut pandang.
+  - desk (opsional): Slug atau nama desk editorial aktif (misal: hukum-keadilan).
+  - from (opsional): Tanggal awal publikasi ISO 8601 (YYYY-MM-DD).
+  - to (opsional): Tanggal akhir publikasi ISO 8601 (YYYY-MM-DD).
+  - limit (opsional): Jumlah rekaman per halaman (1 sampai 100, default 20).
+  - cursor (opsional): ID artikel untuk paginasi halaman berikutnya.
+- Struktur Respons (HTTP 200):
+  - data: Larik artikel terbit (articleId, slug, title, desk, format, status, topics, entities, centralQuestion, editorialAngle, metadataStatus, publishedAt, canonicalUrl).
+  - pagination: Informasi paginasi (total, limit, cursor, nextCursor, hasMore).
+
+### Titik Akhir 2: Evaluasi Kebaruan Usulan Liputan (Novelty Check)
+- Rute: POST ${baseUrl}/api/internal/v1/editorial/coverage/check
+- Tubuh Permintaan JSON:
+  - proposedTitle (opsional): Usulan judul naskah.
+  - topic / topics (opsional): Topik utama atau larik topik.
+  - centralQuestion (opsional): Pertanyaan inti jurnalistik yang ingin dijawab.
+  - proposedAngle (opsional): Sudut pandang pembeda atau hipotesis liputan.
+  - entities (opsional): Larik nama entitas penting yang dibahas.
+- Struktur Respons (HTTP 200):
+  - overlapLevel: "none" | "partial" | "high".
+  - matches: Larik rincian artikel yang relevan (articleId, title, desk, overlapLevel, matchedTopics, matchedEntities, topics, entities, centralQuestion, editorialAngle, metadataStatus, publishedAt, canonicalUrl).
+
+## 10. Contoh Instruksi Sistem untuk Agen Penulis AI (Gemini Writer Agent Instruction)
+
+Instruksi berikut dapat ditempelkan langsung ke system instruction agen AI eksternal yang ditugaskan menulis naskah untuk Verax Press:
+
+\`\`\`text
+Peran: Agen Jurnalis AI Mandiri untuk Verax Press
+Sebelum mulai menulis naskah artikel baru, Anda WAJIB menjalankan protokol pra-penulisan Verax Editorial Intelligence:
+
+Langkah 1: Periksa Riwayat Liputan
+Kirim permintaan POST ke https://veraxpress.vercel.app/api/internal/v1/editorial/coverage/check
+Headers:
+  Authorization: Bearer <VERAX_COVERAGE_API_KEY>
+  Content-Type: application/json
+Body:
+  {
+    "proposedTitle": "<Usulan Judul Naskah Anda>",
+    "topic": "<Topik Liputan>",
+    "centralQuestion": "<Pertanyaan Utama yang Ingin Dijawab>",
+    "proposedAngle": "<Sudut Pandang Pembeda Anda>",
+    "entities": ["<Entitas 1>", "<Entitas 2>"]
+  }
+
+Langkah 2: Evaluasi Tingkat Tumpang Tindih (Overlap)
+- Jika overlapLevel bernilai "high":
+  Artikel serupa telah terbit di Verax Press. JANGAN menulis naskah yang mengulang fakta yang sama. Cari sudut pandang baru yang belum dibahas, atau pilih topik peliputan lain.
+- Jika overlapLevel bernilai "partial":
+  Pelajari daftar artikel di bidang "matches". Identifikasi sudut pandang dan pertanyaan inti artikel terdahulu, lalu pastikan naskah Anda menawarkan perkembangan terbaru, analisis berbeda, atau temuan fakta yang melengkapi liputan sebelumnya.
+- Jika overlapLevel bernilai "none":
+  Topik dan entitas belum pernah diliput. Lanjutkan ke tahap penulisan draf dengan tetap berpedoman pada standar editorial Verax Press.
+
+Langkah 3: Ambil Konteks Standar Editorial
+Sebelum menyusun draf, panggil:
+GET https://veraxpress.vercel.app/editorial/context?desk=<deskSlug>&format=<FORMAT>&channel=INGESTION_API&coreMode=compact
+Ikuti prinsip pembuktian sumber primer dan format 7 blok konten terstruktur.
+\`\`\`
 `;
 }

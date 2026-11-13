@@ -1229,3 +1229,33 @@ Dijalankan 9 Nov 2026 (sesi build-2). Transkrip lengkap: `scripts/acceptance-tes
   - `bun run typecheck` (`tsc --noEmit`): 0 galat.
   - `bun run lint` (`eslint .`): 0 galat.
   - `bun test tests/editorial-remediation.test.ts`: **27 pass, 0 fail (1410 expect calls)**.
+
+## 62. Penyempurnaan Metadata Penemuan Mandiri (Discovery) & Dokumentasi VEI (13 Nov 2026)
+- **Konteks:** Menuntaskan pendaftaran seluruh endpoint Verax Editorial Intelligence (VEI) pada metadata penemuan otomatis mesin dan dokumentasi manusia, agar agen AI eksternal (Gemini) dapat menemukan, mengautentikasi, dan memanggil API riwayat liputan secara mandiri tanpa instruksi manual.
+- **Pembaruan Spesifikasi OpenAPI 3.1.0 (`src/lib/domain/api-docs.ts`):**
+  - Menambahkan security schemes: `coverageApiKeyBearer` (header Authorization: Bearer key) dan `coverageApiKeyHeader` (header X-API-Key).
+  - Menambahkan 6 skema komponen terstruktur: `CoverageArticleItem`, `CoverageSearchPagination`, `CoverageSearchResponse`, `CoverageCheckRequest`, `CoverageMatchItem`, dan `CoverageCheckResponse`.
+  - Mendaftarkan rute `GET /api/internal/v1/editorial/coverage/search` lengkap dengan parameter kueri (`q`, `desk`, `from`, `to`, `limit`, `cursor`) serta respons 200, 400, 401, 403, 405, 500.
+  - Mendaftarkan rute `POST /api/internal/v1/editorial/coverage/check` lengkap dengan tubuh usulan naskah serta respons deterministik `overlapLevel` dan `matches`.
+- **Pembaruan Metadata Agen (`/.well-known/verax-agent.json`):**
+  - Mendaftarkan `endpoints.coverageSearch` dan `endpoints.coverageCheck`.
+  - Mendaftarkan `capabilities.coverageSearch: true` dan `capabilities.coverageCheck: true`.
+  - Menjelaskan rincian `authentication.scopes` untuk `submit` dan `coverageRead` dengan tetap menjaga kompatibilitas backward header.
+- **Pembaruan Dokumen Mesin (`/llms.txt` dan `/llms-full.txt`):**
+  - `/llms.txt`: Menambahkan ringkasan alur wajib pra-penulisan, tautan endpoint coverage, dan aturan otentikasi kunci `VERAX_COVERAGE_API_KEY`.
+  - `/llms-full.txt`: Menambahkan Bagian 0 (Pra-Penulisan), Bagian 9 (Spesifikasi Teknis VEI lengkap), dan Bagian 10 (Contoh Instruksi Sistem untuk Agen Penulis AI Gemini yang siap disalin).
+  - Menegakkan kepatuhan tipografi: 100% bebas tanda pisah terlarang (em-dash dan double-dash).
+- **Pembaruan Endpoint Kapabilitas (`/api/internal/v1/capabilities`):**
+  - Mendaftarkan status kapabilitas `coverageSearch: true` dan `coverageCheck: true`.
+  - Mendaftarkan tautan dokumentasi `coverageSearch` dan `coverageCheck`.
+  - Menyertakan objek metadata `editorialCoverage` untuk agen konsumen.
+- **Pembaruan Portal Dokumentasi Pengembang (`/developers`):**
+  - Menambahkan navigasi dan tautan cepat ke titik akhir VEI.
+  - Menjelaskan pemisahan tegas dua kredensial: kunci pengiriman naskah (`submit`) vs kunci riwayat liputan (`coverage:read`).
+  - Menambahkan seksi khusus 5 untuk VEI lengkap dengan penjelasan parameter kueri, format respons, dan contoh cURL.
+  - Menambahkan contoh kode alur kerja pra-penulisan dan blok instruksi sistem siap tempel untuk agen penulis AI.
+- **Uji Otomatis & Verifikasi:**
+  - Menulis test suite otomatis `tests/editorial-discovery.test.ts` (4 kasus uji mendalam, 66 expect calls, 100% pass).
+  - `tests/editorial-coverage.test.ts`: 13 kasus uji, 100% pass.
+  - `bun run typecheck`: 0 galat.
+  - `bun run build`: Berhasil mengompilasi dan mengoptimasi seluruh rute aplikasi tanpa kendala.

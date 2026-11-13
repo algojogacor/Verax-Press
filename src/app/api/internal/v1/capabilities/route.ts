@@ -55,6 +55,8 @@ async function handleRead(request: Request, isHead: boolean) {
         contextUrlTemplate: `${baseUrl}/editorial/context?desk={deskSlug}&format={FORMAT}&channel=INGESTION_API&coreMode=compact`,
       },
       capabilities: {
+        coverageSearch: true,
+        coverageCheck: true,
         submission: true,
         validation: true,
         submissionStatus: true,
@@ -108,9 +110,19 @@ async function handleRead(request: Request, isHead: boolean) {
         llms: "/llms.txt",
         llmsFull: "/llms-full.txt",
         discovery: "/.well-known/verax-agent.json",
+        coverageSearch: "/api/internal/v1/editorial/coverage/search",
+        coverageCheck: "/api/internal/v1/editorial/coverage/check",
         editorialManifest: "/editorial/manifest.json",
         editorialCore: "/editorial/core",
         editorialContext: "/editorial/context",
+      },
+      editorialCoverage: {
+        scope: "coverage:read",
+        authHeaderSupported: ["Authorization: Bearer <key>", "X-API-Key: <key>"],
+        searchUrl: `${baseUrl}/api/internal/v1/editorial/coverage/search`,
+        checkUrl: `${baseUrl}/api/internal/v1/editorial/coverage/check`,
+        publishedOnly: true,
+        overlapLevels: ["none", "partial", "high"],
       },
       limits: {
         rateLimitPerMinute: 12,
