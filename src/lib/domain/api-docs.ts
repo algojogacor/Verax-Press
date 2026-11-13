@@ -372,7 +372,34 @@ export function getOpenApiSpec(baseUrlOverride?: string) {
             verificationNotes: {
               type: "string",
               maxLength: 3000,
-              description: "Catatan langkah verifikasi, batasan bukti, dan celah informasi. Wajib diisi minimal 20 karakter untuk format bersyarat FEATURE dan INTERVIEW.",
+              description: "Catatan langkah verifikasi, batasan bukti, dan celah informasi. Wajib diisi minimal 20 karakter untuk format bersyarat FEATURE dan INTERVIEW, serta minimal 80 karakter untuk format NEWS (bila diotorisasi).",
+            },
+            coverageCheck: {
+              type: "object",
+              properties: {
+                overlapLevel: {
+                  type: "string",
+                  enum: ["none", "partial", "high"],
+                  description: "Tingkat tumpang tindih dari evaluasi coverage check terdahulu.",
+                },
+                checkedAt: {
+                  type: "string",
+                  format: "date-time",
+                  description: "Waktu pelaksanaan evaluasi kebaruan liputan.",
+                },
+                newAngleExplanation: {
+                  type: "string",
+                  maxLength: 1000,
+                  description: "Penjelasan sudut pandang baru yang membedakan naskah.",
+                },
+              },
+              required: ["overlapLevel"],
+              description: "Objek referensi evaluasi kebaruan liputan terdahulu (wajib untuk format NEWS bila diotorisasi).",
+            },
+            coverageOverlapLevel: {
+              type: "string",
+              enum: ["none", "partial", "high"],
+              description: "Bidang alternatif untuk referensi tingkat tumpang tindih liputan terdahulu (none, partial, atau high).",
             },
             aiInvolvement: {
               type: "string",

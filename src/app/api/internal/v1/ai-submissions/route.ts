@@ -11,7 +11,7 @@ import { NextResponse } from "next/server";
 import { createHash } from "node:crypto";
 import { db } from "@/lib/db";
 import { verifyApiClientDetailed } from "@/lib/api-key";
-import { getClientIp, rateLimit, sweepRateLimits } from "@/lib/rate-limit";
+import { getClientIp, rateLimit, sweepRateLimits, checkNewsDailyRateLimit } from "@/lib/rate-limit";
 import { AI_PLACEHOLDER_BYLINE } from "@/lib/domain/constants";
 import { writeAudit } from "@/lib/domain/audit";
 import { serializeContent } from "@/lib/domain/content";
@@ -185,7 +185,7 @@ export async function POST(request: Request) {
 
     if (existing) {
       if (existing.payloadHash === payloadHash) {
-        // Replay idempotent — kembalikan receipt yang sama persis
+        // Replay idempotent: kembalikan receipt yang sama persis
         const durationMs = Date.now() - startTime;
         await logApiRequest({
           requestId,
@@ -242,6 +242,42 @@ export async function POST(request: Request) {
           headers: { "x-request-id": requestId },
         },
       );
+    }
+
+    // 5b. Pembatasan kuota harian khusus format NEWS (maksimal 5 naskah per hari per akun)
+    if (payload.format === "NEWS") {
+      const newsLimit = checkNewsDailyRateLimit(client.id);
+      if (!newsLimit.allowed) {
+        const durationMs = Date.now() - startTime;
+        await logApiRequest({
+          requestId,
+          apiClientId: client.id,
+          method: "POST",
+          endpoint: "/api/internal/v1/ai-submissions",
+          statusCode: 429,
+          durationMs,
+          ipAddress,
+          userAgent,
+          errorCode: "RATE_LIMITED",
+          errorMessage: "Batas kuota harian submission format NEWS terlampaui.",
+        });
+
+        return NextResponse.json(
+          {
+            error: "Batas kuota harian submission format NEWS terlampaui. Format NEWS dibatasi maksimal 5 naskah per hari per akun.",
+            code: "RATE_LIMITED",
+            reason: "NEWS_DAILY_LIMIT_EXCEEDED",
+            requestId,
+          },
+          {
+            status: 429,
+            headers: {
+              "Retry-After": String(newsLimit.retryAfterSeconds),
+              "x-request-id": requestId,
+            },
+          },
+        );
+      }
     }
 
     // 6. Persistensi Atomik: Article DRAFT + Version + Sources (UNVERIFIED) + Images + Submission

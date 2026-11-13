@@ -12,6 +12,7 @@ import {
   INGESTION_CONDITIONAL_FORMAT_RULES,
   INGESTION_PENDING_FORMATS,
   SOURCE_TYPES,
+  NEWS_DAILY_SUBMISSION_LIMIT,
   getSystemEnvironment,
   resolveRequestBaseUrl,
 } from "@/lib/domain/constants";
@@ -127,6 +128,7 @@ async function handleRead(request: Request, isHead: boolean) {
       limits: {
         rateLimitPerMinute: 12,
         validateRateLimitPerMinute: 30,
+        newsDailyRateLimit: NEWS_DAILY_SUBMISSION_LIMIT,
         maxTitleLength: 200,
         maxDeckLength: 400,
         maxContentBlocks: 300,

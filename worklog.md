@@ -1259,3 +1259,28 @@ Dijalankan 9 Nov 2026 (sesi build-2). Transkrip lengkap: `scripts/acceptance-tes
   - `tests/editorial-coverage.test.ts`: 13 kasus uji, 100% pass.
   - `bun run typecheck`: 0 galat.
   - `bun run build`: Berhasil mengompilasi dan mengoptimasi seluruh rute aplikasi tanpa kendala.
+
+## 63. Penerapan Syarat Verifikasi Tambahan Khusus Format NEWS pada Ingestion API (13 Nov 2026)
+- **Konteks:** Menyiapkan gerbang verifikasi yang lebih ketat khusus untuk format NEWS pada Internal Content Ingestion API sebelum format berita aktual dibuka dari penahanan sementara (FORMAT_PENDING_AUTHORIZATION).
+- **Prinsip Fail-Closed (Tidak Auto-Enable):**
+  - Format NEWS tetap berstatus FORMAT_PENDING_AUTHORIZATION secara default di lingkungan produksi.
+  - Otorisasi format NEWS dikendalikan oleh variabel lingkungan terpisah (VERAX_ALLOW_NEWS_INGESTION=true) yang hanya diaktifkan atas keputusan Pemimpin Redaksi.
+  - Format lain (OPINION, ANALYSIS, EXPLAINER, FEATURE, INTERVIEW) tetap beroperasi normal tanpa terpengaruh.
+- **Empat Syarat Tambahan Khusus NEWS:**
+  1. **Sumber Primer Bertanggal (Maksimal 48 Jam):** Naskah NEWS wajib menyertakan minimal satu sumber bertipe PRIMARY atau OFFICIAL dengan tanggal publikasi (publishedAt) valid tidak lebih dari 48 jam sebelum waktu naskah diterima server. Validasi ditegakkan di sisi server dengan penolakan 422 bila dilanggar.
+  2. **Catatan Verifikasi Lebih Panjang (Minimal 80 Karakter):** Batas minimal panjang verificationNotes dinaikkan menjadi 80 karakter (jauh lebih ketat dari FEATURE/INTERVIEW yang mensyaratkan 20 karakter) untuk memastikan agen menerangkan verifikasi fakta aktual dan konfirmasi sumber secara terperinci.
+  3. **Pembatasan Laju Harian Terpisah (5 Naskah/Hari):** Pengiriman naskah NEWS dibatasi maksimal 5 pengiriman per hari per klien API pada jendela 24 jam (NEWS_DAILY_SUBMISSION_LIMIT = 5), terpisah dari batas laju submission umum (12 req/menit). Jika batas harian terlampaui, permintaan ditolak dengan kode 429 RATE_LIMITED (reason: NEWS_DAILY_LIMIT_EXCEEDED), sementara format lain seperti OPINION tetap dapat dikirim normal.
+  4. **Kewajiban Referensi Evaluasi Kebaruan (Novelty Check):** Naskah NEWS wajib menyertakan referensi hasil pemanggilan coverage/check sebelumnya (coverageCheck.overlapLevel atau coverageOverlapLevel: none, partial, atau high). Bila overlapLevel dilaporkan "high", naskah wajib menyertakan penjelasan sudut pandang (angle) baru yang membedakannya dari liputan terdahulu pada verificationNotes. Jika tidak ada, naskah ditolak dengan 422.
+- **Berkas yang Diperbarui:**
+  - `src/lib/domain/constants.ts`: Menambahkan konstanta NEWS_MAX_SOURCE_AGE_MS (48 jam), NEWS_MIN_VERIFICATION_NOTES_LENGTH (80 karakter), NEWS_DAILY_SUBMISSION_LIMIT (5 naskah/hari), dan NEWS_DAILY_RATE_LIMIT_WINDOW_MS (24 jam).
+  - `src/lib/rate-limit.ts`: Menambahkan fungsi checkNewsDailyRateLimit dan resetRateLimits.
+  - `src/lib/domain/ingestion.ts`: Menambahkan coverageCheckReferenceSchema, memperluas ingestionSchema, menambahkan fungsi helper isNewsIngestionAuthorized, hasNewAngleExplanation, dan validateNewsPreconditions, serta memperbarui validateIngestionPayload.
+  - `src/app/api/internal/v1/ai-submissions/route.ts`: Menerapkan pengecekan kuota harian NEWS setelah validasi dan pemeriksaan idempotensi, serta mencatat riwayat audit.
+  - `src/app/api/internal/v1/capabilities/route.ts`: Menyertakan newsDailyRateLimit pada objek batasan endpoint.
+  - `src/lib/domain/api-docs.ts`: Mendokumentasikan skema coverageCheck dan batasan 80 karakter verificationNotes untuk NEWS pada spesifikasi OpenAPI.
+- **Uji Otomatis & Verifikasi:**
+  - Membuat test suite mandiri `tests/news-ingestion-preconditions.test.ts` (11 kasus uji, 42 expect calls, 100% pass).
+  - Menjalankan seluruh regression suite: 59 kasus uji di 5 file lulus 100%.
+  - `bun run typecheck`: 0 galat.
+  - Kepatuhan tipografi: Bebas em dash, bebas garis ganda, dan bebas kosakata terlarang sesuai Verax Writing Standards.
+

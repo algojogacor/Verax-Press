@@ -1,6 +1,11 @@
 // Rate limiter in-memory (fixed window). Catatan: cocok untuk single-instance;
 // saat scale-out ganti ke penyimpanan terdistribusi (lihat worklog §11).
 
+import {
+  NEWS_DAILY_SUBMISSION_LIMIT,
+  NEWS_DAILY_RATE_LIMIT_WINDOW_MS,
+} from "@/lib/domain/constants";
+
 interface Window {
   count: number;
   resetAt: number;
@@ -35,6 +40,19 @@ export function sweepRateLimits(): void {
   for (const [key, window] of buckets) {
     if (window.resetAt <= now) buckets.delete(key);
   }
+}
+
+/** Bersihkan seluruh bucket rate limiter (terutama untuk isolasi pengujian otomatis). */
+export function resetRateLimits(): void {
+  buckets.clear();
+}
+
+/**
+ * Pengecekan laju harian terpisah khusus format NEWS per API client.
+ * Membatasi volume pengiriman artikel berita demi integritas dan verifikasi ketat.
+ */
+export function checkNewsDailyRateLimit(clientId: string, limit = NEWS_DAILY_SUBMISSION_LIMIT): RateLimitResult {
+  return rateLimit(`news-daily:${clientId}`, limit, NEWS_DAILY_RATE_LIMIT_WINDOW_MS);
 }
 
 /**

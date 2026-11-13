@@ -14,6 +14,8 @@ import {
   INGESTION_PENDING_FORMATS,
   AI_INVOLVEMENTS,
   SOURCE_TYPES,
+  NEWS_MAX_SOURCE_AGE_MS,
+  NEWS_MIN_VERIFICATION_NOTES_LENGTH,
 } from "@/lib/domain/constants";
 
 const ISO_DATE_OR_DATETIME_RE =
@@ -127,6 +129,14 @@ const ingestionContentSchema = articleContentSchema
     });
   });
 
+export const coverageCheckReferenceSchema = z.object({
+  overlapLevel: z.enum(["none", "partial", "high"], {
+    message: "Tingkat tumpang tindih harus berupa salah satu dari: none, partial, atau high.",
+  }),
+  checkedAt: optionalIsoDateSchema,
+  newAngleExplanation: z.string().max(1_000).optional(),
+});
+
 export const ingestionSchema = z.object({
   title: z.string().trim().min(8, "Judul naskah minimal 8 karakter.").max(200, "Judul naskah maksimal 200 karakter."),
   deck: z.string().max(400, "Ringkasan naskah maksimal 400 karakter.").optional(),
@@ -137,6 +147,8 @@ export const ingestionSchema = z.object({
   images: z.array(imageItemSchema).max(20, "Maksimal 20 aset gambar.").optional(),
   tags: z.array(z.string().trim().min(2, "Tag minimal 2 karakter.").max(40, "Tag maksimal 40 karakter.")).max(10, "Maksimal 10 tag.").optional(),
   verificationNotes: z.string().max(3_000).optional(),
+  coverageCheck: coverageCheckReferenceSchema.optional(),
+  coverageOverlapLevel: z.enum(["none", "partial", "high"]).optional(),
   aiInvolvement: z.enum(AI_INVOLVEMENTS as [string, ...string[]]),
   aiUsageNote: z.string().max(1_000).optional(),
   agentId: z.string().trim().min(2, "ID agen minimal 2 karakter.").max(120),
@@ -168,11 +180,121 @@ export interface ValidationFailure {
 
 export type ValidationOutcome = ValidationSuccess | ValidationFailure;
 
+export interface ValidateIngestionOptions {
+  allowPendingNews?: boolean;
+  receivedAt?: Date;
+}
+
+/**
+ * Memeriksa apakah otorisasi ingest format NEWS diaktifkan di level konfigurasi sistem.
+ * Default bernilai false (fail-closed) sampai Pemimpin Redaksi mengesahkannya via env.
+ */
+export function isNewsIngestionAuthorized(): boolean {
+  return process.env.VERAX_ALLOW_NEWS_INGESTION === "true";
+}
+
+/**
+ * Memeriksa keberadaan penjelasan sudut pandang atau angle baru pada catatan verifikasi.
+ * Wajib terpenuhi apabila tingkat tumpang tindih usulan naskah dilaporkan bernilai "high".
+ */
+export function hasNewAngleExplanation(notes: string): boolean {
+  const trimmed = notes.trim();
+  if (trimmed.length < 20) return false;
+
+  const anglePatterns = [
+    /\b(angle|sudut\s*pandang|sudut\s*baru|fokus\s*baru|kebaruan|novelty|diferensiasi)\b/i,
+    /\b(tindak\s*lanjut|perkembangan\s*baru|perkembangan\s*terbaru|aspek\s*baru)\b/i,
+    /\b(dimensi\s*baru|perspektif\s*baru|pendekatan\s*baru|isu\s*baru)\b/i,
+  ];
+
+  return anglePatterns.some((pattern) => pattern.test(trimmed));
+}
+
+/**
+ * Validasi prasyarat ketat khusus format NEWS pada jalur Ingestion API.
+ * Diuji saat otorisasi format NEWS dibuka oleh Pemimpin Redaksi.
+ */
+export function validateNewsPreconditions(
+  payload: IngestionPayload,
+  receivedAt: Date = new Date(),
+): ValidationErrorDetail[] {
+  const details: ValidationErrorDetail[] = [];
+
+  // Syarat 1: Sumber primer atau resmi bertanggal tidak lebih dari 48 jam sebelum submission diterima server
+  const primaryOrOfficialSources = payload.sources.filter(
+    (s) => s.sourceType === "PRIMARY" || s.sourceType === "OFFICIAL",
+  );
+
+  if (primaryOrOfficialSources.length === 0) {
+    details.push({
+      path: "sources",
+      code: "FORMAT_PRECONDITION_FAILED",
+      message:
+        "Format NEWS pada Ingestion API wajib menyertakan minimal 1 sumber rujukan bertipe PRIMARY atau OFFICIAL dengan tanggal publikasi (publishedAt) yang valid dalam 48 jam terakhir.",
+    });
+  } else {
+    const nowMs = receivedAt.getTime();
+    const qualifyingFreshSources = primaryOrOfficialSources.filter((s) => {
+      if (!s.publishedAt) return false;
+      const pubDate = parseOptionalIsoDate(s.publishedAt);
+      if (!pubDate) return false;
+      const ageMs = nowMs - pubDate.getTime();
+      // Toleransi 5 menit untuk perbedaan jam server (clock skew)
+      return ageMs >= -300_000 && ageMs <= NEWS_MAX_SOURCE_AGE_MS;
+    });
+
+    if (qualifyingFreshSources.length === 0) {
+      details.push({
+        path: "sources",
+        code: "FORMAT_PRECONDITION_FAILED",
+        message:
+          "Format NEWS pada Ingestion API mewajibkan minimal satu sumber PRIMARY atau OFFICIAL bertanggal publikasi tidak lebih dari 48 jam sebelum naskah diterima server.",
+      });
+    }
+  }
+
+  // Syarat 2: Panjang catatan verifikasi minimal 80 karakter
+  const notes = payload.verificationNotes?.trim() ?? "";
+  if (notes.length < NEWS_MIN_VERIFICATION_NOTES_LENGTH) {
+    details.push({
+      path: "verificationNotes",
+      code: "FORMAT_PRECONDITION_FAILED",
+      message: `Format NEWS pada Ingestion API wajib mengisi verificationNotes minimal ${NEWS_MIN_VERIFICATION_NOTES_LENGTH} karakter yang menerangkan verifikasi fakta aktual dan konfirmasi sumber.`,
+    });
+  }
+
+  // Syarat 3: Wajib menyertakan referensi hasil pemanggilan coverage/check (novelty check)
+  const overlapLevel = payload.coverageCheck?.overlapLevel ?? payload.coverageOverlapLevel;
+  if (!overlapLevel) {
+    details.push({
+      path: "coverageCheck",
+      code: "FORMAT_PRECONDITION_FAILED",
+      message:
+        "Format NEWS pada Ingestion API wajib menyertakan referensi hasil evaluasi kebaruan liputan (coverageCheck.overlapLevel atau coverageOverlapLevel bernilai none, partial, atau high).",
+    });
+  } else if (overlapLevel === "high") {
+    const combinedNotes = `${notes} ${payload.coverageCheck?.newAngleExplanation ?? ""}`.trim();
+    if (!hasNewAngleExplanation(combinedNotes)) {
+      details.push({
+        path: "verificationNotes",
+        code: "FORMAT_PRECONDITION_FAILED",
+        message:
+          "Format NEWS dengan tingkat tumpang tindih tinggi (overlapLevel: high) wajib menyertakan penjelasan sudut pandang atau angle baru pada verificationNotes yang membedakan naskah dari liputan sebelumnya.",
+      });
+    }
+  }
+
+  return details;
+}
+
 /**
  * Validasi naskah ingestion secara komprehensif.
  * Menguji skema data, validitas format artikel yang didukung, dan keberadaan desk aktif.
  */
-export async function validateIngestionPayload(rawInput: unknown): Promise<ValidationOutcome> {
+export async function validateIngestionPayload(
+  rawInput: unknown,
+  options?: ValidateIngestionOptions,
+): Promise<ValidationOutcome> {
   const warnings: string[] = [];
 
   // 1. Validasi struktur JSON dan batasan karakter
@@ -194,12 +316,40 @@ export async function validateIngestionPayload(rawInput: unknown): Promise<Valid
 
   const payload = parseResult.data;
 
-  // 2. Validasi format artikel (NEWS ditahan sementara menunggu otorisasi; format lain diperiksa keabsahannya)
-  if (INGESTION_PENDING_FORMATS.includes(payload.format as never)) {
+  // 2. Validasi format artikel
+  if (payload.format === "NEWS") {
+    const isAuthorized = options?.allowPendingNews ?? isNewsIngestionAuthorized();
+    if (!isAuthorized) {
+      return {
+        valid: false,
+        code: "FORMAT_REJECTED",
+        error: `Format "${payload.format}" sedang ditahan sementara pada jalur Ingestion API hingga Pemimpin Redaksi mengesahkan otorisasi format AI NEWS.`,
+        details: [
+          {
+            path: "format",
+            code: "FORMAT_PENDING_AUTHORIZATION",
+            message: `Standar editorial AI masih berstatus PROPOSED sehingga pengiriman format ${payload.format} melalui Ingestion API belum diaktifkan. Format aktif saat ini: ${INGESTION_ALLOWED_FORMATS.join(", ")}.`,
+          },
+        ],
+        warnings,
+      };
+    }
+
+    const newsErrors = validateNewsPreconditions(payload, options?.receivedAt ?? new Date());
+    if (newsErrors.length > 0) {
+      return {
+        valid: false,
+        code: "FORMAT_REJECTED",
+        error: `Format "${payload.format}" tidak memenuhi prasyarat verifikasi khusus berita aktual pada jalur Ingestion API.`,
+        details: newsErrors,
+        warnings,
+      };
+    }
+  } else if (INGESTION_PENDING_FORMATS.includes(payload.format as never)) {
     return {
       valid: false,
       code: "FORMAT_REJECTED",
-      error: `Format "${payload.format}" sedang ditahan sementara pada jalur Ingestion API hingga Pemimpin Redaksi mengesahkan otorisasi format AI NEWS.`,
+      error: `Format "${payload.format}" sedang ditahan sementara pada jalur Ingestion API hingga Pemimpin Redaksi mengesahkan otorisasi.`,
       details: [
         {
           path: "format",
@@ -209,9 +359,7 @@ export async function validateIngestionPayload(rawInput: unknown): Promise<Valid
       ],
       warnings,
     };
-  }
-
-  if (!INGESTION_ALLOWED_FORMATS.includes(payload.format as never)) {
+  } else if (!INGESTION_ALLOWED_FORMATS.includes(payload.format as never)) {
     return {
       valid: false,
       code: "FORMAT_REJECTED",

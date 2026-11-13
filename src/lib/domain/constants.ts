@@ -69,6 +69,18 @@ export const INGESTION_CONDITIONAL_FORMAT_RULES: Record<"FEATURE" | "INTERVIEW",
   },
 };
 
+/** Batas usia maksimal sumber primer atau resmi untuk format NEWS (48 jam dalam milidetik). */
+export const NEWS_MAX_SOURCE_AGE_MS = 48 * 60 * 60 * 1000;
+
+/** Panjang minimal catatan verifikasi untuk format NEWS (80 karakter). */
+export const NEWS_MIN_VERIFICATION_NOTES_LENGTH = 80;
+
+/** Batas kuota harian penerimaan naskah format NEWS per akun API client. */
+export const NEWS_DAILY_SUBMISSION_LIMIT = 5;
+
+/** Jendela waktu pembatasan laju harian format NEWS (24 jam dalam milidetik). */
+export const NEWS_DAILY_RATE_LIMIT_WINDOW_MS = 24 * 60 * 60 * 1000;
+
 /** Penanda byline sementara bagi draf asal Ingestion API sebelum penetapan atribusi oleh editor manusia. */
 export const AI_PLACEHOLDER_BYLINE = "Draf Agen AI (Menunggu Penetapan Byline)";
 
