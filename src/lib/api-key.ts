@@ -24,6 +24,7 @@ export interface ApiClientIdentity {
   scopes: string[];
   environment?: string;
   credentialId?: string;
+  publishMode?: "standard" | "direct";
 }
 
 export function generateClientCredential(): { clientId: string; secret: string } {
@@ -98,6 +99,7 @@ export async function verifyApiClientDetailed(
         name: client.name,
         scopes,
         environment: client.environment,
+        publishMode: (client.publishMode as "standard" | "direct") || "standard",
       },
     };
   }
@@ -205,6 +207,7 @@ export async function verifyApiClientDetailed(
       scopes,
       environment: client.environment,
       credentialId: matchedCredentialId !== "legacy" ? matchedCredentialId : undefined,
+      publishMode: (client.publishMode as "standard" | "direct") || "standard",
     },
   };
 }

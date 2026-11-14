@@ -200,6 +200,7 @@ export async function POST(request: Request) {
           submissionId: existing.id,
         });
 
+        const isExistingPublished = existing.article.status === "PUBLISHED";
         return NextResponse.json(
           {
             submissionId: existing.id,
@@ -207,8 +208,10 @@ export async function POST(request: Request) {
             submissionStatus: existing.status,
             articleStatus: existing.article.status,
             status: existing.status,
+            received: true,
             receivedAt: existing.submittedAt.toISOString(),
             idempotentReplay: true,
+            ...(isExistingPublished ? { isPublished: true } : {}),
             requestId,
           },
           {
@@ -240,6 +243,37 @@ export async function POST(request: Request) {
         },
         {
           status: 409,
+          headers: { "x-request-id": requestId },
+        },
+      );
+    }
+
+    const isDirectPublish = client.publishMode === "direct";
+
+    // 5a. Validasi khusus mode Direct Publish (Deck wajib diisi)
+    if (isDirectPublish && (!payload.deck || payload.deck.trim().length === 0)) {
+      const durationMs = Date.now() - startTime;
+      await logApiRequest({
+        requestId,
+        apiClientId: client.id,
+        method: "POST",
+        endpoint: "/api/internal/v1/ai-submissions",
+        statusCode: 422,
+        durationMs,
+        ipAddress,
+        userAgent,
+        errorCode: "DECK_REQUIRED",
+        errorMessage: "Bidang deck (ringkasan naskah) wajib disertakan untuk submission mode direct publish.",
+      });
+
+      return NextResponse.json(
+        {
+          error: "Bidang deck (ringkasan naskah) wajib disertakan untuk submission mode direct publish.",
+          code: "DECK_REQUIRED",
+          requestId,
+        },
+        {
+          status: 422,
           headers: { "x-request-id": requestId },
         },
       );
@@ -281,7 +315,108 @@ export async function POST(request: Request) {
       }
     }
 
-    // 5c. Pengambilan foto stok berlisensi secara aman di sisi server (jika diminta)
+    // 5c. Verifikasi sumber naskah (HTTP Check jika mode direct publish)
+    interface ProcessedSource {
+      title: string;
+      publisher?: string | null;
+      url: string;
+      sourceType: string;
+      publishedAt?: string | null;
+      accessedAt?: string | null;
+      supports?: string | null;
+      isKeySource: boolean;
+      verificationStatus: string;
+    }
+
+    let sourcesToPersist: ProcessedSource[] = [];
+
+    if (isDirectPublish) {
+      const sourceChecks = await Promise.all(
+        payload.sources.map(async (source) => {
+          if (!source.url) return { source, ok: false };
+          try {
+            const controller = new AbortController();
+            const timeoutId = setTimeout(() => controller.abort(), 8000);
+            const res = await fetch(source.url, {
+              method: "GET",
+              redirect: "follow",
+              signal: controller.signal,
+              headers: {
+                "User-Agent": "VeraxPress-SourceVerifier/1.0 (+https://veraxpress.org)",
+              },
+            });
+            clearTimeout(timeoutId);
+            return { source, ok: res.status >= 200 && res.status < 300 };
+          } catch {
+            return { source, ok: false };
+          }
+        }),
+      );
+
+      const surviving = sourceChecks
+        .filter((item) => item.ok)
+        .map((item) => ({
+          title: item.source.title,
+          publisher: item.source.publisher ?? null,
+          url: item.source.url,
+          sourceType: item.source.sourceType,
+          publishedAt: item.source.publishedAt ?? null,
+          accessedAt: item.source.accessedAt ?? null,
+          supports: item.source.supports ?? null,
+          isKeySource: item.source.isKeySource ?? false,
+          verificationStatus: "VERIFIED",
+        }));
+
+      if (surviving.length === 0) {
+        const durationMs = Date.now() - startTime;
+        await logApiRequest({
+          requestId,
+          apiClientId: client.id,
+          method: "POST",
+          endpoint: "/api/internal/v1/ai-submissions",
+          statusCode: 422,
+          durationMs,
+          ipAddress,
+          userAgent,
+          errorCode: "DIRECT_PUBLISH_SOURCES_FAILED",
+          errorMessage:
+            "Seluruh sumber referensi gagal diakses (tidak mengembalikan status HTTP 2xx). Naskah direct publish membutuhkan minimal 1 sumber yang valid dan dapat diakses.",
+        });
+
+        return NextResponse.json(
+          {
+            error:
+              "Seluruh sumber referensi gagal diakses (tidak mengembalikan status HTTP 2xx). Naskah direct publish membutuhkan minimal 1 sumber yang valid dan dapat diakses.",
+            code: "DIRECT_PUBLISH_SOURCES_FAILED",
+            requestId,
+          },
+          {
+            status: 422,
+            headers: { "x-request-id": requestId },
+          },
+        );
+      }
+
+      if (!surviving.some((s) => s.isKeySource)) {
+        surviving[0].isKeySource = true;
+      }
+
+      sourcesToPersist = surviving;
+    } else {
+      sourcesToPersist = payload.sources.map((s) => ({
+        title: s.title,
+        publisher: s.publisher ?? null,
+        url: s.url,
+        sourceType: s.sourceType,
+        publishedAt: s.publishedAt ?? null,
+        accessedAt: s.accessedAt ?? null,
+        supports: s.supports ?? null,
+        isKeySource: s.isKeySource ?? false,
+        verificationStatus: "UNVERIFIED",
+      }));
+    }
+
+    // 5d. Pengambilan foto stok berlisensi secara aman di sisi server (jika diminta)
     let stockPhoto: StockPhotoResult | null = null;
     if (payload.imageQuery) {
       try {
@@ -291,11 +426,58 @@ export async function POST(request: Request) {
       }
     }
 
-    // 6. Persistensi Atomik: Article DRAFT + Version + Sources (UNVERIFIED) + Images + Submission
+    // 6. Persistensi Atomik: Article + Version + Sources + Images + Review + Submission + Audit
     const contentJson = serializeContent(payload.content);
     const slug = await uniqueArticleSlug(payload.title);
+    const now = new Date();
 
     const { submission, article } = await db.$transaction(async (tx) => {
+      let chiefUser: { id: string; name: string } | null = null;
+      let chiefPerson: { id: string } | null = null;
+
+      if (isDirectPublish) {
+        chiefUser = await tx.staffUser.findFirst({
+          where: { role: "CHIEF_EDITOR", status: "ACTIVE" },
+          select: { id: true, name: true },
+        }) ?? await tx.staffUser.findFirst({
+          where: { role: "CHIEF_EDITOR" },
+          select: { id: true, name: true },
+        });
+
+        if (chiefUser) {
+          chiefPerson = await tx.person.findFirst({
+            where: { staffUserId: chiefUser.id },
+            select: { id: true },
+          });
+          if (!chiefPerson) {
+            chiefPerson = await tx.person.create({
+              data: {
+                accountType: "STAFF",
+                staffUserId: chiefUser.id,
+                publicName: chiefUser.name || "Pemimpin Redaksi",
+                anonymityMode: "REAL_NAME",
+              },
+              select: { id: true },
+            });
+          }
+        } else {
+          chiefPerson = await tx.person.findFirst({
+            where: { publicName: "Pemimpin Redaksi" },
+            select: { id: true },
+          });
+          if (!chiefPerson) {
+            chiefPerson = await tx.person.create({
+              data: {
+                accountType: "STAFF",
+                publicName: "Pemimpin Redaksi",
+                anonymityMode: "REAL_NAME",
+              },
+              select: { id: true },
+            });
+          }
+        }
+      }
+
       const article = await tx.article.create({
         data: {
           slug,
@@ -303,12 +485,15 @@ export async function POST(request: Request) {
           deck: payload.deck?.trim() || null,
           deskId: desk.id,
           format: payload.format,
-          status: "DRAFT",
+          status: isDirectPublish ? "PUBLISHED" : "DRAFT",
           contentJson,
           origin: "INGESTION_API",
-          byline: AI_PLACEHOLDER_BYLINE, // Byline final wajib ditetapkan editor manusia sebelum terbit
+          byline: isDirectPublish ? "Disunting oleh Redaksi Verax Press" : AI_PLACEHOLDER_BYLINE,
           aiInvolvement: payload.aiInvolvement,
+          aiDisclosurePublic: false,
           aiDisclosureNote: payload.aiUsageNote?.trim() || null,
+          publishedAt: isDirectPublish ? now : null,
+          firstPublishedAt: isDirectPublish ? now : null,
           createdById: null,
         },
       });
@@ -325,7 +510,7 @@ export async function POST(request: Request) {
         tx,
       );
 
-      for (const source of payload.sources) {
+      for (const source of sourcesToPersist) {
         await tx.sourceReference.create({
           data: {
             articleId: article.id,
@@ -334,10 +519,38 @@ export async function POST(request: Request) {
             url: source.url,
             sourceType: source.sourceType,
             publishedAt: parseOptionalIsoDate(source.publishedAt),
-            accessedAt: parseOptionalIsoDate(source.accessedAt) ?? new Date(),
+            accessedAt: parseOptionalIsoDate(source.accessedAt) ?? now,
             supports: source.supports ?? null,
-            isKeySource: source.isKeySource ?? false,
-            verificationStatus: "UNVERIFIED", // Selalu UNVERIFIED walau agen mengklaim verifikasi
+            isKeySource: source.isKeySource,
+            verificationStatus: source.verificationStatus,
+            verifiedById: isDirectPublish ? chiefUser?.id ?? null : null,
+            verifiedAt: isDirectPublish ? now : null,
+            verificationNote: isDirectPublish ? `Diverifikasi otomatis melalui Direct Publish API Client (${client.name}).` : null,
+          },
+        });
+      }
+
+      if (isDirectPublish && chiefPerson) {
+        await tx.articleContribution.create({
+          data: {
+            articleId: article.id,
+            personId: chiefPerson.id,
+            role: "EDITOR",
+            displayOrder: 0,
+            publicCredit: true,
+          },
+        });
+      }
+
+      if (isDirectPublish) {
+        await tx.editorialReview.create({
+          data: {
+            articleId: article.id,
+            reviewerId: chiefUser?.id ?? null,
+            fromStatus: "DRAFT",
+            toStatus: "PUBLISHED",
+            decision: "DIRECT_PUBLISH",
+            notes: `Dipublikasikan langsung melalui API Client (${client.name}) bermode direct.`,
           },
         });
       }
@@ -405,7 +618,7 @@ export async function POST(request: Request) {
           articleId: article.id,
           apiClientId: client.id,
           agentId: payload.agentId,
-          status: "SUBMITTED",
+          status: isDirectPublish ? "RESOLVED" : "SUBMITTED",
           aiInvolvementDeclared: payload.aiInvolvement,
           aiUsageNote: payload.aiUsageNote?.trim() || null,
           verificationNotes: payload.verificationNotes?.trim() || null,
@@ -437,6 +650,26 @@ export async function POST(request: Request) {
         tx,
       );
 
+      if (isDirectPublish) {
+        await writeAudit(
+          {
+            actorType: "API_CLIENT",
+            actorId: client.id,
+            actorLabel: client.name,
+            action: "article.direct_published",
+            targetType: "ARTICLE",
+            targetId: article.id,
+            correlationId: payload.idempotencyKey,
+            metadata: {
+              submissionId: submission.id,
+              publishMode: "direct",
+              requestId,
+            },
+          },
+          tx,
+        );
+      }
+
       return { submission, article };
     });
 
@@ -460,8 +693,10 @@ export async function POST(request: Request) {
         submissionStatus: submission.status,
         articleStatus: article.status,
         status: submission.status,
+        received: true,
         receivedAt: submission.submittedAt.toISOString(),
         idempotentReplay: false,
+        ...(isDirectPublish ? { isPublished: true } : {}),
         requestId,
       },
       {

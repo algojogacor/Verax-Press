@@ -101,6 +101,7 @@ export default function StudioApiPortalPage() {
   const [createDescription, setCreateDescription] = useState("");
   const [createOwner, setCreateOwner] = useState("");
   const [createEnv, setCreateEnv] = useState<"DEVELOPMENT" | "PREVIEW" | "PRODUCTION">("DEVELOPMENT");
+  const [createPublishMode, setCreatePublishMode] = useState<"standard" | "direct">("standard");
   const [createExpiresDays, setCreateExpiresDays] = useState("");
   const [newSecretDisplay, setNewSecretDisplay] = useState<{
     clientId: string;
@@ -186,6 +187,7 @@ export default function StudioApiPortalPage() {
       description?: string;
       ownerName?: string;
       environment: "DEVELOPMENT" | "PREVIEW" | "PRODUCTION";
+      publishMode: "standard" | "direct";
       expiresInDays?: number;
     }) =>
       apiFetch<CreatedClientResponse>("/api/studio/api-clients", {
@@ -199,6 +201,7 @@ export default function StudioApiPortalPage() {
       setCreateName("");
       setCreateDescription("");
       setCreateOwner("");
+      setCreatePublishMode("standard");
       setCreateExpiresDays("");
       setNewSecretDisplay({
         clientId: data.clientId,
@@ -210,6 +213,30 @@ export default function StudioApiPortalPage() {
     onError: (err) => {
       toast({
         title: "Gagal membuat klien",
+        description: apiErrorMessage(err),
+        variant: "destructive",
+      });
+    },
+  });
+
+  // Mutasi Mode Publikasi (standard / direct)
+  const publishModeMutation = useMutation({
+    mutationFn: (options: { id: string; publishMode: "standard" | "direct" }) =>
+      apiFetch<ApiClientDTO>(`/api/studio/api-clients/${options.id}`, {
+        method: "PATCH",
+        body: JSON.stringify({ publishMode: options.publishMode }),
+      }),
+    onSuccess: (client) => {
+      queryClient.invalidateQueries({ queryKey: ["api-clients"] });
+      queryClient.invalidateQueries({ queryKey: ["api-overview"] });
+      toast({
+        title: "Mode publikasi diperbarui",
+        description: `${client.name}: Mode ${client.publishMode === "direct" ? "Direct" : "Standard"}`,
+      });
+    },
+    onError: (err) => {
+      toast({
+        title: "Gagal mengubah mode publikasi",
         description: apiErrorMessage(err),
         variant: "destructive",
       });
@@ -766,6 +793,7 @@ export default function StudioApiPortalPage() {
                     <TableHead className="font-mono text-xs uppercase text-verity-ink">Nama & Identitas</TableHead>
                     <TableHead className="font-mono text-xs uppercase text-verity-ink">Client ID</TableHead>
                     <TableHead className="font-mono text-xs uppercase text-verity-ink">Lingkungan</TableHead>
+                    <TableHead className="font-mono text-xs uppercase text-verity-ink">Mode Publikasi</TableHead>
                     <TableHead className="font-mono text-xs uppercase text-verity-ink">Status</TableHead>
                     <TableHead className="font-mono text-xs uppercase text-verity-ink">Kredensial Aktif</TableHead>
                     <TableHead className="font-mono text-xs uppercase text-verity-ink">Penggunaan Terakhir</TableHead>
@@ -795,6 +823,17 @@ export default function StudioApiPortalPage() {
                         </Badge>
                       </TableCell>
                       <TableCell>
+                        {c.publishMode === "direct" ? (
+                          <Badge className="bg-purple-600/10 text-purple-700 border-purple-600/20 text-[10px] uppercase font-mono">
+                            Direct
+                          </Badge>
+                        ) : (
+                          <Badge variant="outline" className="text-verity-ink-soft text-[10px] uppercase font-mono">
+                            Standard
+                          </Badge>
+                        )}
+                      </TableCell>
+                      <TableCell>
                         {c.status === "ACTIVE" ? (
                           <Badge className="bg-emerald-600/10 text-emerald-700 border-emerald-600/20 text-[10px] uppercase font-mono">
                             Aktif
@@ -822,6 +861,21 @@ export default function StudioApiPortalPage() {
                             onClick={() => setSelectedClientDetail(c)}
                           >
                             Kredensial
+                          </Button>
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            className="text-xs h-8"
+                            onClick={() =>
+                              publishModeMutation.mutate({
+                                id: c.id,
+                                publishMode: c.publishMode === "direct" ? "standard" : "direct",
+                              })
+                            }
+                            disabled={publishModeMutation.isPending || c.status !== "ACTIVE"}
+                            title={c.publishMode === "direct" ? "Ubah ke Mode Standard" : "Ubah ke Mode Direct"}
+                          >
+                            {c.publishMode === "direct" ? "Ke Standard" : "Ke Direct"}
                           </Button>
                           <Button
                             variant="outline"
@@ -1246,6 +1300,7 @@ Content-Type: application/json`}
                 description: createDescription || undefined,
                 ownerName: createOwner || undefined,
                 environment: createEnv,
+                publishMode: createPublishMode,
                 expiresInDays: createExpiresDays ? parseInt(createExpiresDays, 10) : undefined,
               });
             }}
@@ -1317,6 +1372,24 @@ Content-Type: application/json`}
                   className="mt-1 text-xs"
                 />
               </div>
+            </div>
+
+            <div>
+              <Label htmlFor="client-publish-mode" className="text-xs">Mode Publikasi</Label>
+              <select
+                id="client-publish-mode"
+                value={createPublishMode}
+                onChange={(e) =>
+                  setCreatePublishMode(e.target.value as "standard" | "direct")
+                }
+                className="mt-1 w-full border border-verity-rule bg-card px-2.5 py-1.5 text-xs text-verity-ink"
+              >
+                <option value="standard">Standard (Masuk sebagai draf untuk penelaahan redaksi)</option>
+                <option value="direct">Direct (Langsung terbit jika lolos verifikasi sumber)</option>
+              </select>
+              <p className="mt-1 text-[11px] text-verity-ink-soft">
+                Mode direct memublikasikan naskah secara otomatis tanpa penelaahan manual apabila sumber referensi terverifikasi aktif.
+              </p>
             </div>
 
             <DialogFooter className="pt-4">
@@ -1543,7 +1616,7 @@ Content-Type: application/json`}
               Riwayat Kredensial: {selectedClientDetail?.name}
             </DialogTitle>
             <DialogDescription className="text-xs text-verity-ink-soft">
-              Client ID: {selectedClientDetail?.clientId} · Lingkungan: {selectedClientDetail?.environment}
+              Client ID: {selectedClientDetail?.clientId} · Lingkungan: {selectedClientDetail?.environment} · Mode: {selectedClientDetail?.publishMode ?? "standard"}
             </DialogDescription>
           </DialogHeader>
 

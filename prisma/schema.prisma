@@ -346,6 +346,7 @@ model ApiClient {
   description String?
   ownerName   String?
   environment String    @default("DEVELOPMENT") // DEVELOPMENT | PREVIEW | PRODUCTION
+  publishMode String    @default("standard")
   secretHash  String?   // SHA-256 hash kredensial utama/warisan; secret plaintext TIDAK pernah disimpan
   scopes      String    @default("submit") // comma-separated; hanya "submit" pada MVP
   status      String    @default("ACTIVE") // ACTIVE | REVOKED

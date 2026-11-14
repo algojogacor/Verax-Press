@@ -34,6 +34,8 @@ export type ContributionRole = "AUTHOR" | "EDITOR" | "REPORTER" | "REVIEWER" | "
 
 export type ArticleOrigin = "NEWSROOM" | "INGESTION_API" | "CONTRIBUTOR";
 
+export type PublishMode = "standard" | "direct";
+
 export type TransitionAction =
   | "SUBMIT_REVIEW" // DRAFT -> PENDING_REVIEW
   | "WITHDRAW" // DRAFT -> WITHDRAWN
@@ -290,6 +292,7 @@ export interface ApiClientDTO {
   description: string | null;
   ownerName: string | null;
   environment: "DEVELOPMENT" | "PREVIEW" | "PRODUCTION";
+  publishMode?: PublishMode;
   scopes: string;
   status: string;
   expiresAt: string | null;
@@ -380,4 +383,7 @@ export interface IngestionReceiptDTO {
   receivedAt: string;
   idempotentReplay: boolean;
   requestId?: string;
+  articleStatus?: string;
+  submissionStatus?: string;
+  isPublished?: boolean;
 }

@@ -1381,3 +1381,42 @@ Dijalankan 9 Nov 2026 (sesi build-2). Transkrip lengkap: `scripts/acceptance-tes
   - `bun run lint`: 0 galat.
   - `bun test`: **295 pass, 0 fail (3292 assertions) di 25 file**.
   - Kepatuhan tipografi: 0 tanda pisah em dash dan 0 tanda hubung ganda pada teks baru.
+
+## 70. Implementasi dan Verifikasi Fitur Direct Publish API Client (14 Nov 2026)
+- **Konteks:** Menambahkan kemampuan mode publikasi langsung (Direct Publish) untuk Klien API terpercaya yang dikelola secara eksklusif oleh Pemimpin Redaksi (Chief Editor).
+- **Perubahan Basis Data dan Skema:**
+  - `prisma/schema.prisma`: Menambahkan field `publishMode String @default("standard")` pada model `ApiClient`.
+  - Migrasi diterapkan pada `db/custom.db` dan basis data uji terisolasi `db/isolated-test.db`.
+- **Perubahan Tipe dan Serializer:**
+  - `src/types/verity.ts`: Menambahkan tipe `PublishMode = "standard" | "direct"`, memperluas `ApiClientDTO` dengan `publishMode?: PublishMode`, dan memperluas `IngestionReceiptDTO` dengan atribut status publikasi (`articleStatus`, `submissionStatus`, `isPublished`).
+  - `src/lib/domain/serializers.ts`: Memetakan `publishMode` pada `toApiClientDTO`.
+  - `src/lib/api-key.ts`: Menyertakan `publishMode` dalam `ApiClientIdentity` dan mengisi atribut tersebut pada verifikasi token Bearer dan proxy.
+- **Implementasi Jalur Direct Publish (`src/app/api/internal/v1/ai-submissions/route.ts`):**
+  - Validasi deck: Naskah direct publish wajib menyertakan ringkasan naskah (deck); pengajuan tanpa deck ditolak dengan kode HTTP 422 `DECK_REQUIRED`.
+  - Verifikasi sumber secara paralel dengan timeout 8 detik dan tindak lanjut pengalihan: Sumber berstatus HTTP 2xx ditandai `VERIFIED`; sumber yang gagal, kedaluwarsa, atau berstatus non-2xx digugurkan.
+  - Jika seluruh sumber gagal diakses, pengajuan ditolak dengan HTTP 422 `DIRECT_PUBLISH_SOURCES_FAILED`.
+  - Jika tidak ada sumber kunci yang selamat, sumber pertama yang selamat dipromosikan menjadi sumber kunci (`isKeySource = true`).
+  - Penetapan byline redaksi: Menggunakan byline resmi "Disunting oleh Redaksi Verax Press".
+  - Penugasan kontributor internal: Mengaitkan Pemimpin Redaksi aktif sebagai kontributor `EDITOR` dengan `publicCredit: true`.
+  - Penetapan status artikel: Status `PUBLISHED`, mencatat waktu `publishedAt` dan `firstPublishedAt`. Keterbukaan AI publik dimatikan (`aiDisclosurePublic = false`).
+  - Rekaman telaah editorial: Menyimpan entri `EditorialReview` dengan keputusan `DIRECT_PUBLISH`.
+  - Resolusi submission: Status pengajuan diperbarui menjadi `RESOLVED`.
+  - Audit trail: Mencatat `AuditEvent` dengan aksi `article.direct_published`.
+- **Manajemen Studio API Client (`src/app/api/studio/api-clients/*` dan UI CMS):**
+  - Pembuatan klien baru mendukung pemilihan `publishMode` ("standard" atau "direct", default "standard") khusus untuk role CHIEF_EDITOR.
+  - Pembaruan klien via `PATCH /api/studio/api-clients/[id]` mendukung pergantian mode antara standard dan direct, serta mencatat audit trail `apiclient.publish_mode_changed`.
+  - Tampilan tabel API Clients di Studio CMS menyertakan kolom lencana Mode Publikasi, tombol pergantian mode langsung, serta pilihan mode pada dialog pembuatan klien baru.
+- **Pengembangan Test Suite Otomatis (`tests/direct-publish.test.ts`):**
+  - Menguji isolasi hak akses Pemimpin Redaksi vs Penulis pada API Studio (HTTP 403 untuk non-chief).
+  - Menguji kompatibilitas penuh klien standar (status naskah DRAFT, byline placeholder, sumber UNVERIFIED, submission SUBMITTED).
+  - Menguji alur sukses direct publish dengan HTTP check sumber riil via server mock lokal, promosi sumber kunci, penetapan kontributor editor, rekaman telaah editorial, audit log, dan resolusi status.
+  - Menguji penolakan HTTP 422 pada naskah tanpa deck dan naskah dengan seluruh sumber rusak.
+  - Menguji pengguguran sumber yang gagal dan kelolosan naskah bila minimal satu sumber selamat.
+  - Menguji rendering publik `/artikel/[slug]` bahwa artikel direct-published tersaji 200 OK dengan byline redaksi dan tanpa kotak/label keterbukaan AI publik.
+- **Hasil Pengujian Penuh:**
+  - `bun test tests/direct-publish.test.ts`: **11 pass, 0 fail (73 assertions)**.
+  - `bun test`: **306 pass, 0 fail (3365 assertions) di 26 file**.
+  - `bun run typecheck`: 0 galat.
+  - `bun run lint`: 0 galat.
+  - Bebas tanda pisah em dash, bebas frasa klise AI, dan patuh standar editorial Verax Press.
+

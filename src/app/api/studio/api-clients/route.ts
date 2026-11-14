@@ -1,5 +1,5 @@
-// GET  /api/studio/api-clients — daftar client lengkap dengan kredensial & metrik (Chief Editor only).
-// POST /api/studio/api-clients — buat client baru; secret ditampilkan SEKALI saja.
+// GET  /api/studio/api-clients : daftar client lengkap dengan kredensial & metrik (Chief Editor only).
+// POST /api/studio/api-clients : buat client baru; secret ditampilkan SEKALI saja.
 
 import { z } from "zod";
 import { db } from "@/lib/db";
@@ -43,6 +43,7 @@ export async function POST(request: Request) {
         description: z.string().max(500).optional(),
         ownerName: z.string().max(120).optional(),
         environment: z.enum(API_CLIENT_ENVIRONMENTS).default("DEVELOPMENT"),
+        publishMode: z.enum(["standard", "direct"]).default("standard"),
         expiresInDays: z.number().int().min(1).max(730).optional(),
       }),
     );
@@ -62,6 +63,7 @@ export async function POST(request: Request) {
           description: body.description ?? null,
           ownerName: body.ownerName ?? null,
           environment: body.environment,
+          publishMode: body.publishMode,
           secretHash, // Pertahankan untuk kompatibilitas
           scopes: "submit", // Scope submit-only mutlak (tidak dapat diubah)
           expiresAt,
@@ -92,6 +94,7 @@ export async function POST(request: Request) {
             clientId,
             name: body.name,
             environment: body.environment,
+            publishMode: body.publishMode,
             scopes: "submit",
           },
         },
@@ -107,7 +110,7 @@ export async function POST(request: Request) {
       });
     });
 
-    // Secret hanya muncul sekali di respons ini — tidak pernah disimpan plaintext.
+    // Secret hanya muncul sekali di respons ini: tidak pernah disimpan plaintext.
     return ok({ ...toApiClientDTO(client), secret }, 201);
   } catch (error) {
     return jsonError(error);
