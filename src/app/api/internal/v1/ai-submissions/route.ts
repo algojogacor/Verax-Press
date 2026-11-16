@@ -100,6 +100,34 @@ export async function POST(request: Request) {
     }
     const client = authRes.client;
 
+    if (client.clientType === "INSTAGRAM_WORKER") {
+      const durationMs = Date.now() - startTime;
+      await logApiRequest({
+        requestId,
+        apiClientId: client.id,
+        method: "POST",
+        endpoint: "/api/internal/v1/ai-submissions",
+        statusCode: 403,
+        durationMs,
+        ipAddress,
+        userAgent,
+        errorCode: "INVALID_CLIENT_SCOPE",
+        errorMessage: "API Client worker Instagram tidak memiliki izin mengirim atau memodifikasi naskah artikel.",
+      });
+
+      return NextResponse.json(
+        {
+          error: "API Client worker Instagram tidak memiliki izin mengirim atau memodifikasi naskah artikel.",
+          code: "INVALID_CLIENT_SCOPE",
+          requestId,
+        },
+        {
+          status: 403,
+          headers: { "x-request-id": requestId },
+        },
+      );
+    }
+
     // 3. Baca dan parsing JSON
     let rawBody: unknown;
     try {

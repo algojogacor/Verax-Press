@@ -25,6 +25,7 @@ export interface ApiClientIdentity {
   environment?: string;
   credentialId?: string;
   publishMode?: "standard" | "direct";
+  clientType?: "INGESTION" | "INSTAGRAM_WORKER";
 }
 
 export function generateClientCredential(): { clientId: string; secret: string } {
@@ -88,7 +89,8 @@ export async function verifyApiClientDetailed(
       return { client: null, errorCode: "CREDENTIAL_EXPIRED", errorMessage: "Klien API telah kedaluwarsa." };
     }
     const scopes = client.scopes.split(",").map((s) => s.trim()).filter(Boolean);
-    if (!scopes.includes("submit")) {
+    const clientType = (client.clientType as "INGESTION" | "INSTAGRAM_WORKER") || "INGESTION";
+    if (clientType !== "INSTAGRAM_WORKER" && !scopes.includes("submit")) {
       return { client: null, errorCode: "FORBIDDEN_SCOPE", errorMessage: "Klien tidak memiliki izin submit." };
     }
 
@@ -100,6 +102,7 @@ export async function verifyApiClientDetailed(
         scopes,
         environment: client.environment,
         publishMode: (client.publishMode as "standard" | "direct") || "standard",
+        clientType,
       },
     };
   }
@@ -182,7 +185,8 @@ export async function verifyApiClientDetailed(
   }
 
   const scopes = client.scopes.split(",").map((s) => s.trim()).filter(Boolean);
-  if (!scopes.includes("submit")) {
+  const clientType = (client.clientType as "INGESTION" | "INSTAGRAM_WORKER") || "INGESTION";
+  if (clientType !== "INSTAGRAM_WORKER" && !scopes.includes("submit")) {
     return { client: null, errorCode: "FORBIDDEN_SCOPE", errorMessage: "Klien tidak memiliki izin submit." };
   }
 
@@ -208,6 +212,7 @@ export async function verifyApiClientDetailed(
       environment: client.environment,
       credentialId: matchedCredentialId !== "legacy" ? matchedCredentialId : undefined,
       publishMode: (client.publishMode as "standard" | "direct") || "standard",
+      clientType,
     },
   };
 }

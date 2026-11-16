@@ -44,6 +44,7 @@ export async function POST(request: Request) {
         ownerName: z.string().max(120).optional(),
         environment: z.enum(API_CLIENT_ENVIRONMENTS).default("DEVELOPMENT"),
         publishMode: z.enum(["standard", "direct"]).default("standard"),
+        clientType: z.enum(["INGESTION", "INSTAGRAM_WORKER"]).default("INGESTION"),
         expiresInDays: z.number().int().min(1).max(730).optional(),
       }),
     );
@@ -64,6 +65,7 @@ export async function POST(request: Request) {
           ownerName: body.ownerName ?? null,
           environment: body.environment,
           publishMode: body.publishMode,
+          clientType: body.clientType,
           secretHash, // Pertahankan untuk kompatibilitas
           scopes: "submit", // Scope submit-only mutlak (tidak dapat diubah)
           expiresAt,
@@ -95,6 +97,7 @@ export async function POST(request: Request) {
             name: body.name,
             environment: body.environment,
             publishMode: body.publishMode,
+            clientType: body.clientType,
             scopes: "submit",
           },
         },

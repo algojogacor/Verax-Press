@@ -19,7 +19,7 @@ export async function GET() {
           ],
         };
 
-    const [statusCounts, openComplaints, recentAudit, pendingGate] = await Promise.all([
+    const [statusCounts, openComplaints, recentAudit, pendingGate, failedInstagramPosts] = await Promise.all([
       db.article.groupBy({ by: ["status"], where: articleFilter, _count: { _all: true } }),
       isChief
         ? db.complaint.count({ where: { status: { in: ["RECEIVED", "IN_REVIEW"] } } })
@@ -35,6 +35,22 @@ export async function GET() {
           sources: { select: { isKeySource: true, verificationStatus: true } },
         },
       }),
+      isChief
+        ? db.instagramPost.findMany({
+            where: { status: "FAILED" },
+            include: {
+              article: {
+                select: {
+                  id: true,
+                  title: true,
+                  slug: true,
+                },
+              },
+            },
+            orderBy: { updatedAt: "desc" },
+            take: 10,
+          })
+        : Promise.resolve([]),
     ]);
 
     const counts: Record<string, number> = {};
@@ -53,6 +69,16 @@ export async function GET() {
       openComplaints,
       recentAudit,
       gateWarnings,
+      failedInstagramPosts: failedInstagramPosts.map((p) => ({
+        id: p.id,
+        articleId: p.articleId,
+        articleTitle: p.article.title,
+        articleSlug: p.article.slug,
+        attempts: p.attempts,
+        lastError: p.lastError,
+        createdAt: p.createdAt.toISOString(),
+        updatedAt: p.updatedAt.toISOString(),
+      })),
       permissions: {
         canPublish: isChief,
         canReview: isChief,

@@ -1451,3 +1451,131 @@ Dijalankan 9 Nov 2026 (sesi build-2). Transkrip lengkap: `scripts/acceptance-tes
     - Log Vercel memastikan tidak ada lagi galat `no such column` yang tercatat pasca-migrasi.
   - Seluruh pengujian lokal `bun test`: 306 pass, 0 fail (3365 assertions) di 26 file.
 
+## 72. Integrasi Basis Data Instagram Carousel Auto-Publisher & Paritas Tiga Target (16 Nov 2026)
+- **Pencadangan Wajib Turso Cloud:**
+  - Menjalankan `bun prisma/scripts/backup-turso.ts` sebelum menjalankan mutasi DDL pada basis data produksi aktif.
+  - Berkas cadangan diverifikasi di `db/backups/turso_export_2026-11-16T04-10-40-114Z.db` (SHA-256: `0b580ad76af92e907743efe692441cc54bfef4531324f2df579038ff44db7487`, 162 baris diekspor, 0 pelanggaran foreign key, PRAGMA integrity_check: ok).
+- **Pembaruan Skema Prisma (`prisma/schema.prisma`):**
+  - Menambahkan model `InstagramPost`:
+    - Kolom: `id`, `articleId`, `status` (default PENDING), `attempts` (default 0), `lastError`, `caption`, `postUrl`, `instagramMediaId`, `carouselMediaUrls`, `slideCount`, `postedAt`, `createdAt`, `updatedAt`.
+    - Relasi ke `Article` dengan opsi `onDelete: Cascade`.
+    - Indeks pada `articleId` dan `status`.
+  - Pada model `Article`: menambahkan relasi `instagramPosts InstagramPost[]`.
+  - Pada model `ApiClient`: menambahkan kolom `clientType String @default("INGESTION")` untuk membedakan klien ingestor naskah vs worker Instagram.
+- **Penerapan Tiga Target Basis Data:**
+  - Basis data dev SQLite (`db/custom.db`): disinkronkan via `bun run db:push`.
+  - Basis data uji terisolasi SQLite (`db/isolated-test.db`): disinkronkan via `bun run db:push` dengan datasource URL yang tepat.
+  - Pembuatan Prisma Client (`bun run db:generate`): menghasilkan tipe dan method terbaru untuk `InstagramPost` dan `ApiClient`.
+  - Basis data produksi Turso Cloud (`libsql://...`):
+    - Dibuat skrip migrasi non-destruktif `scripts/migrate-turso.ts` menggunakan `@libsql/client`.
+    - Menambahkan kolom `ApiClient.clientType` (default 'INGESTION') secara aman.
+    - Membuat tabel `InstagramPost` beserta indeks `articleId` dan `status` secara idempoten.
+    - Menjalankan `PRAGMA integrity_check` (hasil: ok) dan `PRAGMA foreign_key_check` (0 pelanggaran).
+    - Memastikan 100% paritas skema antara Turso Cloud dan `prisma/schema.prisma`.
+    - Memastikan seluruh data yang ada (3 klien API, 4 artikel terbit, aset media) tetap utuh.
+- **Validasi Kueri Prisma Client terhadap Turso Cloud:**
+  - Skrip `scripts/verify-turso-prisma.ts` berhasil memanggil:
+    - `prisma.instagramPost.findMany()` (0 post awal).
+    - `prisma.apiClient.findMany()` (3 klien terdeteksi dengan `clientType: INGESTION`).
+    - `prisma.article.findMany()` dengan relasi `instagramPosts` dan `heroMedia`.
+- **Hasil Pengujian Lokal:**
+  - `bun test`: **306 pass, 0 fail (3365 assertions) di 26 file**.
+
+## 73. Mesin Rendering Multi-Slide Instagram Carousel (`src/lib/instagram-renderer.ts`) (16 Nov 2026)
+- **Riset dan Evaluasi Pustaka Rendering:**
+  - Mengevaluasi pola Satori + Sharp dari `fess-project/fess-1`.
+  - Menginstal `satori`, `@resvg/resvg-js`, `@fontsource/newsreader`, dan `@fontsource/inter`.
+  - Mengimplementasikan konversi dual-engine: `@resvg/resvg-js` berkecepatan tinggi dengan fallback otomatis ke `sharp`.
+- **Penanganan Tipografi dan Kemandirian Serverless:**
+  - Membuat `src/lib/instagram-fonts.ts` berisi base64 WOFF dari Newsreader (400, 700, 400 italic) dan Inter (400, 700) untuk eliminasi ketergantungan sistem berkas di Vercel Serverless.
+- **Implementasi Tata Letak Editorial Verax Press (1080x1080 1:1):**
+  - Palet warna: kertas krem `#FBF8F3`, tinta pekat `#161310`, tinta sekunder `#4A453E`, aksen crimson `#8B1E1E`, garis batas `#E5DFD5`.
+  - Header konsisten: Mark SVG "VP", Wordmark "VERAX PRESS", lencana rubrik, dan tanggal terbit.
+  - Body mendukung 4 tipe slide:
+    1. *Cover*: Judul Newsreader serif (46-58px), deck summary miring, byline redaksi.
+    2. *Content*: Kicker rubrik crimson, judul slide, paragraf temuan mendalam, dan kotak rujukan sumber primer.
+    3. *Quote*: Tanda kutip dekoratif crimson (88px), kutipan narasumber, dan atribusi sumber.
+    4. *Closing*: Kicker kesimpulan, 3 butir poin kunci bernomor (`01`, `02`, `03`), kartu CTA gelap (*"Baca investigasi selengkapnya di veraxpress.vercel.app"*), dan kredit sumber asal.
+  - Footer konsisten: Motto *"EX FONTIBUS VERITAS"*, tanda air URL *"veraxpress.vercel.app"*, dan indikator pagination slide (*"k / N"*).
+- **Pengujian dan Validasi:**
+  - Skrip pengujian `scripts/test-render-instagram.ts` berhasil merender 4 slide dalam waktu 898ms (~225ms per slide).
+  - Verifikasi byte magic PNG (`89 50 4E 47`) dan dimensi tepat 1080x1080 px terkonfirmasi via Sharp metadata.
+  - `bun run typecheck`: lolos 0 galat.
+  - `bun run lint`: lolos 0 galat.
+  - `bun test`: 321 pass, 0 fail di 27 file.
+
+
+
+## 74. Titik Akhir Instagram Worker, Isolasi Cakupan API Client, dan Notifikasi Studio (16 Nov 2026)
+- **Ekstensi Model dan Autentikasi API Client (`src/lib/api-key.ts`, `src/types/verity.ts`, `src/lib/domain/serializers.ts`):**
+  - Menambahkan tipe `ApiClientType = "INGESTION" | "INSTAGRAM_WORKER"`.
+  - Memperluas antarmuka `ApiClientIdentity` dan `ApiClientDTO` dengan `clientType`.
+  - Memperbarui `toApiClientDTO` untuk memetakan `clientType` secara konsisten.
+  - Memperbarui `verifyApiClientDetailed` (jalur proxy dan bearer) agar memetakan `clientType` dan mengizinkan `INSTAGRAM_WORKER` memverifikasi identitas tanpa bentrok pada pemeriksaan `submit-only`.
+- **Perlindungan Ingestion Naskah (`src/app/api/internal/v1/ai-submissions/route.ts`):**
+  - Menolak permintaan dari klien bertipe `INSTAGRAM_WORKER` dengan kode status 403 `INVALID_CLIENT_SCOPE` (*"API Client worker Instagram tidak memiliki izin mengirim atau memodifikasi naskah artikel."*).
+- **Titik Akhir Pembacaan Artikel Instagram Worker (`src/app/api/internal/v1/instagram/articles/route.ts`):**
+  - `GET`: Mengharuskan autentikasi klien `INSTAGRAM_WORKER` atau sesi masuk staf redaksi yang sah.
+  - Mengambil naskah berstatus `PUBLISHED` yang belum memiliki rekaman `InstagramPost` berstatus `POSTED`.
+  - Mendukung parameter kueri `limit` (bawaan 10).
+  - Mengembalikan objek JSON berisi larik naskah dengan `id, title, deck, contentJson, content, slug, desk, tags, byline, publishedAt, heroMedia`.
+- **Titik Akhir Publikasi Karosel Instagram (`src/app/api/internal/v1/instagram/publish/route.ts`):**
+  - `POST`: Mengharuskan autentikasi klien `INSTAGRAM_WORKER`.
+  - Memvalidasi payload via Zod: `articleId`, `caption`, dan `slides` (2 hingga 10 slide).
+  - Memverifikasi keberadaan artikel dan status `PUBLISHED`.
+  - Memeriksa idempotensi (menolak dengan 409 `ALREADY_POSTED` bila sudah pernah diterbitkan).
+  - Memanggil `renderCarouselSlides` dari `@/lib/instagram-renderer` untuk merender buffer slide PNG 1080x1080.
+  - Memanggil `publishArticleToInstagram` dari `@/lib/instagram-service` untuk orkestrasi penerbitan Graph API dan coba ulang otomatis.
+  - Mengembalikan respons 200 dengan `status`, `postUrl`, `instagramPostId`, dan `attempts`.
+- **Manajemen Klien Studio CMS (`src/app/api/studio/api-clients/*`, `src/app/studio/(cms)/api-clients/page.tsx`):**
+  - `POST /api/studio/api-clients`: menerima `clientType: z.enum(["INGESTION", "INSTAGRAM_WORKER"]).default("INGESTION")`, menyimpan ke basis data, dan mencatat jejak audit.
+  - `PATCH /api/studio/api-clients/[id]`: mendukung pembaruan `clientType` dan mencatat jejak audit.
+  - Antarmuka Studio: menambahkan lencana `Tipe Klien` pada tabel API Clients dan pemilih tipe klien pada modal pembuatan kredensial.
+- **Pemberitahuan Peringatan dan Coba Ulang Publikasi Studio (`src/app/api/studio/dashboard/route.ts`, `src/app/api/studio/instagram/retry/route.ts`, `src/app/studio/(cms)/page.tsx`):**
+  - Mengintegrasikan kueri catatan `InstagramPost` berstatus `FAILED` pada respons dashboard khusus Pemimpin Redaksi.
+  - Menampilkan spanduk peringatan merah di dashboard redaksi jika terdapat artikel yang gagal dipublikasikan ke Instagram setelah 3 kali percobaan otomatis.
+  - Menyediakan tombol "Coba Ulang Publikasi" dan tautan cepat ke naskah artikel.
+  - Membuat rute penanganan mutasi coba ulang `POST /api/studio/instagram/retry` yang memanggil `retryFailedInstagramPost`.
+- **Kepatuhan Standar Penulisan (`docs/editorial/VERAX_WRITING_STANDARDS.md`):**
+  - 100% bebas dari tanda pisah em dash (`—`) dan kata-kata terlarang kecerdasan buatan.
+  - Seluruh teks antarmuka menggunakan bahasa Indonesia jurnalistik yang lugas dan terukur.
+- **Verifikasi Lokal:**
+  - `bun run typecheck`: lolos 0 galat.
+  - `bun run lint`: lolos 0 galat.
+  - `bun test`: 321 pass, 0 fail di 27 file.
+
+## 75. Suite Pengujian Otomatis Komprehensif Instagram Worker (16 Nov 2026)
+- **Suite Pengujian Otomatis (`tests/instagram-worker.test.ts`):**
+  - Menguji 5 aspek inti secara terisolasi dan deterministik (17 uji coba, 133 asersi):
+    1. **Isolasi Scope API Client**:
+       * Klien dengan `clientType: "INSTAGRAM_WORKER"` ditolak pada `POST /api/internal/v1/ai-submissions` dengan HTTP 403 `code: "INVALID_CLIENT_SCOPE"`.
+       * Klien dengan `clientType: "INGESTION"` ditolak pada `GET /api/internal/v1/instagram/articles` dan `POST /api/internal/v1/instagram/publish` dengan HTTP 403 `code: "INVALID_CLIENT_SCOPE"`.
+       * Permintaan tanpa autentikasi ditolak dengan HTTP 401 `code: "UNAUTHORIZED"` pada ketiga endpoint.
+    2. **Query Naskah Siap Terbit (`GET /api/internal/v1/instagram/articles`)**:
+       * Hanya mengembalikan naskah `PUBLISHED` dan mengecualikan naskah `DRAFT`.
+       * Mengecualikan artikel yang sudah pernah diposting (`InstagramPost` berstatus `POSTED`).
+       * Tetap menyertakan naskah yang berstatus `FAILED` agar dapat diproses atau dipublikasikan ulang.
+       * Memverifikasi keberadaan seluruh metadata editorial wajib: `id`, `title`, `deck`, `contentJson`, `slug`, `desk`, `tags`, `byline`, `publishedAt`, dan relasi `heroMedia`.
+       * Mendukung pagination via parameter kueri `limit`.
+    3. **Validasi dan Penerbitan Karosel (`POST /api/internal/v1/instagram/publish`)**:
+       * Memvalidasi struktur payload (keberadaan `articleId`, `caption`, batas min 2 slide dan max 10 slide, format JSON valid).
+       * Memvalidasi keberadaan naskah (404 bila tidak ditemukan) dan status penerbitan (400 bila bukan `PUBLISHED`).
+       * Mencegah duplikasi postingan (idempotensi: menolak dengan 409 `ALREADY_POSTED` bila sudah pernah berstatus `POSTED`).
+       * Mensimulasikan alur Meta Graph API v21.0 penuh dengan mock fetch (child item containers, parent carousel container, publikasi, dan permalink).
+       * Memverifikasi pembaruan model basis data `InstagramPost` menjadi status `POSTED`, `attempts: 1`, dan `postUrl`.
+    4. **Mekanisme Coba Ulang dan Deteksi Kegagalan (Failure & Retry Logic)**:
+       * Menguji coba ulang hingga 3 kali saat menghadapi galat transien Meta API dan memverifikasi keberhasilan pada percobaan ke-3.
+       * Menguji kegagalan beruntun 3 kali, memverifikasi status ditandai `FAILED` dengan `attempts: 3` dan rekaman `lastError`.
+       * Menguji kueri deteksi postingan gagal untuk Studio Alert (`getFailedInstagramPosts`).
+    5. **Engine Render Visual Karosel (`src/lib/instagram-renderer.ts`)**:
+       * Memverifikasi slide menghasilkan buffer PNG valid dengan signature bytes `89 50 4E 47` (\x89PNG).
+       * Memverifikasi dimensi tepat 1080x1080 px melalui Sharp metadata pada keempat tipe slide (cover, content, quote, closing).
+       * Memverifikasi pembangkitan slide default dari metadata naskah saat larik slide kosong.
+- **Kepatuhan Standar Redaksi (`docs/editorial/VERAX_WRITING_STANDARDS.md`):**
+  - Seluruh teks pengujian, pesan galat, dan komentar kode bebas dari tanda pisah em dash (`—`) dan kata-kata terlarang AI.
+- **Hasil Verifikasi Rangkaian Uji Repo:**
+  - `bun test tests/instagram-worker.test.ts`: 17 pass, 0 fail (133 expect calls).
+  - `bun test`: 338 pass, 0 fail (3551 expect calls across 28 files).
+  - `bun run typecheck`: lolos bersih 0 galat.
+  - `bun run lint`: lolos bersih 0 galat.
+

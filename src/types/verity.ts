@@ -36,6 +36,8 @@ export type ArticleOrigin = "NEWSROOM" | "INGESTION_API" | "CONTRIBUTOR";
 
 export type PublishMode = "standard" | "direct";
 
+export type ApiClientType = "INGESTION" | "INSTAGRAM_WORKER";
+
 export type TransitionAction =
   | "SUBMIT_REVIEW" // DRAFT -> PENDING_REVIEW
   | "WITHDRAW" // DRAFT -> WITHDRAWN
@@ -293,6 +295,7 @@ export interface ApiClientDTO {
   ownerName: string | null;
   environment: "DEVELOPMENT" | "PREVIEW" | "PRODUCTION";
   publishMode?: PublishMode;
+  clientType?: ApiClientType;
   scopes: string;
   status: string;
   expiresAt: string | null;

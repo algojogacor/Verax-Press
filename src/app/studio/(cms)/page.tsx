@@ -2,13 +2,26 @@
 "use client";
 
 import Link from "next/link";
-import { useQuery } from "@tanstack/react-query";
-import { AlertTriangle, ArrowRight, Loader2 } from "lucide-react";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { AlertTriangle, ArrowRight, Loader2, RefreshCw } from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
+import { Button } from "@/components/ui/button";
+import { useToast } from "@/hooks/use-toast";
 import { apiFetch, apiErrorMessage } from "@/components/studio/api";
 import { ARTICLE_STATUSES, STATUS_LABELS } from "@/lib/domain/constants";
 import { formatDateTime } from "@/lib/format";
 import type { AuditEventDTO, SessionUser } from "@/types/verity";
+
+interface FailedInstagramPost {
+  id: string;
+  articleId: string;
+  articleTitle: string;
+  articleSlug: string;
+  attempts: number;
+  lastError: string | null;
+  createdAt: string;
+  updatedAt: string;
+}
 
 interface DashboardData {
   user: SessionUser;
@@ -16,6 +29,7 @@ interface DashboardData {
   openComplaints: number | null;
   recentAudit: AuditEventDTO[];
   gateWarnings: { id: string; title: string; unverifiedKeySources: number }[];
+  failedInstagramPosts?: FailedInstagramPost[];
   permissions: {
     canPublish: boolean;
     canReview: boolean;
@@ -26,9 +40,34 @@ interface DashboardData {
 }
 
 export default function StudioDashboardPage() {
+  const { toast } = useToast();
+  const queryClient = useQueryClient();
+
   const { data, isLoading, error } = useQuery({
     queryKey: ["dashboard"],
     queryFn: () => apiFetch<DashboardData>("/api/studio/dashboard"),
+  });
+
+  const retryMutation = useMutation({
+    mutationFn: (postId: string) =>
+      apiFetch<{ status: string }>("/api/studio/instagram/retry", {
+        method: "POST",
+        body: JSON.stringify({ postId }),
+      }),
+    onSuccess: () => {
+      toast({
+        title: "Publikasi Instagram",
+        description: "Proses publikasi ulang berhasil dijalankan.",
+      });
+      queryClient.invalidateQueries({ queryKey: ["dashboard"] });
+    },
+    onError: (err) => {
+      toast({
+        variant: "destructive",
+        title: "Gagal Mengulang Publikasi",
+        description: apiErrorMessage(err),
+      });
+    },
   });
 
   if (isLoading) {
@@ -65,6 +104,73 @@ export default function StudioDashboardPage() {
           {data.user.name} · {totalArticles} naskah terpantau
         </p>
       </div>
+
+      {/* Peringatan Publikasi Instagram Gagal */}
+      {data.failedInstagramPosts && data.failedInstagramPosts.length > 0 ? (
+        <section
+          aria-label="Peringatan publikasi Instagram"
+          className="border border-rose-600/40 bg-rose-500/5 p-4 sm:p-5"
+        >
+          <div className="flex items-start gap-3">
+            <AlertTriangle className="size-5 shrink-0 text-rose-600 mt-0.5" aria-hidden="true" />
+            <div className="flex-1 space-y-3">
+              <div>
+                <h2 className="font-serif text-base font-semibold text-rose-950">
+                  Peringatan Publikasi Instagram
+                </h2>
+                <p className="mt-0.5 text-xs text-rose-900/80">
+                  Terdapat {data.failedInstagramPosts.length} naskah yang gagal dipublikasikan ke feed Instagram setelah 3 kali percobaan otomatis.
+                </p>
+              </div>
+
+              <ul className="divide-y divide-rose-600/15 border-t border-rose-600/15">
+                {data.failedInstagramPosts.map((post) => (
+                  <li key={post.id} className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 py-2.5">
+                    <div className="space-y-1">
+                      <Link
+                        href={`/studio/articles/${post.articleId}`}
+                        className="font-serif text-sm font-medium text-verity-ink hover:text-rose-700 underline underline-offset-2"
+                      >
+                        {post.articleTitle}
+                      </Link>
+                      <div className="flex items-center gap-2 font-mono text-[11px] text-rose-800/80">
+                        <span>{post.attempts} kali percobaan gagal</span>
+                        {post.lastError && (
+                          <span className="truncate max-w-md">· {post.lastError}</span>
+                        )}
+                      </div>
+                    </div>
+
+                    <div className="flex items-center gap-2 shrink-0">
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        className="h-7 text-xs border-rose-600/30 text-rose-900 hover:bg-rose-600/10"
+                        onClick={() => retryMutation.mutate(post.id)}
+                        disabled={retryMutation.isPending}
+                      >
+                        {retryMutation.isPending ? (
+                          <Loader2 className="size-3.5 animate-spin mr-1.5" />
+                        ) : (
+                          <RefreshCw className="size-3.5 mr-1.5" />
+                        )}
+                        Coba Ulang Publikasi
+                      </Button>
+                      <Link
+                        href={`/studio/articles/${post.articleId}`}
+                        className="inline-flex items-center gap-1 font-mono text-[11px] uppercase tracking-wider text-verity-ink-soft hover:text-verity-ink px-2 py-1"
+                      >
+                        Lihat Naskah
+                        <ArrowRight className="size-3" aria-hidden="true" />
+                      </Link>
+                    </div>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          </div>
+        </section>
+      ) : null}
 
       {/* Ringkasan status: terdistribusi proporsional dalam kisi redaksi */}
       {statuses.length > 0 ? (

@@ -211,6 +211,7 @@ model Article {
   complaints             Complaint[]
   corrections            CorrectionRecord[]
   mediaAssets            MediaAsset[]
+  instagramPosts         InstagramPost[]
 
   @@index([status, publishedAt])
   @@index([deskId, status])
@@ -347,6 +348,7 @@ model ApiClient {
   ownerName   String?
   environment String    @default("DEVELOPMENT") // DEVELOPMENT | PREVIEW | PRODUCTION
   publishMode String    @default("standard")
+  clientType  String    @default("INGESTION") // INGESTION | INSTAGRAM_WORKER
   secretHash  String?   // SHA-256 hash kredensial utama/warisan; secret plaintext TIDAK pernah disimpan
   scopes      String    @default("submit") // comma-separated; hanya "submit" pada MVP
   status      String    @default("ACTIVE") // ACTIVE | REVOKED
@@ -493,3 +495,28 @@ model AuditEvent {
   @@index([createdAt])
   @@index([action])
 }
+
+// ============================================================
+// Instagram Carousel Publishing Integration
+// ============================================================
+
+model InstagramPost {
+  id                String    @id @default(cuid())
+  articleId         String
+  article           Article   @relation(fields: [articleId], references: [id], onDelete: Cascade)
+  status            String    @default("PENDING") // PENDING, POSTED, FAILED
+  attempts          Int       @default(0)
+  lastError         String?
+  caption           String?
+  postUrl           String?
+  instagramMediaId  String?
+  carouselMediaUrls String?   // JSON string array of slide image URLs
+  slideCount        Int?
+  postedAt          DateTime?
+  createdAt         DateTime  @default(now())
+  updatedAt         DateTime  @updatedAt
+
+  @@index([articleId])
+  @@index([status])
+}
+

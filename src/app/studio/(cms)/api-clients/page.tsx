@@ -102,6 +102,7 @@ export default function StudioApiPortalPage() {
   const [createOwner, setCreateOwner] = useState("");
   const [createEnv, setCreateEnv] = useState<"DEVELOPMENT" | "PREVIEW" | "PRODUCTION">("DEVELOPMENT");
   const [createPublishMode, setCreatePublishMode] = useState<"standard" | "direct">("standard");
+  const [createClientType, setCreateClientType] = useState<"INGESTION" | "INSTAGRAM_WORKER">("INGESTION");
   const [createExpiresDays, setCreateExpiresDays] = useState("");
   const [newSecretDisplay, setNewSecretDisplay] = useState<{
     clientId: string;
@@ -188,6 +189,7 @@ export default function StudioApiPortalPage() {
       ownerName?: string;
       environment: "DEVELOPMENT" | "PREVIEW" | "PRODUCTION";
       publishMode: "standard" | "direct";
+      clientType?: "INGESTION" | "INSTAGRAM_WORKER";
       expiresInDays?: number;
     }) =>
       apiFetch<CreatedClientResponse>("/api/studio/api-clients", {
@@ -202,6 +204,7 @@ export default function StudioApiPortalPage() {
       setCreateDescription("");
       setCreateOwner("");
       setCreatePublishMode("standard");
+      setCreateClientType("INGESTION");
       setCreateExpiresDays("");
       setNewSecretDisplay({
         clientId: data.clientId,
@@ -793,6 +796,7 @@ export default function StudioApiPortalPage() {
                     <TableHead className="font-mono text-xs uppercase text-verity-ink">Nama & Identitas</TableHead>
                     <TableHead className="font-mono text-xs uppercase text-verity-ink">Client ID</TableHead>
                     <TableHead className="font-mono text-xs uppercase text-verity-ink">Lingkungan</TableHead>
+                    <TableHead className="font-mono text-xs uppercase text-verity-ink">Tipe Klien</TableHead>
                     <TableHead className="font-mono text-xs uppercase text-verity-ink">Mode Publikasi</TableHead>
                     <TableHead className="font-mono text-xs uppercase text-verity-ink">Status</TableHead>
                     <TableHead className="font-mono text-xs uppercase text-verity-ink">Kredensial Aktif</TableHead>
@@ -821,6 +825,17 @@ export default function StudioApiPortalPage() {
                         <Badge variant="outline" className="font-mono text-[10px] uppercase">
                           {c.environment}
                         </Badge>
+                      </TableCell>
+                      <TableCell>
+                        {c.clientType === "INSTAGRAM_WORKER" ? (
+                          <Badge className="bg-amber-600/10 text-amber-800 border-amber-600/20 text-[10px] uppercase font-mono">
+                            Instagram Worker
+                          </Badge>
+                        ) : (
+                          <Badge variant="outline" className="text-verity-ink-soft text-[10px] uppercase font-mono">
+                            Ingestion
+                          </Badge>
+                        )}
                       </TableCell>
                       <TableCell>
                         {c.publishMode === "direct" ? (
@@ -1301,6 +1316,7 @@ Content-Type: application/json`}
                 ownerName: createOwner || undefined,
                 environment: createEnv,
                 publishMode: createPublishMode,
+                clientType: createClientType,
                 expiresInDays: createExpiresDays ? parseInt(createExpiresDays, 10) : undefined,
               });
             }}
@@ -1372,6 +1388,24 @@ Content-Type: application/json`}
                   className="mt-1 text-xs"
                 />
               </div>
+            </div>
+
+            <div>
+              <Label htmlFor="client-type" className="text-xs">Tipe Klien Integrasi</Label>
+              <select
+                id="client-type"
+                value={createClientType}
+                onChange={(e) =>
+                  setCreateClientType(e.target.value as "INGESTION" | "INSTAGRAM_WORKER")
+                }
+                className="mt-1 w-full border border-verity-rule bg-card px-2.5 py-1.5 text-xs text-verity-ink"
+              >
+                <option value="INGESTION">Ingestion Naskah (Mengusulkan draf artikel)</option>
+                <option value="INSTAGRAM_WORKER">Instagram Worker (Otomatisasi publikasi komidi putar)</option>
+              </select>
+              <p className="mt-1 text-[11px] text-verity-ink-soft">
+                Klien tipe Instagram Worker hanya memiliki izin membaca artikel terbit dan memublikasikan komidi putar Instagram.
+              </p>
             </div>
 
             <div>
