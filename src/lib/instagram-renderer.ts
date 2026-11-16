@@ -12,7 +12,6 @@
  */
 
 import satori from "satori";
-import { Resvg } from "@resvg/resvg-js";
 import sharp from "sharp";
 import { getSatoriFonts } from "@/lib/instagram-fonts";
 
@@ -927,20 +926,13 @@ function buildSlideNode(
 }
 
 /**
- * Dual-engine SVG -> PNG conversion:
- * Uses fast native @resvg/resvg-js first, with seamless fallback to sharp.
+ * SVG -> PNG conversion via sharp:
+ * Converts Satori-generated SVG to publication-quality 1080x1080 PNG.
  */
 async function svgToPngBuffer(svg: string): Promise<Buffer> {
-  try {
-    const resvg = new Resvg(svg, {
-      fitTo: { mode: "width", value: 1080 },
-    });
-    return Buffer.from(resvg.render().asPng());
-  } catch {
-    return await sharp(Buffer.from(svg))
-      .png({ compressionLevel: 9 })
-      .toBuffer();
-  }
+  return await sharp(Buffer.from(svg))
+    .png({ compressionLevel: 9 })
+    .toBuffer();
 }
 
 /**
