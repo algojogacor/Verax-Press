@@ -1420,3 +1420,34 @@ Dijalankan 9 Nov 2026 (sesi build-2). Transkrip lengkap: `scripts/acceptance-tes
   - `bun run lint`: 0 galat.
   - Bebas tanda pisah em dash, bebas frasa klise AI, dan patuh standar editorial Verax Press.
 
+## 71. Resolusi Perbedaan Skema Turso Cloud Produksi dan Pemulihan Galat MediaAsset.isGeneric (16 Nov 2026)
+- **Investigasi Basis Data Produksi:**
+  - Menelusuri konfigurasi lingkungan proyek Vercel (`prj_zkVrSFKXkkoUhAlZRUi8tkgbIARB`): Terbukti bahwa lingkungan produksi menggunakan koneksi basis data terkelola Turso Cloud (`libsql://verax-aryarizkyap.aws-ap-southeast-1.turso.io`) melalui `@prisma/adapter-libsql` saat `NODE_ENV === 'production'`. Perintah `prisma db push` lokal sebelumnya hanya menyentuh file lokal SQLite (`db/custom.db` dan `db/isolated-test.db`).
+  - Menelusuri log produksi Vercel: Ditemukan galat `SqliteError: no such column: main.MediaAsset.isGeneric (at offset 391)` saat pemanggilan `db.mediaAsset.findMany()` pada rute `/studio/media`.
+  - Pemeriksaan menyeluruh skema aktual Turso Cloud vs `prisma/schema.prisma` di 21 tabel:
+    1. Kolom `MediaAsset.isGeneric` (`BOOLEAN NOT NULL DEFAULT true`) belum ada di Turso Cloud.
+    2. Kolom `ApiClient.publishMode` (`TEXT NOT NULL DEFAULT 'standard'`) belum ada di Turso Cloud.
+    3. Seluruh 19 tabel lainnya, indeks, dan konstrain relasi berada dalam paritas 100%.
+- **Pencadangan Penuh dan Verifikasi Keutuhan Data:**
+  - Sebelum menjalankan mutasi DDL pada basis data produksi aktif, cadangan penuh diekspor dan diverifikasi di `db/backups/turso_export_2026-11-16T03-42-29-529Z.db`.
+  - Berkas cadangan SQLite diverifikasi (SHA-256: `11ae7d7071b0006cb6e6ee7ecc16683214e2f1c35bb2b82de28ce1bee54f8505`, 162 baris, 0 pelanggaran foreign key, PRAGMA integrity_check: ok).
+- **Migrasi Skema Non-Destruktif:**
+  - Diterapkan melalui naskah terkelola `scripts/migrate-turso-schema-sync.ts`:
+    - `ALTER TABLE "MediaAsset" ADD COLUMN "isGeneric" BOOLEAN NOT NULL DEFAULT true;`
+    - `ALTER TABLE "ApiClient" ADD COLUMN "publishMode" TEXT NOT NULL DEFAULT 'standard';`
+  - Keutuhan data terjamin tanpa ada data yang terhapus atau tereset:
+    - 1 entri MediaAsset aktif tetap utuh dengan nilai default `isGeneric = 1`.
+    - 3 entri ApiClient (`Gemini`, `ChatGPT`, `GLM`) tetap utuh dengan `publishMode = 'standard'`.
+    - Seluruh artikel terbit aktif tetap utuh.
+- **Verifikasi Hasil dan Titik Akhir Produksi:**
+  - Paritas skema pasca-migrasi: 100% identik di seluruh 21 tabel.
+  - Pengujian kueri Prisma Client terhadap Turso Cloud (`bun scripts/verify-turso-prisma.ts`) sukses menjalankan kueri `findMany` untuk `mediaAsset`, `apiClient`, dan `article` dengan relasi `heroMedia`.
+  - Pengujian titik akhir langsung pada domain produksi `https://veraxpress.vercel.app`:
+    - `GET /` : 200 OK.
+    - `GET /artikel/ketika-data-pribadi-masuk-ke-chatbot-ai-siapa-yang-bertanggung-jawab` : 200 OK.
+    - `GET /api/internal/v1/capabilities` : 200 OK.
+    - `GET /studio/media` : 307 Temporary Redirect ke login tanpa kegagalan basis data.
+    - `GET /api/studio/media` : 401 Unauthorized tanpa galat internal server 500.
+    - Log Vercel memastikan tidak ada lagi galat `no such column` yang tercatat pasca-migrasi.
+  - Seluruh pengujian lokal `bun test`: 306 pass, 0 fail (3365 assertions) di 26 file.
+
