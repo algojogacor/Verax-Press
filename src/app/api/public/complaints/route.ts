@@ -1,13 +1,61 @@
 // POST /api/public/complaints: formulir keluhan/hak jawab/hak koreksi publik.
+// GET /api/public/complaints: pelacakan status permohonan terbuka (sanitasi ketat tanpa membocorkan data pribadi).
 // Rate-limited per IP. refCode dibuat server-side. Deadline tetap NULL (LEGAL REVIEW REQUIRED).
 import { NextResponse } from "next/server";
 import { z } from "zod";
 import { db } from "@/lib/db";
-import { jsonError, ok, parseJsonBody } from "@/lib/api";
-import { createComplaintWithRetry } from "@/lib/domain/complaint";
+import { ApiError, jsonError, ok, parseJsonBody } from "@/lib/api";
+import { createComplaintWithRetry, getPublicComplaintStatus } from "@/lib/domain/complaint";
 import { writeAudit } from "@/lib/domain/audit";
 import { getClientIp, rateLimit, sweepRateLimits } from "@/lib/rate-limit";
 import { COMPLAINT_TYPES } from "@/lib/domain/constants";
+
+export async function GET(request: Request) {
+  try {
+    sweepRateLimits();
+    const ip = getClientIp(request);
+    const limit = rateLimit(`public-complaint-status:${ip}`, 30, 10 * 60 * 1000);
+    if (!limit.allowed) {
+      return NextResponse.json(
+        { error: "Terlalu banyak permintaan pelacakan status. Silakan coba beberapa saat lagi.", code: "RATE_LIMITED" },
+        { status: 429, headers: { "Retry-After": String(limit.retryAfterSeconds) } },
+      );
+    }
+
+    const { searchParams } = new URL(request.url);
+    const rawRefCode = searchParams.get("refCode") || searchParams.get("ref");
+
+    if (!rawRefCode || !rawRefCode.trim()) {
+      return jsonError(new ApiError(400, "MISSING_REF_CODE", "Parameter refCode wajib diisi (contoh: KEL-2026-0001)."));
+    }
+
+    const refCode = rawRefCode.trim();
+    if (refCode.length > 50 || !/^KEL-\d{4}-\d+$/i.test(refCode)) {
+      return jsonError(
+        new ApiError(
+          422,
+          "INVALID_REF_CODE",
+          "Format nomor antrean tidak valid. Gunakan format KEL-YYYY-NNNN (contoh: KEL-2026-0001).",
+        ),
+      );
+    }
+
+    const result = await getPublicComplaintStatus(db, refCode);
+    if (!result) {
+      return jsonError(
+        new ApiError(
+          404,
+          "NOT_FOUND",
+          "Permohonan dengan nomor antrean tersebut tidak ditemukan. Periksa kembali nomor yang Anda masukkan.",
+        ),
+      );
+    }
+
+    return ok(result);
+  } catch (error) {
+    return jsonError(error);
+  }
+}
 
 export async function POST(request: Request) {
   try {

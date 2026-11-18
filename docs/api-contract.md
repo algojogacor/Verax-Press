@@ -95,6 +95,22 @@ Header: `Authorization: Bearer vrtc_<clientId>.<secret>`. Body sesuai TA §9.1
 block-JSON, `sources[]` ber-URL, `agentId`). → `201 { submissionId, articleId, status:"DRAFT", receivedAt, idempotentReplay:false }`.
 Replay idempotent → 200 sama; key sama + payload beda → 409; tanpa auth → 401; rate limit → 429.
 
+## Instagram Worker (API client; scope INSTAGRAM_WORKER)
+
+Spesifikasi lengkap: `docs/editorial/INSTAGRAM_WORKER_API_CONTRACT.md`
+
+### GET `/api/internal/v1/instagram/articles?limit=`
+Header: `Authorization: Bearer <clientId>.<secret>`. Scope wajib `INSTAGRAM_WORKER` (atau sesi staf).
+Query params: `limit` (1-100, default 10).
+Hanya mengembalikan artikel `status === "PUBLISHED"` yang belum pernah terbit di Instagram (`status !== "POSTED"`). Artikel dengan catatan `FAILED` tetap disertakan untuk dicoba ulang.
+Respons: `200 { articles: ArticleForInstagram[] }`.
+
+### POST `/api/internal/v1/instagram/publish`
+Header: `Authorization: Bearer <clientId>.<secret>`. Scope wajib `INSTAGRAM_WORKER`.
+Body: `{ articleId, caption, slides: SlideData[] }` (slides: min 2, max 10; slideType: `cover|content|quote|closing`).
+Alur peladen: Verifikasi artikel `PUBLISHED` → Idempotensi (409 jika sudah `POSTED`) → Render PNG via Satori+Sharp → Publikasi Meta Graph API (retry s.d 3x jeda eksponensial) → Catat `POSTED` atau `FAILED`.
+Respons: `200 { status: "POSTED"|"FAILED", postUrl, instagramPostId, attempts, lastError }`.
+
 ## Block-JSON konten artikel
 
 ```ts

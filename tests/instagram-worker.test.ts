@@ -16,6 +16,7 @@ import { POST as instagramPublishPost } from "@/app/api/internal/v1/instagram/pu
 import {
   renderCarouselSlides,
   buildDefaultSlidesFromArticle,
+  parseContentSlideText,
   type ArticleForInstagram,
   type SlideData,
 } from "@/lib/instagram-renderer";
@@ -1030,6 +1031,77 @@ describe("Instagram Carousel Auto-Publisher & Scope Isolation Suite", () => {
       expect(buffers.length).toBe(4);
 
       // Verifikasi slide pertama
+      const meta = await sharp(buffers[0]).metadata();
+      expect(meta.format).toBe("png");
+      expect(meta.width).toBe(1080);
+      expect(meta.height).toBe(1080);
+    });
+
+    test("parseContentSlideText memisahkan kalimat pembuka dengan benar meski memuat singkatan dan angka berkoma", () => {
+      // 1. Kasus singkatan mata uang dan angka berkoma
+      const res1 = parseContentSlideText(
+        undefined,
+        "Alokasi Rp. 412,8 miliar dicairkan pada 14 Januari 2026. Penyelidikan membongkar bahwa izin diterbitkan tanpa lelang."
+      );
+      expect(res1.leadText).toBe("Alokasi Rp. 412,8 miliar dicairkan pada 14 Januari 2026.");
+      expect(res1.narrativeText).toBe("Penyelidikan membongkar bahwa izin diterbitkan tanpa lelang.");
+
+      // 2. Kasus desimal dengan titik
+      const res2 = parseContentSlideText(
+        undefined,
+        "Dana Rp 412.8 miliar dicairkan tanpa izin parlemen. Berkas audit BPKP membongkar aliran dana ini."
+      );
+      expect(res2.leadText).toBe("Dana Rp 412.8 miliar dicairkan tanpa izin parlemen.");
+      expect(res2.narrativeText).toBe("Berkas audit BPKP membongkar aliran dana ini.");
+
+      // 3. Kasus singkatan SPK No. dan PT.
+      const res3 = parseContentSlideText(
+        undefined,
+        "Panitia lelang menerbitkan SPK No. 044 kepada PT. Tripatra Nusacipta. Padahal lelang baru diumumkan dua pekan kemudian."
+      );
+      expect(res3.leadText).toBe("Panitia lelang menerbitkan SPK No. 044 kepada PT. Tripatra Nusacipta.");
+      expect(res3.narrativeText).toBe("Padahal lelang baru diumumkan dua pekan kemudian.");
+
+      // 4. Kasus gelar kehormatan / nama pejabat
+      const res4 = parseContentSlideText(
+        undefined,
+        "Ir. Sudirman menandatangani dokumen tanpa verifikasi bank. Kas negara mentransfer termin awal ke rekening rekanan."
+      );
+      expect(res4.leadText).toBe("Ir. Sudirman menandatangani dokumen tanpa verifikasi bank.");
+      expect(res4.narrativeText).toBe("Kas negara mentransfer termin awal ke rekening rekanan.");
+    });
+
+    test("parseContentSlideText memisahkan teks multi-paragraf menjadi leadText dan narrativeText", () => {
+      const raw = "Konteks Latar Belakang Perkara\n\nParagraf kedua menjelaskan temuan audit.\n\nParagraf ketiga menguraikan implikasi hukum.";
+      const res = parseContentSlideText(undefined, raw);
+      expect(res.leadText).toBe("Konteks Latar Belakang Perkara");
+      expect(res.narrativeText).toContain("Paragraf kedua menjelaskan temuan audit.");
+      expect(res.narrativeText).toContain("Paragraf ketiga menguraikan implikasi hukum.");
+    });
+
+    test("Slide closing menampilkan slide.content yang diserahkan dan tidak membuangnya", async () => {
+      const sampleArticle: ArticleForInstagram = {
+        id: "art-closing-content",
+        title: "Penyelidikan Anggaran",
+        deck: "Deskripsi",
+        slug: "penyelidikan-anggaran",
+        desk: "Investigasi",
+        byline: "Redaksi Verax Press",
+        publishedAt: new Date(),
+      };
+
+      const closingSlides: SlideData[] = [
+        {
+          slideType: "closing",
+          kicker: "BACA INVESTIGASI LENGKAP",
+          callToAction: "Mengapa pencairan anggaran ratusan miliar dapat lolos?",
+          content: "Buka rekonsiliasi transfer kas dan transkrip pemeriksaan selengkapnya.",
+        },
+      ];
+
+      const buffers = await renderCarouselSlides(sampleArticle, closingSlides);
+      expect(buffers.length).toBe(1);
+
       const meta = await sharp(buffers[0]).metadata();
       expect(meta.format).toBe("png");
       expect(meta.width).toBe(1080);

@@ -1,8 +1,9 @@
-// Hak jawab, hak koreksi, dan keluhan: /keluhan — penjelasan kebijakan + formulir (client).
+// Hak jawab, hak koreksi, dan keluhan: /keluhan — penjelasan kebijakan + formulir & pelacakan status mandiri.
 // TANPA janji jumlah hari (tenggat operasional masih kajian hukum — worklog §3).
+import { Suspense } from "react";
 import type { Metadata } from "next";
 import Link from "next/link";
-import { ComplaintForm } from "@/components/site/complaint-form";
+import { ComplaintSection } from "@/components/site/complaint-section";
 import { Breadcrumbs } from "@/components/site/breadcrumbs";
 import { JsonLd } from "@/components/seo/json-ld";
 import { canonicalUrl } from "@/lib/seo/constants";
@@ -61,20 +62,19 @@ export default function ComplaintPage() {
 
       {/* Grid Utama 2 Kolom di Desktop (lg:) */}
       <div className="mt-10 grid gap-12 lg:grid-cols-[minmax(0,1.35fr)_22rem] lg:gap-14">
-        {/* Kolom Kiri: Formulir Pengajuan */}
-        <section aria-label="Formulir permohonan" className="min-w-0">
-          <div className="border border-verity-rule bg-verity-paper-soft p-6 sm:p-8">
-            <h2 className="font-serif text-[1.35rem] font-semibold text-verity-ink">
-              Kirimkan Permohonan
-            </h2>
-            <p className="mt-2 font-serif text-[0.92rem] leading-relaxed text-verity-ink-soft">
-              Isi data berikut dengan jelas. Anda akan menerima nomor registrasi antrean unik untuk
-              melacak proses penelaahan redaksi.
-            </p>
-            <div className="mt-6 border-t border-verity-rule pt-6">
-              <ComplaintForm />
-            </div>
-          </div>
+        {/* Kolom Kiri: Formulir Pengajuan & Pelacakan Mandiri */}
+        <section aria-label="Layanan permohonan dan pelacakan" className="min-w-0">
+          <Suspense
+            fallback={
+              <div className="border border-verity-rule bg-verity-paper-soft p-8">
+                <p className="font-mono text-[12px] uppercase tracking-wider text-verity-ink-faint">
+                  Memuat layanan permohonan…
+                </p>
+              </div>
+            }
+          >
+            <ComplaintSection />
+          </Suspense>
         </section>
 
         {/* Kolom Kanan: Panduan & Informasi Proses */}
@@ -104,7 +104,7 @@ export default function ComplaintPage() {
             <ol className="mt-3 space-y-2.5 font-serif text-[0.88rem] leading-relaxed text-verity-ink-soft">
               <li className="flex gap-2">
                 <span className="font-mono text-xs font-semibold text-verity-ink">1.</span>
-                <span>Pencatatan resmi ke register pengaduan redaksi beserta nomor antrean.</span>
+                <span>Pencatatan resmi ke register pengaduan redaksi beserta nomor antrean untuk pelacakan mandiri.</span>
               </li>
               <li className="flex gap-2">
                 <span className="font-mono text-xs font-semibold text-verity-ink">2.</span>

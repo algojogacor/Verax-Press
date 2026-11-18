@@ -45,7 +45,11 @@ function OptionalMark() {
   return <span className="font-normal text-verity-ink-faint">(opsional)</span>;
 }
 
-export function ComplaintForm() {
+interface ComplaintFormProps {
+  onTrack?: (refCode: string) => void;
+}
+
+export function ComplaintForm({ onTrack }: ComplaintFormProps = {}) {
   const [type, setType] = useState<ComplaintType | "">("");
   const [articleSlug, setArticleSlug] = useState("");
   const [senderName, setSenderName] = useState("");
@@ -142,6 +146,33 @@ export function ComplaintForm() {
           Tanggal terima: {formatDateTime(success.receivedAt)}. Simpan nomor antrean ini untuk
           penelusuran.
         </p>
+        <div className="mt-6 flex flex-wrap gap-3">
+          {onTrack ? (
+            <Button
+              type="button"
+              onClick={() => onTrack(success.refCode)}
+              className="h-10 rounded-xs bg-verity-ink px-4 text-xs font-medium text-verity-paper transition-colors hover:bg-black"
+            >
+              Lacak Status Permohonan Ini
+            </Button>
+          ) : null}
+          <Button
+            type="button"
+            variant="outline"
+            onClick={() => {
+              setSuccess(null);
+              setMessage("");
+              setArticleSlug("");
+              setSenderName("");
+              setSenderEmail("");
+              setSenderPhone("");
+              setType("");
+            }}
+            className="h-10 rounded-xs border-verity-rule bg-card px-4 text-xs font-medium text-verity-ink transition-colors hover:bg-verity-paper-soft"
+          >
+            Ajukan Permohonan Lain
+          </Button>
+        </div>
       </div>
     );
   }

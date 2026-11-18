@@ -1799,5 +1799,29 @@ Dijalankan 9 Nov 2026 (sesi build-2). Transkrip lengkap: `scripts/acceptance-tes
   * Nol mutasi basis data lokal maupun produksi, nol pemanggilan Meta Graph API selama testing.
   * Bebas 100% dari tanda pisah em dash dan kata-kata klise AI.
 
+- **Fitur Pelacakan Mandiri Status Hak Jawab & Keluhan Publik (18 November 2026):**
+  * *Latar Belakang & Kebutuhan:* Pembaca yang telah mengajukan hak jawab, hak koreksi, atau keluhan editorial menerima nomor registrasi antrean unik (`refCode`, contoh: `KEL-2026-0001`). Fitur pelacakan mandiri ditambahkan agar pemohon dapat memeriksa perkembangan telaah redaksi tanpa harus bertanya secara manual ke ruang redaksi.
+  * *Perlindungan Privasi & Keamanan (Safe DTO):*
+    - Endpoint publik secara ketat mengecualikan seluruh data pribadi pelapor (`senderName`, `senderEmail`, `senderPhone`, dan isi lengkap naskah keluhan `message`).
+    - Data publik yang dikembalikan terbatas pada: `refCode`, jenis permohonan (`type` & `typeLabel`), status penanganan (`status` & `statusLabel`), tanggal terima (`receivedAt`), tanggal keputusan (`decidedAt`), catatan tindak lanjut terbuka (`decisionNote`), serta judul dan pranala artikel terkait (`article`).
+    - Pembatasan laju (*rate limiting*) diterapkan per IP (30 permintaan per 10 menit) untuk mencegah pemindaian masal (*brute-force enumeration*).
+  * *Endpoint API Baru:*
+    - `GET /api/public/complaints?refCode=...`
+    - `GET /api/public/complaints/status?refCode=...` (alias resmi)
+    - Validasi format `KEL-YYYY-NNNN` (dengan normalisasi otomatis terhadap huruf kecil dan digit tanpa *zero-padding* seperti `kel-2026-1` menjadi `KEL-2026-0001`).
+    - Kode galat terstandarisasi: HTTP 400 (parameter kosong), HTTP 422 (format tidak valid), HTTP 404 (nomor tidak ditemukan), HTTP 429 (rate-limited).
+  * *Antarmuka Pengguna (UI) pada `/keluhan`:*
+    - Komponen `src/components/site/complaint-tracker.tsx`: Formulir pencarian nomor antrean interaktif dengan indikator visual tahap telaah (`Diterima`, `Sedang Ditinjau`, `Selesai`, `Ditolak`) dan kotak catatan keputusan redaksi jika sudah ditetapkan.
+    - Komponen `src/components/site/complaint-section.tsx`: Tab terpadu di halaman `/keluhan` yang menyatukan "Kirimkan Permohonan" dan "Lacak Status Permohonan".
+    - Penyambungan instan pada `src/components/site/complaint-form.tsx`: Setelah pengajuan berhasil, pemohon langsung diberikan tombol "Lacak Status Permohonan Ini" yang otomatis berpindah ke tab pelacakan dan memuat statusnya.
+    - Dukungan URL Query: Mengakses `/keluhan?ref=KEL-2026-0001` atau `/keluhan?tab=lacak` langsung mengaktifkan tab pelacakan dan memuat status nomor antrean tersebut.
+  * *Evaluasi Permukaan Penemuan (Discovery Surface Evaluation):*
+    - Fitur ini merupakan utilitas publik untuk pembaca dan tidak mengubah kontrak Ingestion API atau External Agent Protocol. Saluran `/openapi.json`, `/llms.txt`, `/llms-full.txt`, `/.well-known/verax-agent.json`, `/api/internal/v1/capabilities`, dan `/developers` secara sengaja dipertahankan tanpa perubahan karena berfokus pada integrasi naskah agen AI.
+  * *Verifikasi & Pengujian:*
+    - 3 test suite baru ditambahkan ke `tests/regression.test.ts` mencakup pengujian isolasi data privasi, normalisasi case/padding, dan kode status galat validasi.
+    - `bun run typecheck`: 100% lolos tanpa kesalahan tipe.
+    - `bun test`: 344 tes lolos dari 28 berkas pengujian.
+
+
 
 

@@ -573,6 +573,103 @@ suiteDescribe('Complaint submission', () => {
     }, author)
     expect(authorRes.status).toBe(403)
   })
+
+  test('public complaint tracking → 200 with sanitized status without personal info', async () => {
+    // 1. Submit complaint
+    const postRes = await fetch(`${BASE}/api/public/complaints`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'X-Forwarded-For': '10.55.66.77',
+      },
+      body: JSON.stringify({
+        type: 'HAK_JAWAB',
+        senderName: 'Nama Rahasia Pelapor',
+        senderEmail: 'rahasia@example.com',
+        senderPhone: '08123456789',
+        message: 'Ini pesan aduan rahasia yang tidak boleh bocor ke publik dalam pelacakan.',
+      }),
+    })
+    expect(postRes.status).toBe(201)
+    const { refCode } = (await postRes.json()) as { refCode: string }
+    expect(refCode).toBeTruthy()
+
+    // 2. Track complaint status via GET /api/public/complaints?refCode=...
+    const trackRes = await fetch(`${BASE}/api/public/complaints?refCode=${refCode}`, {
+      headers: { 'X-Forwarded-For': '10.55.66.88' },
+    })
+    expect(trackRes.status).toBe(200)
+    const data = await trackRes.json()
+
+    // Public fields exist
+    expect(data.refCode).toBe(refCode)
+    expect(data.type).toBe('HAK_JAWAB')
+    expect(data.typeLabel).toBe('Hak Jawab')
+    expect(data.status).toBe('RECEIVED')
+    expect(data.statusLabel).toBe('Diterima')
+    expect(data.receivedAt).toBeTruthy()
+
+    // Sensitive / private fields are NEVER exposed
+    expect((data as any).senderName).toBeUndefined()
+    expect((data as any).senderEmail).toBeUndefined()
+    expect((data as any).senderPhone).toBeUndefined()
+    expect((data as any).message).toBeUndefined()
+    expect((data as any).id).toBeUndefined()
+  })
+
+  test('public complaint tracking with unpadded / lowercase refCode normalizes correctly', async () => {
+    // Create complaint
+    const postRes = await fetch(`${BASE}/api/public/complaints`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'X-Forwarded-For': '10.55.66.79',
+      },
+      body: JSON.stringify({
+        type: 'HAK_KOREKSI',
+        senderName: 'Uji Normalisasi',
+        senderEmail: 'norm@example.com',
+        message: 'Pengaduan untuk menguji normalisasi format nomor antrean.',
+      }),
+    })
+    const { refCode } = (await postRes.json()) as { refCode: string }
+
+    // Test lowercase lookup
+    const lowerRes = await fetch(`${BASE}/api/public/complaints?refCode=${refCode.toLowerCase()}`, {
+      headers: { 'X-Forwarded-For': '10.55.66.89' },
+    })
+    expect(lowerRes.status).toBe(200)
+    const lowerData = await lowerRes.json()
+    expect(lowerData.refCode).toBe(refCode)
+
+    // Test via /api/public/complaints/status alias
+    const aliasRes = await fetch(`${BASE}/api/public/complaints/status?refCode=${refCode}`, {
+      headers: { 'X-Forwarded-For': '10.55.66.90' },
+    })
+    expect(aliasRes.status).toBe(200)
+    const aliasData = await aliasRes.json()
+    expect(aliasData.refCode).toBe(refCode)
+  })
+
+  test('public complaint tracking validations: missing (400), invalid (422), not found (404)', async () => {
+    // Missing refCode
+    const missingRes = await fetch(`${BASE}/api/public/complaints`, {
+      headers: { 'X-Forwarded-For': '10.55.66.91' },
+    })
+    expect(missingRes.status).toBe(400)
+
+    // Invalid format
+    const invalidRes = await fetch(`${BASE}/api/public/complaints?refCode=INVALID-123`, {
+      headers: { 'X-Forwarded-For': '10.55.66.92' },
+    })
+    expect(invalidRes.status).toBe(422)
+
+    // Not found
+    const notFoundRes = await fetch(`${BASE}/api/public/complaints?refCode=KEL-2026-9999`, {
+      headers: { 'X-Forwarded-For': '10.55.66.93' },
+    })
+    expect(notFoundRes.status).toBe(404)
+  })
 })
 
 // ============================================================================
