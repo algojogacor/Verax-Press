@@ -224,12 +224,22 @@ export default async function AboutPage() {
 
               <div className="grid gap-4 sm:grid-cols-2">
                 <div className="border border-verity-rule bg-verity-paper-soft p-5 sm:col-span-2">
-                  <p className="font-mono text-[10px] uppercase tracking-[0.16em] text-verity-accent">
-                    Pemimpin Redaksi
-                  </p>
-                  <p className="mt-1 font-serif text-[1.25rem] font-semibold text-verity-ink">
-                    Arya Rizky Ardhi Pratama
-                  </p>
+                  <div className="flex flex-wrap items-center justify-between gap-2">
+                    <p className="font-mono text-[10px] uppercase tracking-[0.16em] text-verity-accent">
+                      Pemimpin Redaksi
+                    </p>
+                    <Link
+                      href="/penulis/person_pemredVP"
+                      className="font-mono text-[11px] uppercase tracking-[0.08em] text-verity-ink-soft hover:text-verity-accent underline underline-offset-4"
+                    >
+                      Lihat Profil Redaksi →
+                    </Link>
+                  </div>
+                  <h3 className="mt-1 font-serif text-[1.25rem] font-semibold text-verity-ink">
+                    <Link href="/penulis/person_pemredVP" className="hover:text-verity-accent transition-colors">
+                      Arya Rizky Ardhi Pratama
+                    </Link>
+                  </h3>
                   <p className="mt-1 font-serif text-[0.92rem] text-verity-ink-soft">
                     Penanggung Jawab Kebijakan Redaksi &amp; Persetujuan Penerbitan Naskah
                   </p>
@@ -242,12 +252,22 @@ export default async function AboutPage() {
                 </div>
 
                 <div className="border border-verity-rule bg-verity-paper-soft p-5">
-                  <p className="font-mono text-[10px] uppercase tracking-[0.16em] text-verity-accent">
-                    Staf Redaksi &amp; Penulis
-                  </p>
-                  <p className="mt-1 font-serif text-[1.15rem] font-semibold text-verity-ink">
-                    Salman Zahi Muhajirin
-                  </p>
+                  <div className="flex flex-wrap items-center justify-between gap-2">
+                    <p className="font-mono text-[10px] uppercase tracking-[0.16em] text-verity-accent">
+                      Staf Redaksi &amp; Penulis
+                    </p>
+                    <Link
+                      href="/penulis/cmwdoj99s0003jm087nrum8hl"
+                      className="font-mono text-[10px] uppercase tracking-[0.08em] text-verity-ink-soft hover:text-verity-accent underline underline-offset-4"
+                    >
+                      Profil →
+                    </Link>
+                  </div>
+                  <h3 className="mt-1 font-serif text-[1.15rem] font-semibold text-verity-ink">
+                    <Link href="/penulis/cmwdoj99s0003jm087nrum8hl" className="hover:text-verity-accent transition-colors">
+                      Salman Zahi Muhajirin
+                    </Link>
+                  </h3>
                   <p className="mt-1 font-serif text-[0.88rem] text-verity-ink-soft">
                     Penulisan &amp; Riset Isu Teknologi dan Kebijakan Digital
                   </p>
@@ -257,12 +277,22 @@ export default async function AboutPage() {
                 </div>
 
                 <div className="border border-verity-rule bg-verity-paper-soft p-5">
-                  <p className="font-mono text-[10px] uppercase tracking-[0.16em] text-verity-accent">
-                    Staf Redaksi &amp; Penulis
-                  </p>
-                  <p className="mt-1 font-serif text-[1.15rem] font-semibold text-verity-ink">
-                    Muhammad Rafi Raditya Akbar
-                  </p>
+                  <div className="flex flex-wrap items-center justify-between gap-2">
+                    <p className="font-mono text-[10px] uppercase tracking-[0.16em] text-verity-accent">
+                      Staf Redaksi &amp; Penulis
+                    </p>
+                    <Link
+                      href="/penulis/cmwdobunf0005jv07zibyj0lr"
+                      className="font-mono text-[10px] uppercase tracking-[0.08em] text-verity-ink-soft hover:text-verity-accent underline underline-offset-4"
+                    >
+                      Profil →
+                    </Link>
+                  </div>
+                  <h3 className="mt-1 font-serif text-[1.15rem] font-semibold text-verity-ink">
+                    <Link href="/penulis/cmwdobunf0005jv07zibyj0lr" className="hover:text-verity-accent transition-colors">
+                      Muhammad Rafi Raditya Akbar
+                    </Link>
+                  </h3>
                   <p className="mt-1 font-serif text-[0.88rem] text-verity-ink-soft">
                     Penulisan &amp; Riset Isu Sosial, Budaya, dan Bahasa
                   </p>

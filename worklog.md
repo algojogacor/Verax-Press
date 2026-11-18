@@ -1772,10 +1772,12 @@ Dijalankan 9 Nov 2026 (sesi build-2). Transkrip lengkap: `scripts/acceptance-tes
     2. Menambahkan dan memperbarui identitas anggota staf redaksi:
        - Salman Zahi Muhajirin: `bio = 'Staf Redaksi Verax Press · Sistem Informasi, Universitas Airlangga.'`
        - Muhammad Rafi Raditya Akbar: `bio = 'Staf Redaksi Verax Press · Sastra Inggris, Universitas Islam Negeri Sunan Ampel Surabaya (UINSA).'`
-    3. Memperbarui halaman `/tentang` dan `/informasi-kelembagaan` untuk menyajikan struktur ruang redaksi lengkap (Pemimpin Redaksi + Staf Redaksi & Penulis).
-    4. Menyempurnakan halaman `/penulis/[id]` agar menampilkan label peran dinamis ("Pemimpin Redaksi", "Staf Redaksi", atau "Penulis").
+    3. Memperbarui halaman `/tentang` dan `/informasi-kelembagaan` untuk menyajikan struktur ruang redaksi lengkap dengan pranala langsung ke masing-masing halaman profil penulis/staf.
+    4. Merombak tata letak halaman `/penulis/[id]` agar responsif dan seimbang:
+       - Menghilangkan kotak pesan usang "Belum ada karya yang terbit" dan menggantikannya dengan kartu profil staf redaksi yang bersih dan bermartabat.
+       - Menata ulang artikel keterlibatan editorial (kredit penyuntingan Pemimpin Redaksi) menjadi tampilan artikel satu kolom terstruktur (`max-w-3xl`) tanpa kekosongan di sisi kiri.
     5. Menetapkan baris kredit editor pada halaman artikel publik sebagai teks statis independen: `Disunting oleh Redaksi` (tanpa tautan atau kebocoran nama personal).
-    6. Verifikasi live production pada `https://veraxpress.vercel.app` mengonfirmasi pemulihan profil dan konsistensi seluruh kanal.
+    6. Verifikasi live production pada `https://veraxpress.vercel.app` mengonfirmasi pemulihan profil dan navigasi UI yang mulus.
 
   1. `src/lib/instagram-renderer.ts`: Engine kompilasi layout Satori + Sharp menjadi buffer PNG 1080x1080 px.
   2. `src/lib/instagram.ts`: Klien HTTP tipis ke Meta Instagram Graph API (container creation, polling status, publish, permalink, query publishing limit).

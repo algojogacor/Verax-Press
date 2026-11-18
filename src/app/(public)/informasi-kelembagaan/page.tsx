@@ -87,12 +87,22 @@ export default function InstitutionalInfoPage() {
       </p>
       <div className="mt-4 space-y-4 max-w-lg">
         <div className="border border-verity-rule bg-verity-paper-soft p-5">
-          <p className="font-mono text-[11px] uppercase tracking-[0.16em] text-verity-accent">
-            Pemimpin Redaksi
-          </p>
-          <p className="mt-1 font-serif text-[1.2rem] font-semibold text-verity-ink">
-            Arya Rizky Ardhi Pratama
-          </p>
+          <div className="flex flex-wrap items-center justify-between gap-2">
+            <p className="font-mono text-[11px] uppercase tracking-[0.16em] text-verity-accent">
+              Pemimpin Redaksi
+            </p>
+            <Link
+              href="/penulis/person_pemredVP"
+              className="font-mono text-[11px] uppercase tracking-[0.08em] text-verity-ink-soft hover:text-verity-accent underline underline-offset-4"
+            >
+              Lihat Profil Redaksi →
+            </Link>
+          </div>
+          <h3 className="mt-1 font-serif text-[1.2rem] font-semibold text-verity-ink">
+            <Link href="/penulis/person_pemredVP" className="hover:text-verity-accent transition-colors">
+              Arya Rizky Ardhi Pratama
+            </Link>
+          </h3>
           <p className="mt-1 text-xs text-verity-ink-soft">
             Penanggung Jawab Kebijakan Redaksi &amp; Persetujuan Penerbitan Naskah (Ilmu Hukum, Universitas Airlangga)
           </p>
@@ -105,24 +115,44 @@ export default function InstitutionalInfoPage() {
 
         <div className="grid gap-3 sm:grid-cols-2">
           <div className="border border-verity-rule bg-verity-paper-soft p-4">
-            <p className="font-mono text-[10px] uppercase tracking-[0.16em] text-verity-accent">
-              Staf Redaksi &amp; Penulis
-            </p>
-            <p className="mt-1 font-serif text-[1.05rem] font-semibold text-verity-ink">
-              Salman Zahi Muhajirin
-            </p>
+            <div className="flex flex-wrap items-center justify-between gap-1">
+              <p className="font-mono text-[10px] uppercase tracking-[0.16em] text-verity-accent">
+                Staf Redaksi &amp; Penulis
+              </p>
+              <Link
+                href="/penulis/cmwdoj99s0003jm087nrum8hl"
+                className="font-mono text-[10px] uppercase tracking-[0.08em] text-verity-ink-soft hover:text-verity-accent underline underline-offset-4"
+              >
+                Profil →
+              </Link>
+            </div>
+            <h4 className="mt-1 font-serif text-[1.05rem] font-semibold text-verity-ink">
+              <Link href="/penulis/cmwdoj99s0003jm087nrum8hl" className="hover:text-verity-accent transition-colors">
+                Salman Zahi Muhajirin
+              </Link>
+            </h4>
             <p className="mt-1 text-xs text-verity-ink-soft">
               Sistem Informasi, Universitas Airlangga
             </p>
           </div>
 
           <div className="border border-verity-rule bg-verity-paper-soft p-4">
-            <p className="font-mono text-[10px] uppercase tracking-[0.16em] text-verity-accent">
-              Staf Redaksi &amp; Penulis
-            </p>
-            <p className="mt-1 font-serif text-[1.05rem] font-semibold text-verity-ink">
-              Muhammad Rafi Raditya Akbar
-            </p>
+            <div className="flex flex-wrap items-center justify-between gap-1">
+              <p className="font-mono text-[10px] uppercase tracking-[0.16em] text-verity-accent">
+                Staf Redaksi &amp; Penulis
+              </p>
+              <Link
+                href="/penulis/cmwdobunf0005jv07zibyj0lr"
+                className="font-mono text-[10px] uppercase tracking-[0.08em] text-verity-ink-soft hover:text-verity-accent underline underline-offset-4"
+              >
+                Profil →
+              </Link>
+            </div>
+            <h4 className="mt-1 font-serif text-[1.05rem] font-semibold text-verity-ink">
+              <Link href="/penulis/cmwdobunf0005jv07zibyj0lr" className="hover:text-verity-accent transition-colors">
+                Muhammad Rafi Raditya Akbar
+              </Link>
+            </h4>
             <p className="mt-1 text-xs text-verity-ink-soft">
               Sastra Inggris, UIN Sunan Ampel Surabaya
             </p>

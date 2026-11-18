@@ -9,6 +9,7 @@ import { FeaturedArticleCard, CompactArticleCard } from "@/components/site/artic
 import { Breadcrumbs } from "@/components/site/breadcrumbs";
 import { JsonLd } from "@/components/seo/json-ld";
 import { canonicalUrl, getCanonicalBaseUrl } from "@/lib/seo/constants";
+import { formatDate } from "@/lib/format";
 import {
   buildBreadcrumbJsonLd,
   buildProfilePageJsonLd,
@@ -157,12 +158,71 @@ export default async function AuthorPage({ params }: PageCtx) {
       </header>
 
       {writerWorks.length === 0 && otherWorks.length === 0 ? (
-        <div className="border border-dashed border-verity-rule px-6 py-12 text-center">
-          <p className="font-serif text-lg text-verity-ink-soft">Belum ada karya yang terbit.</p>
+        person.accountType === "STAFF" ? (
+          <div className="border border-verity-rule bg-verity-paper-soft p-6 max-w-xl">
+            <p className="font-mono text-[10px] uppercase tracking-[0.16em] text-verity-accent">
+              Ruang Redaksi Verax Press
+            </p>
+            <p className="mt-2 font-serif text-[0.98rem] leading-relaxed text-verity-ink">
+              {displayName} adalah bagian dari tim redaksi Verax Press yang berkontribusi dalam riset liputan, kurasi naskah, dan verifikasi sumber primer.
+            </p>
+            <div className="mt-4 pt-3 border-t border-verity-rule flex items-center justify-between text-xs font-mono text-verity-ink-soft">
+              <span>Ex Fontibus Veritas</span>
+              <Link href="/tentang" className="underline hover:text-verity-accent">
+                Susunan Redaksi →
+              </Link>
+            </div>
+          </div>
+        ) : null
+      ) : writerWorks.length === 0 ? (
+        <div className="max-w-3xl">
+          <p className="font-mono text-[11px] uppercase tracking-[0.16em] text-verity-ink-soft border-b border-verity-rule pb-2.5 mb-6">
+            Keterlibatan Editorial &amp; Penyuntingan
+          </p>
+          <ul className="divide-y divide-verity-rule border-b border-verity-rule">
+            {otherWorks.map((c) => (
+              <li key={c.id} className="py-4 first:pt-0">
+                <div className="flex flex-wrap items-baseline gap-x-2.5 gap-y-1">
+                  <span className="font-mono text-[11px] font-medium uppercase tracking-[0.12em] text-verity-accent">
+                    {ROLE_LABEL[c.role.toUpperCase()] ?? c.role}
+                  </span>
+                  {c.article.desk ? (
+                    <>
+                      <span className="text-verity-ink-faint">·</span>
+                      <span className="font-mono text-[11px] text-verity-ink-soft">
+                        {c.article.desk.name}
+                      </span>
+                    </>
+                  ) : null}
+                  {c.article.publishedAt ? (
+                    <>
+                      <span className="text-verity-ink-faint">·</span>
+                      <time className="font-mono text-[11px] text-verity-ink-faint" dateTime={c.article.publishedAt.toISOString()}>
+                        {formatDate(c.article.publishedAt)}
+                      </time>
+                    </>
+                  ) : null}
+                </div>
+                <h3 className="mt-1.5 font-serif text-[1.2rem] font-medium leading-snug text-verity-ink">
+                  <Link
+                    href={`/artikel/${c.article.slug}`}
+                    className="hover:text-verity-accent transition-colors"
+                  >
+                    {c.article.title}
+                  </Link>
+                </h3>
+                {c.article.deck ? (
+                  <p className="mt-1 font-serif text-[0.92rem] text-verity-ink-soft line-clamp-2">
+                    {c.article.deck}
+                  </p>
+                ) : null}
+              </li>
+            ))}
+          </ul>
         </div>
       ) : (
         <div className="grid gap-10 lg:grid-cols-12">
-          <div className="lg:col-span-8 space-y-8">
+          <div className={`${otherWorks.length > 0 ? "lg:col-span-8" : "lg:col-span-12 max-w-4xl"} space-y-8`}>
             {writerWorks.slice(0, 2).map((c) => (
               <FeaturedArticleCard
                 key={c.id}
