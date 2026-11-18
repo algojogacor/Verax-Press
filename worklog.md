@@ -1770,7 +1770,8 @@ Dijalankan 9 Nov 2026 (sesi build-2). Transkrip lengkap: `scripts/acceptance-tes
   * *Aksi & Modifikasi:*
     1. Memperbarui identitas publik profil `person_pemredVP` pada Turso Cloud dan basis data lokal `db/custom.db`: `publicName = 'Redaksi'`, `bio = 'Tim Redaksi Verax Press.'`.
     2. Memperbarui `src/app/(public)/artikel/[slug]/page.tsx` untuk menyaring redundansi: jika byline artikel sudah memuat "Disunting oleh" atau nama editor, baris sekunder `extraEditorCredits` disembunyikan agar tidak terjadi duplikasi tampilan.
-    3. Verifikasi live production pada `https://veraxpress.vercel.app/artikel/ccus-dan-jalan-menuju-net-zero-emission-indonesia-2060-potensi-kerangka-hukum-dan-batasannya` mengonfirmasi tampilan kini resmi memuat: `Disunting oleh Redaksi`.
+    3. Mengubah atribusi editor menjadi teks statis murni tanpa tautan (non-clickable) sehingga tidak mengarahkan pembaca ke halaman profil person.
+    4. Verifikasi live production pada `https://veraxpress.vercel.app/artikel/ccus-dan-jalan-menuju-net-zero-emission-indonesia-2060-potensi-kerangka-hukum-dan-batasannya` mengonfirmasi tampilan kini resmi memuat teks statis: `Disunting oleh Redaksi`.
 
   1. `src/lib/instagram-renderer.ts`: Engine kompilasi layout Satori + Sharp menjadi buffer PNG 1080x1080 px.
   2. `src/lib/instagram.ts`: Klien HTTP tipis ke Meta Instagram Graph API (container creation, polling status, publish, permalink, query publishing limit).

@@ -357,17 +357,7 @@ export default async function ArticlePage({ params }: Params) {
             {extraEditorCredits.length > 0 ? (
               <p className="mt-0.5 font-mono text-[11px] text-verity-ink-faint">
                 Disunting oleh{" "}
-                {extraEditorCredits.map((person, idx) => (
-                  <Fragment key={person.id}>
-                    {idx > 0 ? ", " : ""}
-                    <Link
-                      href={`/penulis/${person.id}`}
-                      className="underline decoration-verity-rule-strong underline-offset-4 hover:text-verity-accent"
-                    >
-                      {person.publicName}
-                    </Link>
-                  </Fragment>
-                ))}
+                {extraEditorCredits.map((person) => person.publicName).join(", ")}
               </p>
             ) : null}
           </div>
