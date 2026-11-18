@@ -1579,3 +1579,218 @@ Dijalankan 9 Nov 2026 (sesi build-2). Transkrip lengkap: `scripts/acceptance-tes
   - `bun run typecheck`: lolos bersih 0 galat.
   - `bun run lint`: lolos bersih 0 galat.
 
+## 76. Revisi Desain Template Rendering Karosel Instagram v2 (16 Nov 2026)
+- **Integrasi Wordmark SVG Resmi (`src/lib/instagram-renderer.ts`):**
+  - Mengganti teks sans-serif biasa pada header slide dengan path vektor SVG wordmark blackletter resmi dari `public/brand/verax-press-wordmark.svg` (`viewBox="191 323 896 192"` dengan `fillRule="evenodd"`).
+  - Berdampingan dengan monogram SVG VP berukuran 38x38 px pada header setiap slide untuk menjaga konsistensi identitas penerbit.
+- **Perombakan Layout Editorial Kanvas 1080x1080 px:**
+  - Menghilangkan kesan kosong dan kaku (posisi konten numpuk di tengah): kanvas kini memanfaatkan pembagian ruang vertikal penuh (`justifyContent: "space-between"`).
+  - Diferensiasi karakter antar-slide:
+    1. **Cover Slide**: Headline Newsreader masif (58px - 76px) bergaris aksen ganda broadsheet, deck pengantar proporsional (29px - 33px), byline redaksi di kiri bawah, dan penunjuk `GESER BACA →` di kanan bawah.
+    2. **Content Slide**: Layout berkas investigasi asimetris, judul lugas (46px - 54px), isi narasi proporsional (32px - 42px), serta kotak berkas verifikasi dokumen primer beraksen merah marun `#8B1E1E`.
+    3. **Quote Slide**: Menghilangkan tanda kutip mengambang dan teks italic tengah bergaya Canva/Pinterest. Menggantinya dengan headline kutipan masif (52px - 62px Newsreader Bold) ala koran cetak, garis aksen merah marun 4px, kutipan lengkap (30px - 34px), atribusi nama + jabatan, dan stempel stempel verifikasi formal (`KESAKSIAN TERCATAT / BUKTI FORMAL`).
+    4. **Closing Slide**: Menghilangkan kotak CTA hitam bergaya banner iklan web marketing. Diganti dengan elemen broadsheet elegan: penomoran rubrik merah crimson (`01`, `02`, `03` dalam Newsreader 34px), serta ajakan membaca bertingkat berlatar keterbukaan dokumen primer dengan tautan domain publik `veraxpress.vercel.app`.
+- **Hasil Render Pratinjau Lokal (Data Dummy/Lorem Ipsum):**
+  - Script `scripts/render-preview-downloads.ts` dijalankan secara lokal tanpa mutasi basis data dan tanpa memanggil Instagram Graph API.
+  - Empat berkas PNG v2 tersimpan di `C:\Users\Arya Rizky\Downloads\`:
+    * `verax-ig-preview-1-cover-v2.png` (95.6 KB, 1080x1080 px)
+    * `verax-ig-preview-2-content-v2.png` (96.7 KB, 1080x1080 px)
+    * `verax-ig-preview-3-quote-v2.png` (82.6 KB, 1080x1080 px)
+    * `verax-ig-preview-4-closing-v2.png` (92.5 KB, 1080x1080 px)
+- **Verifikasi Kualitas dan Regresi:**
+  - `bun scripts/test-render-instagram.ts`: lolos 100% (render 4 slide selesai dalam 1663ms).
+  - `bun test`: 338 pass, 0 fail (3551 expect calls across 28 files).
+  - Bebas dari tanda pisah em dash dan kata-kata terlarang AI sesuai `docs/editorial/VERAX_WRITING_STANDARDS.md`.
+
+## 77. Riset Visual Lapangan & Revisi Template Karosel Instagram v3 (16 Nov 2026)
+- **Riset Visual Nyata Media Investigasi Dunia & Indonesia (via Browser Automation & Studi Kasus):**
+  1. **ProPublica (Redesign Gretel):**
+     * Sistem tipografi dua pilar: Tiempos Serif untuk headline dan pull-quote yang otoritatif, dipadukan dengan Graphik Sans-Serif untuk isi narasi, kicker, dan catatan data agar cepat dibaca saat scrolling mobile.
+     * Palet warna: Off-white warm cream (`#FBFBF9`) dengan teks near-black (`#121212`) untuk kontras tinggi tanpa menyilaukan.
+     * Aksen warna: Penekanan angka/frasa kunci dengan warna tebal di tengah kalimat reguler untuk pembaca yang melakukan skimming kilat.
+     * Konsistensi identitas: Sistem visual Instagram merupakan perpanjangan langsung dari situs web, bukan bahasa desain terpisah.
+  2. **Bellingcat (OSINT & Bukti Forensik):**
+     * *Evidence is the Hero*: Menggunakan citra satelit, potongan dokumen resmi, peta koordinat, dan metadata forensik asli.
+     * Boxed text highlights: Teks putih tebal di dalam blok latar belakang gelap solid untuk menjamin keterbacaan mutlak di atas latar belakang gambar/dokumen yang padat.
+  3. **Project Multatuli (Jurnalistik Investigasi Lokal Indonesia):**
+     * Struktur narasi humanis: Berfokus pada subjek/korban nyata dengan foto situasi dan kutipan saksi langsung (*direct quote*).
+     * Headline lugas dengan blok sorotan warna kontras tinggi, badge rubrik di sudut atas, dan ajakan membaca laporan lengkap di akhir karosel.
+- **Penerapan Prinsip "Clarity Over Atmosphere" & "Progressive Narrative" pada Verax Press (v3):**
+  - **Dua Pilar Tipografi Terpadu:**
+    * Mengadaptasi sistem Newsreader Serif (klasik editorial) untuk Headline dan Kutipan Saksi, dipadukan dengan Inter Sans-Serif untuk Deck pengantar, Narasi tubuh, Kicker, dan Poin rekomendasi.
+    * Memaksimalkan kecepatan baca (*high-speed swipe legibility*) tanpa kehilangan wibawa broadsheet investigasi.
+  - **Alur Cerita Berkesinambungan (Satu Keluarga Visual Kohesif):**
+    * **Slide 1 (Cover)**: Garis aksen merah 4px + Rubrik `LAPORAN INVESTIGASI` + Headline Newsreader masif + Deck ringkasan Inter sans-serif (line-height 1.48) + Byline redaksi + Penunjuk `GESER BACA →`.
+    * **Slide 2 (Content / Temuan Utama)**: Headline temuan Newsreader + Narasi Inter sans-serif yang lapang + Kotak Berkas Bukti (Evidence Callout Dossier) berlatar `#F3ECE1` dengan garis merah marun 6px, nomor berkas rujukan, dan catatan metodologi.
+    * **Slide 3 (Quote / Kesaksian Kunci)**: Headline pengakuan Newsreader + Garis aksen merah marun 4px + Teks kutipan verbatim Newsreader Italic bertanda kutip ganda + Kartu nama narasumber & jabatan + Stempel verifikasi formal (`KESAKSIAN TERCATAT / BUKTI FORMAL`).
+    * **Slide 4 (Closing / Ajakan Baca Broadsheet)**: Judul Newsreader + Tiga poin rekomendasi bernomor (`01`, `02`, `03`) dalam Inter sans-serif + Kartu rujukan investigasi bertautan `veraxpress.vercel.app` dan jaminan transparansi dokumen terbuka tanpa paywall.
+- **Ekspor Berkas Pratinjau v3 ke Downloads Lokal (`C:\Users\Arya Rizky\Downloads\`):**
+  * `verax-ig-preview-1-cover-v3.png` (94.1 KB, 1080x1080 px)
+  * `verax-ig-preview-2-content-v3.png` (92.5 KB, 1080x1080 px)
+  * `verax-ig-preview-3-quote-v3.png` (93.1 KB, 1080x1080 px)
+  * `verax-ig-preview-4-closing-v3.png` (89.7 KB, 1080x1080 px)
+- **Verifikasi Kualitas:**
+  * `bun scripts/render-preview-downloads.ts`: 4 slide selesai dalam 559ms (140ms/slide).
+  * `bun scripts/test-render-instagram.ts`: lolos 100% (463ms).
+  * `bun test tests/instagram-worker.test.ts`: 17 pass, 0 fail.
+  * Nol mutasi basis data, nol pemanggilan Meta Graph API.
+  * Bebas dari tanda pisah em dash dan kata-kata terlarang AI.
+
+## 78. Evaluasi Kritis v2 vs v3 & Perombakan Tata Letak Broadsheet v4 (16 Nov 2026)
+- **Diagnosa Visual Berkas v2 vs v3 (via `read_file` pada PNG aktual):**
+  * Evaluasi jujur: Perbedaan v2 dan v3 murni hanya penggantian font naskah isi (dari Newsreader serif ke Inter sans-serif).
+  * Masalah mendasar belum terselesaikan: Kanvas 1080x1080 px masih didominasi celah kosong sebesar 200px sampai 300px di bagian tengah karena kontainer menggunakan `justifyContent: "space-between"` pada elemen-elemen kecil yang tercerai-berai. Tata letak masih terasa seperti dokumen teks biasa di atas kanvas kosong, bukan broadsheet berita investigasi yang padat dan berbobot.
+- **Perombakan Arsitektur Tata Letak Broadsheet v4 (`src/lib/instagram-renderer.ts`):**
+  1. **Slide 1 (Cover Broadsheet Front Page):**
+     * Headline Newsreader Bold diperbesar drastis (80px) dengan pelacakan rapat (-0.025em) dan garis aksen merah marun 4px.
+     * Mengintegrasikan modul **Berkas Investigasi // Pokok Temuan** (latar `#F2ECE1`, border `#D8D2C6`, aksen marun 6px) dengan pembagian 2 kolom terstruktur (*Fokus Dugaan* vs *Metode Pemeriksaan*). Menutup celah kosong di bawah deck secara elegan dan memberikan bobot investigasi sejak slide pertama.
+  2. **Slide 2 (Content / Berkas Bukti Primer):**
+     * Judul Newsreader 56px + narasi Inter 35px yang tegas dan mudah dipindai cepat saat swipe.
+     * Menambahkan blok *Indikasi Awal* di tengah, serta memperluas modul berkas bukti primer (*Evidence Dossier Module*) menjadi kartu arsip lengkap berisi tabel meta 3 kolom (*Tanggal Berkas: 14 Januari 2026*, *Tipe Dokumen: Risalah Rapat Pleno*, *Status Verifikasi: Tervalidasi Meja Redaksi*) dan catatan rantai bukti independen.
+  3. **Slide 3 (Quote / Kesaksian & Notula BAP):**
+     * Menghilangkan pola kutipan generik. Menggunakan headline kesaksian berbobot koran (Newsreader 62px) dipadukan dengan panel kutipan komprehensif berlatar `#F2ECE1` (teks kutipan italic 36px, atribusi lengkap narasumber, jabatan, nomor berkas audit BPKP, dan stempel verifikasi formal).
+     * Dilengkapi blok *Konteks Kesaksian* dan penomoran referensi arsip (`REF: INV-2026-088`).
+  4. **Slide 4 (Closing / Rekomendasi & Akses Dokumen):**
+     * Tiga kartu rekomendasi (*01 Rekomendasi Audit*, *02 Transparansi Berkas*, *03 Penegakan Hukum*) dirancang berbobot tebal dengan tipografi terstruktur, dipadukan dengan blok *Catatan Redaksi*.
+     * Modul penutup menggunakan kartu pembaca editorial bermartabat tanpa tombol marketing komersial, menyajikan URL `veraxpress.vercel.app` dan penegasan keterbukaan naskah bukti primer untuk publik.
+- **Hasil Render v4 ke Folder Downloads Lokal (`C:\Users\Arya Rizky\Downloads\`):**
+  * `verax-ig-preview-1-cover-v4.png` (117.1 KB, 1080x1080 px)
+  * `verax-ig-preview-2-content-v4.png` (119.5 KB, 1080x1080 px)
+  * `verax-ig-preview-3-quote-v4.png` (118.3 KB, 1080x1080 px)
+  * `verax-ig-preview-4-closing-v4.png` (102.2 KB, 1080x1080 px)
+- **Verifikasi Kualitas:**
+  * `bun run typecheck`: lolos 100% (0 error).
+  * `bun test tests/instagram-worker.test.ts`: 17 pass, 0 fail.
+  * `bun test`: seluruh 338 tes pass di 28 file (100% green).
+  * Nol mutasi basis data, nol pemanggilan Meta Graph API.
+  * Bebas dari tanda pisah em dash dan kata-kata terlarang AI.
+
+## 79. Revisi Total Arah Desain Karosel Instagram v5: Paradigma Etalase Tipografi Masif (16 Nov 2026)
+- **Diagnosa Masalah Iterasi Sebelumnya (v2-v4):**
+  * Iterasi sebelumnya terjebak dalam perangkap "memindahkan naskah dan dokumen ke gambar", dengan menumpuk judul, paragraf, kotak dossier ber-border merah marun, tabel metadata 3 kolom, dan lencana klasifikasi.
+  * Dampak: Slide terasa melelahkan seperti tangkapan layar berkas perkara atau laporan audit resmi. Tidak cocok dengan pola konsumsi pembaca Instagram yang memindai slide dalam tempo 1 hingga 2 detik per slide.
+- **Perombakan Paradigma Desain (v5):**
+  * **Fungsi Etalase**: Karosel adalah etalase penarik minat (*teaser hook*), bukan pengganti naskah lengkap. Rincian rantai bukti, transkrip, dan metodologi diarahkan ke situs web utama (`veraxpress.vercel.app`).
+  * **Satu Ide Besar per Slide**: Setiap slide hanya membawa 1 pesan tunggal yang tajam, dengan teks sangat minim (di bawah 20 kata).
+  * **Penghapusan Total Elemen Kotak Tambahan**: Menghapus seluruh kotak berkas dossier, tabel metadata, dan kartu rekomendasi bernomor. Ruang kanvas krem `#FBF8F3` dibiarkan bernapas lega dengan tipografi Newsreader masif yang mendominasi kanvas.
+  * **Diferensiasi Karakter Slide**:
+    1. **Slide 1 (Cover Broadsheet Front Page)**: Judul Newsreader Bold raksasa (hingga 106px) dengan deck singkat (< 15 kata), byline redaksi, dan indikator `GESER BACA →`.
+    2. **Slide 2 (Content / Temuan Utama)**: Pernyataan temuan tunggal dalam Newsreader Bold raksasa (hingga 98px), sub-lead pelengkap ringkas, dan penyebutan sumber bersahaja 1 baris di atas footer tanpa kotak.
+    3. **Slide 3 (Quote / Kesaksian Kunci)**: Format pull-quote investigasi autentik dengan garis aksen merah marun vertikal 6px di sisi kiri, kutipan Newsreader Italic masif (hingga 84px), nama dan jabatan narasumber langsung di bawahnya, serta penegasan verifikasi meja redaksi.
+    4. **Slide 4 (Closing / Ajakan Baca Broadsheet)**: Kalimat ajakan baca tegas, URL domain raksasa `veraxpress.vercel.app` (88px Newsreader Bold), dan penegasan etos jurnalisme publik tanpa paywall.
+- **Penyesuaian Tata Letak Vertikal:**
+  * Memberikan padding dan margin vertikal yang proporsional pada blok konten tengah agar teks duduk tepat di titik fokus optik (*optical golden center*) kanvas, menghilangkan rongga kosong janggal dan menyeimbangkan komposisi visual antara header logo dan footer.
+- **Hasil Render v5 ke Folder Downloads Lokal (`C:\Users\Arya Rizky\Downloads\`):**
+  * `verax-ig-preview-1-cover-v5.png` (69.7 KB, 1080x1080 px)
+  * `verax-ig-preview-2-content-v5.png` (72.9 KB, 1080x1080 px)
+  * `verax-ig-preview-3-quote-v5.png` (87.9 KB, 1080x1080 px)
+  * `verax-ig-preview-4-closing-v5.png` (81.0 KB, 1080x1080 px)
+- **Dokumentasi Editorial:**
+  * Menyusun panduan worker AI dan redaktur di `docs/editorial/INSTAGRAM_CAROUSEL_GUIDELINES.md` yang memuat batasan panjang kata (< 20 kata), format tiap slide, larangan em dash, dan larangan kata klise AI.
+- **Verifikasi Kualitas:**
+  * `bun scripts/render-preview-downloads.ts`: 4 slide v5 selesai dirender dalam ~1.5 detik (382ms/slide).
+  * `bun run typecheck`: lolos 100% (0 error).
+  * `bun test tests/instagram-worker.test.ts`: 17 pass, 0 fail.
+  * `bun test`: seluruh 338 tes pass di 28 file (100% green).
+  * Nol mutasi basis data, nol pemanggilan Meta Graph API.
+  * Bebas dari tanda pisah em dash dan kata-kata terlarang AI.
+
+## 80. Koreksi Arah Karosel Instagram v7: Narasi Argumentatif Utuh, Tipografi Bersih, dan Jumlah Slide Fleksibel (16 Nov 2026)
+- **Koreksi Arah dari Revisi Sebelumnya (v5-v6):**
+  * Evaluasi kritis v6: Memaksa isi slide dipotong menjadi "satu kalimat pendek tajam" (di bawah 20 kata seperti judul telegram) salah arah karena memotong rantai argumen investigasi dan mengorbankan substansi liputan. Karosel investigasi bertujuan memantik diskusi kritis publik, yang membutuhkan pembahasan argumentatif yang utuh.
+  * Akar masalah sebenarnya di v2-v4: Masalah pada iterasi awal bukan panjang teksnya, melainkan kekacauan tata letak karena teks dikepung oleh terlalu banyak elemen dekoratif berulang (kotak dossier dengan border kiri merah marun, lencana klasifikasi A1, tabel metadata 3 kolom).
+  * Solusi v7: Biarkan narasi argumentatif tetap utuh (konteks, temuan, implikasi), dibangun oleh beberapa kalimat spesifik dan konkret, disajikan lewat tipografi bersih dan hierarki ukuran font serta spasi, tanpa kotak dekoratif berulang.
+- **Fleksibilitas Jumlah Slide & Pemanfaatan Multi-Slide Content:**
+  * Jumlah slide karosel tidak dibatasi secara kaku (bebas 4 hingga 10 slide sesuai batas teknis Instagram).
+  * Tipe slide `content` dapat digunakan berkali-kali secara berurutan (`content 1`, `content 2`, `content 3`, dst.) dalam satu karosel.
+  * Jika suatu temuan atau argumen terlalu kompleks untuk satu kanvas tanpa membuatnya padat, argumen dipecah menjadi beberapa slide content berurutan (misal: Slide 2 untuk konteks dan kejanggalan alokasi anggaran, Slide 3 untuk temuan inti penunjukan sepihak rekanan, Slide 4 untuk implikasi hukum dan aliran dana tanpa jaminan bank).
+- **Implementasi Engine Rendering Karosel v7 (`src/lib/instagram-renderer.ts`):**
+  1. *Helper Parser Teks Pintar (`parseContentSlideText`):* Mengekstrak judul/kalimat pembuka sebagai "pukulan pertama" (*lead punch*) dan rangkaian kalimat penjelas sebagai narasi argumentatif bertingkat.
+  2. *Dua Variasi Tata Letak Tipografi:*
+     * **Variasi A (Klasik Broadsheet):** Pukulan pertama dalam Newsreader Serif Bold (42px hingga 52px) + garis pemisah broadsheet ganda (2px + 1px) + narasi penjelas dalam Inter Sans (26px hingga 31px, line-height 1.54, deep ink `#2B2621`).
+     * **Variasi B (Modern Editorial):** Pukulan pertama dalam Inter Sans Bold (36px hingga 46px) + aksen garis merah marun 3px (lebar 64px) + narasi penjelas dalam Newsreader Serif (28px hingga 33px, line-height 1.5) untuk kontras editorial tingkat tinggi.
+  3. *Penghapusan Total Kotak Berulang:* Menghapus garis batas kiri tebal 6px pada quote dan kotak-kotak dekoratif. Rujukan sumber primer disajikan sebagai teks kecil bersahaja (Inter 15px) di atas garis pemisah tipis di bagian bawah slide.
+  4. *Slide Penutup (Closing):* Memuat kalimat pemantik diskusi kritis / pertanyaan retoris yang menantang akuntabilitas, dipadukan dengan domain monumental `veraxpress.vercel.app` (86px).
+- **Hasil Render v7 ke Folder Downloads Lokal (`C:\Users\Arya Rizky\Downloads\`):**
+  * `verax-ig-preview-1-cover-v7.png` (76.6 KB, 1080x1080 px) - Cover Laporan Khusus
+  * `verax-ig-preview-2-content1-v7.png` (89.3 KB, 1080x1080 px) - Content 1 (Variasi A Broadsheet)
+  * `verax-ig-preview-3-content2-v7.png` (86.3 KB, 1080x1080 px) - Content 2 (Variasi B Modern)
+  * `verax-ig-preview-4-content3-v7.png` (87.8 KB, 1080x1080 px) - Content 3 (Variasi A Broadsheet)
+  * `verax-ig-preview-5-quote-v7.png` (88.2 KB, 1080x1080 px) - Kesaksian Kunci Tanpa Kotak
+  * `verax-ig-preview-6-closing-v7.png` (88.3 KB, 1080x1080 px) - Ajakan Baca & Pertanyaan Kritis
+  * *Berkas Perbandingan Langsung 1-on-1:*
+    - `verax-ig-preview-2-content1-varA-v7.png` (90.2 KB, 1080x1080 px)
+    - `verax-ig-preview-2-content1-varB-v7.png` (87.8 KB, 1080x1080 px)
+- **Pembaruan Panduan Editorial Worker AI:**
+  * Memperbarui `docs/editorial/INSTAGRAM_CAROUSEL_GUIDELINES.md` untuk mencerminkan opsi multi-slide content berurutan, narasi argumentatif utuh, pembatasan kotak dekoratif, dan kewajiban caption kritis pengundang diskusi.
+- **Verifikasi Kualitas:**
+  * `bun run typecheck`: lolos 100% (0 error).
+  * `bun scripts/render-preview-downloads.ts`: 6 slide penuh + 2 perbandingan selesai dalam 596ms (99ms/slide).
+  * `bun scripts/test-render-instagram.ts`: lolos 100% (397ms).
+  * `bun test`: seluruh 341 tes pass di 28 file (100% green, 3558 expect calls).
+  * Nol mutasi basis data (baik SQLite lokal maupun Turso Cloud), nol pemanggilan Meta Graph API.
+  * Bebas dari tanda pisah em dash dan kata-kata terlarang AI.
+
+## 81. Hardening & Audit Kritis Render Karosel v7 (16 Nov 2026)
+- **Temuan Cacat pada Peninjauan Ulang Skeptis:**
+  1. *Tofu Glyph Font Fallback U+2192:* Tombol navigasi "GESER BACA" pada cover menggunakan karakter panah teks `"→"` dengan font Newsreader. Karena font Newsreader tidak memuat glif U+2192, Satori merender kotak pengganti glif rusak bernomor `.notdef` "2192" berwarna merah. Solusi: Mengganti panah teks dengan elemen SVG vektor independen (`<path d="M5 12h14M12 5l7 7-7 7"/>`) dengan zero-runtime font dependency.
+  2. *Kegagalan Regex Pemisah Kalimat Teks Tunggal (`parseContentSlideText`):* Pola regex sebelumnya `/^([^\n.!?]+[.!?])\s+([\s\S]+)$/` gagal memproses teks investigasi yang memuat singkatan (`Rp.`, `No.`, `PT.`, `CV.`, `Dr.`, `Ir.`, `dkk.`) maupun angka desimal bertitik (`Rp 412.8`, `14.5%`). Singkatan terpotong menjadi lead satu kata, atau seluruh teks multi-kalimat gagal dipisah dan membanjiri judul. Solusi: Menerapkan algoritma pemindai batas kalimat yang mengabaikan singkatan jurnalistik Indonesia dan angka desimal.
+  3. *Distribusi Vertikal Terpusat Optik:* Sebelumnya blok konten tengah memiliki `paddingTop: 60px` di dalam kontainer `justifyContent: space-between`, yang menyebabkan teks terdorong ke atas dan menyisakan ruang kosong canggung setinggi 400px di bagian bawah sebelum catatan sumber. Solusi: Mengaktifkan `flex: 1` dan `justifyContent: center` pada blok tengah seluruh tipe slide (`cover`, `content`, `quote`, `closing`) sehingga naskah duduk tepat pada titik fokus optik kanvas.
+  4. *Naskah Closing Terabaikan (`slide.content`):* Pada slide penutup, nilai `slide.content` sebelumnya terabaikan jika `callToAction` terisi dan digantikan kalimat statis baku. Solusi: Menampilkan `slide.content` secara dinamis di bawah domain monumental, dengan fallback kalimat penjamin transparansi jika kosong.
+- **Verifikasi Kualitas:**
+  * Seluruh pengujian otomatis bertambah dari 338 tes menjadi 341 tes (100% green).
+  * Verifikasi visual PNG langsung membuktikan perbaikan glif panah, teks closing yang utuh, dan keseimbangan optik vertikal.
+
+## 82. Finalisasi Desain Karosel Instagram v7 & Penutupan Fitur Auto-Publisher (16 Nov 2026)
+- **Konfirmasi & Penguncian Desain Varian A (Klasik Broadsheet):**
+  * Memilih dan mengunci Varian A sebagai satu-satunya standar template final untuk seluruh jenis slide (`cover`, `content`, `quote`, `closing`).
+  * Karakter visual: Judul/pukulan pertama dalam Newsreader Bold (42px hingga 52px), garis pemisah ganda broadsheet (*double hairline rule* 2px + 1px), narasi tubuh dalam Inter Sans (26px hingga 31px, line-height 1.54, warna tinta legam `#2C2723`), kicker bar merah marun 4px + Inter Bold 15px, serta kutipan rujukan sumber primer bersahaja 15px di atas garis pemisah tipis tanpa wadah kotak dekoratif.
+  * Harmonisasi desain total: Garis pemisah ganda broadsheet diterapkan seragam pada slide content, pembatas narasumber pada slide quote, dan pemisah ajakan baca pada slide closing.
+- **Pembersihan Jalur Kode Mati (Eliminasi Varian B):**
+  * Menghapus variabel `layoutVariant`, `isModern`, dan percabangan font/garis merah dari `src/lib/instagram-renderer.ts`.
+  * Menghapus `layoutVariant` dari skema Zod `slideSchema` di `src/app/api/internal/v1/instagram/publish/route.ts`.
+  * Memperbarui skrip `scripts/render-preview-downloads.ts` untuk merender 6 slide skenario investigasi Selat Makassar dengan template final Varian A ke folder `C:\Users\Arya Rizky\Downloads\` dengan suffix nama `-FINAL.png`.
+- **Hasil Render 6 Slide Karosel Final ke Folder Downloads Lokal:**
+  * `verax-ig-preview-1-cover-FINAL.png` (76.6 KB, 1080x1080 px) - Cover Laporan Khusus
+  * `verax-ig-preview-2-content1-FINAL.png` (89.3 KB, 1080x1080 px) - Content 1 (Konteks & Alokasi Anggaran)
+  * `verax-ig-preview-3-content2-FINAL.png` (87.0 KB, 1080x1080 px) - Content 2 (Temuan Inti Rekanan)
+  * `verax-ig-preview-4-content3-FINAL.png` (87.8 KB, 1080x1080 px) - Content 3 (Implikasi Hukum & Aliran Dana)
+  * `verax-ig-preview-5-quote-FINAL.png` (88.2 KB, 1080x1080 px) - Kesaksian Kunci Bergaris Ganda Broadsheet
+  * `verax-ig-preview-6-closing-FINAL.png` (88.3 KB, 1080x1080 px) - Ajakan Baca & Pertanyaan Kritis Diskusi
+- **Dokumentasi Kontrak API Resmi:**
+  * Menyusun berkas `docs/editorial/INSTAGRAM_WORKER_API_CONTRACT.md`:
+    - Skema komprehensif `GET /api/internal/v1/instagram/articles` dan `POST /api/internal/v1/instagram/publish`.
+    - Contoh payload JSON valid untuk kedua endpoint.
+    - Tabel lengkap kode galat (400 MALFORMED_JSON, 400 INVALID_ARTICLE_STATUS, 401 UNAUTHORIZED, 401 CREDENTIAL_EXPIRED, 403 INVALID_CLIENT_SCOPE, 404 NOT_FOUND, 409 ALREADY_POSTED, 422 VALIDATION_ERROR, 500 RENDER_ERROR, 500 INTERNAL).
+    - Mekanisme autentikasi Bearer `clientId.secret`, hashing SHA-256, dan isolasi cakupan `INSTAGRAM_WORKER` vs `INGESTION`.
+  * Memperbarui `docs/api-contract.md` pada seksi `## Instagram Worker`.
+- **Pembaruan Atribusi Editor Publik (18 November 2026):**
+  * *Latar Belakang:* Pada artikel terbit seperti CCUS, baris atribusi editor sebelumnya menampilkan nama personal Pemimpin Redaksi ("Arya Rizky Ardhi Pratama") via relasi `ArticleContribution` ke entitas `Person`.
+  * *Permintaan Pengguna:* Mengubah semua atribusi penyuntingan publik menjadi "Disunting oleh Redaksi".
+  * *Aksi & Modifikasi:*
+    1. Memperbarui identitas publik profil `person_pemredVP` pada Turso Cloud dan basis data lokal `db/custom.db`: `publicName = 'Redaksi'`, `bio = 'Tim Redaksi Verax Press.'`.
+    2. Memperbarui `src/app/(public)/artikel/[slug]/page.tsx` untuk menyaring redundansi: jika byline artikel sudah memuat "Disunting oleh" atau nama editor, baris sekunder `extraEditorCredits` disembunyikan agar tidak terjadi duplikasi tampilan.
+    3. Verifikasi live production pada `https://veraxpress.vercel.app/artikel/ccus-dan-jalan-menuju-net-zero-emission-indonesia-2060-potensi-kerangka-hukum-dan-batasannya` mengonfirmasi tampilan kini resmi memuat: `Disunting oleh Redaksi`.
+
+  1. `src/lib/instagram-renderer.ts`: Engine kompilasi layout Satori + Sharp menjadi buffer PNG 1080x1080 px.
+  2. `src/lib/instagram.ts`: Klien HTTP tipis ke Meta Instagram Graph API (container creation, polling status, publish, permalink, query publishing limit).
+  3. `src/lib/instagram-service.ts`: Orkestrasi alur publikasi, abstraksi penyimpanan media lokal/remote, logika retry otomatis 3x dengan backoff eksponensial, dan penjagaan idempotensi status `POSTED`.
+  4. `src/app/api/internal/v1/instagram/articles/route.ts`: Endpoint GET pembacaan artikel siap terbit (filter `PUBLISHED` & belum `POSTED`).
+  5. `src/app/api/internal/v1/instagram/publish/route.ts`: Endpoint POST validasi payload, eksekusi render visual, dan publikasi ke Instagram.
+  6. `prisma/schema.prisma`: Definisi model `InstagramPost` dan nilai enum `ApiClientType.INSTAGRAM_WORKER`.
+  7. `docs/editorial/INSTAGRAM_CAROUSEL_GUIDELINES.md`: Panduan editorial penulisan naskah karosel dan perancangan caption kritis.
+  8. `docs/editorial/INSTAGRAM_WORKER_API_CONTRACT.md`: Kontrak teknis API resmi untuk worker otomatisasi.
+  9. `scripts/render-preview-downloads.ts`: Skrip utilitas pengujian rendering offline ke folder Downloads.
+- **Catatan Operasional untuk Pengembangan & Pemeliharaan ke Depan:**
+  * *Rotasi Kredensial Meta:* Token akses Instagram Graph API (Page Access Token jangka panjang) memiliki masa kedaluwarsa 60 hari dari Meta. Tim operasional wajib memperbarui variabel lingkungan `INSTAGRAM_ACCESS_TOKEN` sebelum masa berlaku habis.
+  * *Batas Kuota Publikasi Platform:* Akun bisnis Instagram dibatasi kuota 25 postingan per 24 jam bergulir (*rolling 24-hour window*). Klien `src/lib/instagram.ts` menyediakan helper `checkPublishingLimit` untuk memeriksa sisa kuota sebelum memposting.
+  * *Penanganan Kegagalan & Peringatan Studio:* Naskah yang mengalami kegagalan posting 3x berturut-turut dicatat dengan status `FAILED` beserta pesan `lastError`. Postingan `FAILED` otomatis memicu kotak peringatan (*alert banner*) pada dashboard CMS Studio `/studio` sehingga Pemimpin Redaksi dapat memeriksa kendala jaringan atau format naskah. Naskah berstatus `FAILED` tetap tersedia pada endpoint `GET /api/internal/v1/instagram/articles` untuk dicoba ulang setelah kendala diselesaikan.
+- **Verifikasi Kualitas Akhir:**
+  * `bun run typecheck`: lolos 100% (0 error).
+  * `bun test tests/instagram-worker.test.ts tests/instagram-client.test.ts`: 35 pass, 0 fail (200 assertions).
+  * `bun test`: seluruh 341 tes pass di 28 file (100% green, 3566 assertions).
+  * Nol mutasi basis data lokal maupun produksi, nol pemanggilan Meta Graph API selama testing.
+  * Bebas 100% dari tanda pisah em dash dan kata-kata klise AI.
+
+
+

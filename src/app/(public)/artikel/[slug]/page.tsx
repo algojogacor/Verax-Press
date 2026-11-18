@@ -240,6 +240,12 @@ export default async function ArticlePage({ params }: Params) {
       ? []
       : writerCredits;
 
+  const bylineLower = article.byline.toLowerCase();
+  const bylineIncludesEditor =
+    bylineLower.includes("disunting oleh") ||
+    editorCredits.some((c) => bylineLower.includes(c.publicName.toLowerCase()));
+  const extraEditorCredits = bylineIncludesEditor ? [] : editorCredits;
+
   const articleImages = collectArticleRasterImages(baseUrl, article.heroMedia?.url, content);
 
   const related = await db.article.findMany({
@@ -348,10 +354,10 @@ export default async function ArticlePage({ params }: Params) {
                 ))}
               </p>
             ) : null}
-            {editorCredits.length > 0 ? (
+            {extraEditorCredits.length > 0 ? (
               <p className="mt-0.5 font-mono text-[11px] text-verity-ink-faint">
                 Disunting oleh{" "}
-                {editorCredits.map((person, idx) => (
+                {extraEditorCredits.map((person, idx) => (
                   <Fragment key={person.id}>
                     {idx > 0 ? ", " : ""}
                     <Link
