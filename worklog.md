@@ -1768,10 +1768,14 @@ Dijalankan 9 Nov 2026 (sesi build-2). Transkrip lengkap: `scripts/acceptance-tes
   * *Latar Belakang:* Pada artikel terbit seperti CCUS, baris atribusi editor sebelumnya menampilkan nama personal Pemimpin Redaksi ("Arya Rizky Ardhi Pratama") via relasi `ArticleContribution` ke entitas `Person`.
   * *Permintaan Pengguna:* Mengubah semua atribusi penyuntingan publik menjadi "Disunting oleh Redaksi".
   * *Aksi & Modifikasi:*
-    1. Memperbarui identitas publik profil `person_pemredVP` pada Turso Cloud dan basis data lokal `db/custom.db`: `publicName = 'Redaksi'`, `bio = 'Tim Redaksi Verax Press.'`.
-    2. Memperbarui `src/app/(public)/artikel/[slug]/page.tsx` untuk menyaring redundansi: jika byline artikel sudah memuat "Disunting oleh" atau nama editor, baris sekunder `extraEditorCredits` disembunyikan agar tidak terjadi duplikasi tampilan.
-    3. Mengubah atribusi editor menjadi teks statis murni tanpa tautan (non-clickable) sehingga tidak mengarahkan pembaca ke halaman profil person.
-    4. Verifikasi live production pada `https://veraxpress.vercel.app/artikel/ccus-dan-jalan-menuju-net-zero-emission-indonesia-2060-potensi-kerangka-hukum-dan-batasannya` mengonfirmasi tampilan kini resmi memuat teks statis: `Disunting oleh Redaksi`.
+    1. Memulihkan identitas publik `person_pemredVP` pada Turso Cloud dan `db/custom.db`: `publicName = 'Arya Rizky Ardhi Pratama'`, `bio = 'Pemimpin Redaksi Verax Press · Ilmu Hukum, Universitas Airlangga.'`.
+    2. Menambahkan dan memperbarui identitas anggota staf redaksi:
+       - Salman Zahi Muhajirin: `bio = 'Staf Redaksi Verax Press · Sistem Informasi, Universitas Airlangga.'`
+       - Muhammad Rafi Raditya Akbar: `bio = 'Staf Redaksi Verax Press · Sastra Inggris, Universitas Islam Negeri Sunan Ampel Surabaya (UINSA).'`
+    3. Memperbarui halaman `/tentang` dan `/informasi-kelembagaan` untuk menyajikan struktur ruang redaksi lengkap (Pemimpin Redaksi + Staf Redaksi & Penulis).
+    4. Menyempurnakan halaman `/penulis/[id]` agar menampilkan label peran dinamis ("Pemimpin Redaksi", "Staf Redaksi", atau "Penulis").
+    5. Menetapkan baris kredit editor pada halaman artikel publik sebagai teks statis independen: `Disunting oleh Redaksi` (tanpa tautan atau kebocoran nama personal).
+    6. Verifikasi live production pada `https://veraxpress.vercel.app` mengonfirmasi pemulihan profil dan konsistensi seluruh kanal.
 
   1. `src/lib/instagram-renderer.ts`: Engine kompilasi layout Satori + Sharp menjadi buffer PNG 1080x1080 px.
   2. `src/lib/instagram.ts`: Klien HTTP tipis ke Meta Instagram Graph API (container creation, polling status, publish, permalink, query publishing limit).

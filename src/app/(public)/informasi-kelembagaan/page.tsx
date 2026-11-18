@@ -81,24 +81,52 @@ export default function InstitutionalInfoPage() {
         </li>
       </ul>
 
-      <h2>4. Kepemimpinan Redaksi</h2>
+      <h2>4. Kepemimpinan &amp; Staf Redaksi</h2>
       <p>
-        Kebijakan editorial dan kendali mutu naskah Verax Press berada di bawah tanggung jawab:
+        Kebijakan editorial, kendali mutu naskah, dan verifikasi sumber Verax Press dijalankan oleh meja redaksi:
       </p>
-      <div className="mt-4 border border-verity-rule bg-verity-paper-soft p-5 max-w-md">
-        <p className="font-mono text-[11px] uppercase tracking-[0.16em] text-verity-accent">
-          Pemimpin Redaksi
-        </p>
-        <p className="mt-1 font-serif text-[1.2rem] font-semibold text-verity-ink">
-          Arya Rizky Ardhi Pratama
-        </p>
-        <p className="mt-1 text-xs text-verity-ink-soft">
-          Penanggung Jawab Kebijakan Redaksi &amp; Persetujuan Penerbitan Naskah
-        </p>
-        <div className="mt-3 pt-3 border-t border-verity-rule text-xs font-mono text-verity-ink-soft">
-          <Link href="/kontak" className="underline hover:text-verity-accent">
-            Hubungi Meja Redaksi →
-          </Link>
+      <div className="mt-4 space-y-4 max-w-lg">
+        <div className="border border-verity-rule bg-verity-paper-soft p-5">
+          <p className="font-mono text-[11px] uppercase tracking-[0.16em] text-verity-accent">
+            Pemimpin Redaksi
+          </p>
+          <p className="mt-1 font-serif text-[1.2rem] font-semibold text-verity-ink">
+            Arya Rizky Ardhi Pratama
+          </p>
+          <p className="mt-1 text-xs text-verity-ink-soft">
+            Penanggung Jawab Kebijakan Redaksi &amp; Persetujuan Penerbitan Naskah (Ilmu Hukum, Universitas Airlangga)
+          </p>
+          <div className="mt-3 pt-3 border-t border-verity-rule text-xs font-mono text-verity-ink-soft">
+            <Link href="/kontak" className="underline hover:text-verity-accent">
+              Hubungi Meja Redaksi →
+            </Link>
+          </div>
+        </div>
+
+        <div className="grid gap-3 sm:grid-cols-2">
+          <div className="border border-verity-rule bg-verity-paper-soft p-4">
+            <p className="font-mono text-[10px] uppercase tracking-[0.16em] text-verity-accent">
+              Staf Redaksi &amp; Penulis
+            </p>
+            <p className="mt-1 font-serif text-[1.05rem] font-semibold text-verity-ink">
+              Salman Zahi Muhajirin
+            </p>
+            <p className="mt-1 text-xs text-verity-ink-soft">
+              Sistem Informasi, Universitas Airlangga
+            </p>
+          </div>
+
+          <div className="border border-verity-rule bg-verity-paper-soft p-4">
+            <p className="font-mono text-[10px] uppercase tracking-[0.16em] text-verity-accent">
+              Staf Redaksi &amp; Penulis
+            </p>
+            <p className="mt-1 font-serif text-[1.05rem] font-semibold text-verity-ink">
+              Muhammad Rafi Raditya Akbar
+            </p>
+            <p className="mt-1 text-xs text-verity-ink-soft">
+              Sastra Inggris, UIN Sunan Ampel Surabaya
+            </p>
+          </div>
         </div>
       </div>
 

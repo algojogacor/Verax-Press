@@ -356,8 +356,7 @@ export default async function ArticlePage({ params }: Params) {
             ) : null}
             {extraEditorCredits.length > 0 ? (
               <p className="mt-0.5 font-mono text-[11px] text-verity-ink-faint">
-                Disunting oleh{" "}
-                {extraEditorCredits.map((person) => person.publicName).join(", ")}
+                Disunting oleh Redaksi
               </p>
             ) : null}
           </div>

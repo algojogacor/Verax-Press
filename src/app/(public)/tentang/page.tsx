@@ -216,24 +216,60 @@ export default async function AboutPage() {
             <h2 id="identitas-redaksi" className="font-serif text-[1.4rem] font-semibold text-verity-ink">
               Identitas Redaksi
             </h2>
-            <div className="mt-4 space-y-4 font-serif text-[1.02rem] leading-[1.78] text-verity-ink">
+            <div className="mt-4 space-y-6 font-serif text-[1.02rem] leading-[1.78] text-verity-ink">
               <p>
-                Seluruh kebijakan editorial, penegakan standar jurnalistik, dan persetujuan penerbitan
-                naskah berada di bawah tanggung jawab Pemimpin Redaksi:
+                Kebijakan editorial, penegakan standar jurnalistik, dan persetujuan penerbitan
+                naskah berada di bawah tanggung jawab Pemimpin Redaksi bersama tim redaksi:
               </p>
-              <div className="border border-verity-rule bg-verity-paper-soft p-5 max-w-lg">
-                <p className="font-mono text-[10px] uppercase tracking-[0.16em] text-verity-accent">
-                  Pemimpin Redaksi
-                </p>
-                <p className="mt-1 font-serif text-[1.25rem] font-semibold text-verity-ink">
-                  Arya Rizky Ardhi Pratama
-                </p>
-                <p className="mt-1 font-serif text-[0.92rem] text-verity-ink-soft">
-                  Penanggung Jawab Kebijakan Redaksi &amp; Persetujuan Penerbitan Naskah
-                </p>
-                <p className="mt-3 font-mono text-[11px] text-verity-ink-faint border-t border-verity-rule pt-2.5">
-                  Meja Redaksi Verax Press · Indonesia
-                </p>
+
+              <div className="grid gap-4 sm:grid-cols-2">
+                <div className="border border-verity-rule bg-verity-paper-soft p-5 sm:col-span-2">
+                  <p className="font-mono text-[10px] uppercase tracking-[0.16em] text-verity-accent">
+                    Pemimpin Redaksi
+                  </p>
+                  <p className="mt-1 font-serif text-[1.25rem] font-semibold text-verity-ink">
+                    Arya Rizky Ardhi Pratama
+                  </p>
+                  <p className="mt-1 font-serif text-[0.92rem] text-verity-ink-soft">
+                    Penanggung Jawab Kebijakan Redaksi &amp; Persetujuan Penerbitan Naskah
+                  </p>
+                  <p className="mt-1 font-mono text-[11px] text-verity-ink-faint">
+                    Ilmu Hukum · Universitas Airlangga
+                  </p>
+                  <p className="mt-3 font-mono text-[11px] text-verity-ink-faint border-t border-verity-rule pt-2.5">
+                    Meja Redaksi Verax Press · Indonesia
+                  </p>
+                </div>
+
+                <div className="border border-verity-rule bg-verity-paper-soft p-5">
+                  <p className="font-mono text-[10px] uppercase tracking-[0.16em] text-verity-accent">
+                    Staf Redaksi &amp; Penulis
+                  </p>
+                  <p className="mt-1 font-serif text-[1.15rem] font-semibold text-verity-ink">
+                    Salman Zahi Muhajirin
+                  </p>
+                  <p className="mt-1 font-serif text-[0.88rem] text-verity-ink-soft">
+                    Penulisan &amp; Riset Isu Teknologi dan Kebijakan Digital
+                  </p>
+                  <p className="mt-2 font-mono text-[11px] text-verity-ink-faint border-t border-verity-rule pt-2">
+                    Sistem Informasi · Universitas Airlangga
+                  </p>
+                </div>
+
+                <div className="border border-verity-rule bg-verity-paper-soft p-5">
+                  <p className="font-mono text-[10px] uppercase tracking-[0.16em] text-verity-accent">
+                    Staf Redaksi &amp; Penulis
+                  </p>
+                  <p className="mt-1 font-serif text-[1.15rem] font-semibold text-verity-ink">
+                    Muhammad Rafi Raditya Akbar
+                  </p>
+                  <p className="mt-1 font-serif text-[0.88rem] text-verity-ink-soft">
+                    Penulisan &amp; Riset Isu Sosial, Budaya, dan Bahasa
+                  </p>
+                  <p className="mt-2 font-mono text-[11px] text-verity-ink-faint border-t border-verity-rule pt-2">
+                    Sastra Inggris · UIN Sunan Ampel Surabaya
+                  </p>
+                </div>
               </div>
             </div>
           </section>

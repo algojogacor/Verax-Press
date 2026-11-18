@@ -141,7 +141,13 @@ export default async function AuthorPage({ params }: PageCtx) {
       <Breadcrumbs items={[{ label: "Beranda", href: "/" }, { label: displayName }]} />
 
       <header className="border-b-2 border-verity-ink pb-6 mb-8">
-        <p className="font-mono text-[11px] uppercase tracking-[0.16em] text-verity-accent">Penulis</p>
+        <p className="font-mono text-[11px] uppercase tracking-[0.16em] text-verity-accent">
+          {person.staffUserId === "pemredVP_official"
+            ? "Pemimpin Redaksi"
+            : person.accountType === "STAFF"
+              ? "Staf Redaksi"
+              : "Penulis"}
+        </p>
         <h1 className="mt-2 font-serif text-3xl font-semibold md:text-4xl tracking-tight text-verity-ink">
           {displayName}
         </h1>
